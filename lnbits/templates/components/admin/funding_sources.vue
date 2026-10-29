@@ -50,7 +50,7 @@
               v-model="formData[key]"
               filled
               class="q-mt-sm"
-              :type="prop.text ? 'text' : hideInput ? 'password' : 'text'"
+              :type="hideInput ? 'password' : 'text'"
               autocomplete="off"
               :label="prop.label"
               :hint="prop.hint"
@@ -110,7 +110,7 @@
                 v-model="formData[key]"
                 filled
                 class="q-mt-sm"
-                :type="prop.text ? 'text' : hideInput ? 'password' : 'text'"
+                :type="hideInput ? 'password' : 'text'"
                 autocomplete="off"
                 :label="prop.label"
                 :hint="prop.hint"

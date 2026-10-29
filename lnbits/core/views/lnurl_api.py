@@ -101,7 +101,7 @@ async def _handle(lnurl: str) -> LnurlResponseModel:
 async def api_lnurlscan(code: str) -> LnurlResponseModel:
     res = await _handle(code)
     if isinstance(res, LnurlPayResponse | LnurlWithdrawResponse | LnurlAuthResponse):
-        check_callback_url(res.callback)
+        check_callback_url(str(res.callback))
     return res
 
 
@@ -121,7 +121,7 @@ async def api_lnurlscan_post(scan: LnurlScan) -> LnurlResponseModel:
 async def api_perform_lnurlauth(
     data: LnurlAuthResponse, key_type: WalletTypeInfo = Depends(require_admin_key)
 ) -> LnurlResponseModel:
-    check_callback_url(data.callback)
+    check_callback_url(str(data.callback))
     try:
         res = await lnurlauth(
             res=data,
@@ -199,9 +199,9 @@ async def _check_extension_well_known(
         response.raise_for_status()
         response_data = response.json()
         try:
-            return LnurlPayResponse.parse_obj(response_data)
+            return LnurlPayResponse.model_validate(response_data)
         except ValidationError:
-            return LnurlErrorResponse.parse_obj(response_data)
+            return LnurlErrorResponse.model_validate(response_data)
     except Exception as exc:
         logger.warning(
             f"Failed to fetch LNURL response Extension redirect {target_path}: {exc}"

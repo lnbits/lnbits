@@ -3,7 +3,7 @@ from typing import Literal
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from lnbits.decorators import check_admin, check_super_user, parse_filters
 from lnbits.settings import settings
@@ -125,7 +125,8 @@ async def api_phoenixd_receive(
 class PhoenixdFeeRequest(BaseModel):
     fee_rate: int = Field(gt=0, le=1_000_000)
 
-    @validator("fee_rate", pre=True)
+    @field_validator("fee_rate", mode="before")
+    @classmethod
     def validate_fee_rate(cls, value):
         if type(value) is not int:
             raise ValueError("Fee rate must be a whole number of sat/vB")
@@ -136,7 +137,8 @@ class PhoenixdSendRequest(PhoenixdFeeRequest):
     address: str = Field(min_length=14, max_length=128)
     amount_sat: int = Field(gt=0, le=2_100_000_000_000_000)
 
-    @validator("amount_sat", pre=True)
+    @field_validator("amount_sat", mode="before")
+    @classmethod
     def validate_amount(cls, value):
         if type(value) is not int:
             raise ValueError("Amount must be a whole number of sats")
@@ -145,7 +147,7 @@ class PhoenixdSendRequest(PhoenixdFeeRequest):
 
 class PhoenixdCloseRequest(PhoenixdFeeRequest):
     address: str = Field(min_length=14, max_length=128)
-    channel_id: str = Field(regex=r"^[0-9a-fA-F]{64}$")
+    channel_id: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
 
 
 @super_node_router.post("/phoenixd/close")
@@ -299,11 +301,11 @@ async def api_disconnect_peer(peer_id: str, node: Node = Depends(require_node)):
 
 
 class NodeRank(BaseModel):
-    capacity: int | None
-    channelcount: int | None
-    age: int | None
-    growth: int | None
-    availability: int | None
+    capacity: int | None = None
+    channelcount: int | None = None
+    age: int | None = None
+    growth: int | None = None
+    availability: int | None = None
 
 
 # Same for public and private api

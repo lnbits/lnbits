@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
-import inspect
 import json
 import os
 import re
@@ -11,11 +10,20 @@ from enum import Enum
 from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
-from typing import Any, Literal
+from typing import Any, Literal, get_args, get_origin
 from uuid import uuid4
 
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, Field, validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationInfo,
+    field_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_WASM_MANIFESTS = [
     "https://raw.githubusercontent.com/lnbits/lnbits-extensions-wasm/refs/heads/main/extensions.json"
@@ -206,7 +214,7 @@ class ExchangeRateProvider(BaseModel):
         try:
             for t in self.ticker_conversion:
                 _from, _to = t.split(":")
-                if _from == currency:
+                if _from.upper() == currency.upper():
                     return _to
         except Exception as err:
             logger.warning(err)
@@ -465,6 +473,7 @@ class ExchangeProvidersSettings(LNbitsSettings):
 
 
 class SecuritySettings(LNbitsSettings):
+    lnbits_allow_onchain_payments: bool = Field(default=False)
     lnbits_rate_limit_no: int = Field(default=200, ge=0)
     lnbits_rate_limit_unit: str = Field(default="minute")
     lnbits_allowed_ips: list[str] = Field(default=[])
@@ -498,6 +507,9 @@ class SecuritySettings(LNbitsSettings):
 
 class NotificationsSettings(LNbitsSettings):
     lnbits_nostr_notifications_enabled: bool = Field(default=False)
+    lnbits_nostr_notifications_protocol: Literal["nip04", "nip17"] = Field(
+        default="nip17"
+    )
     lnbits_nostr_notifications_private_key: str = Field(default="")
     lnbits_nostr_notifications_identifiers: list[str] = Field(default=[])
     lnbits_telegram_notifications_enabled: bool = Field(default=False)
@@ -552,10 +564,6 @@ class LNbitsFundingSource(LNbitsSettings):
     lnbits_key: str | None = Field(default=None)
     lnbits_admin_key: str | None = Field(default=None)
     lnbits_invoice_key: str | None = Field(default=None)
-
-
-class ClicheFundingSource(LNbitsSettings):
-    cliche_endpoint: str | None = Field(default=None)
 
 
 class CLNRestFundingSource(LNbitsSettings):
@@ -634,10 +642,6 @@ class AmbossFundingSource(LNbitsSettings):
     amboss_service_api_key: str | None = Field(default=None)
     amboss_wallet_id: str | None = Field(default=None)
     amboss_team_password: str | None = Field(default=None)
-    # Sandbox wallets can be told to auto-settle received invoices via the
-    # `amb_sandbox_behavior` metadata key (rails ignores it for LIVE wallets).
-    amboss_sandbox: bool = Field(default=False)
-    amboss_sandbox_auto_complete: bool = Field(default=False)
 
 
 class ZBDFundingSource(LNbitsSettings):
@@ -722,10 +726,8 @@ class BoltzFundingSource(LNbitsSettings):
 
 
 class StrikeFundingSource(LNbitsSettings):
-    strike_api_endpoint: str | None = Field(
-        default="https://api.strike.me/v1", env="STRIKE_API_ENDPOINT"
-    )
-    strike_api_key: str | None = Field(default=None, env="STRIKE_API_KEY")
+    strike_api_endpoint: str | None = Field(default="https://api.strike.me/v1")
+    strike_api_key: str | None = Field(default=None)
 
 
 class FiatProviderLimits(BaseModel):
@@ -806,7 +808,6 @@ class LightningSettings(LNbitsSettings):
 class FundingSourcesSettings(
     FakeWalletFundingSource,
     LNbitsFundingSource,
-    ClicheFundingSource,
     CLNRestFundingSource,
     CoreLightningFundingSource,
     CoreLightningRestFundingSource,
@@ -834,6 +835,7 @@ class FundingSourcesSettings(
     # How long to wait for the payment to be confirmed before returning a pending status
     # It will not fail the payment, it will make it return pending after the timeout
     lnbits_funding_source_pay_invoice_wait_seconds: int = Field(default=5, ge=0)
+    lnbits_funding_source_pay_offer_wait_seconds: int = Field(default=20, ge=0)
     lnbits_funding_source_pending_interval_seconds: int = Field(default=1800, ge=0)
     funding_source_max_retries: int = Field(default=4, ge=0)
 
@@ -844,6 +846,13 @@ class FiatProvidersSettings(
     SquareFiatProvider,
     RevolutFiatProvider,
 ):
+    lnbits_allow_fiat_wallets: bool = False
+
+    def can_create_fiat_wallet(self, user_id: str) -> bool:
+        return self.lnbits_allow_fiat_wallets or bool(
+            self.get_fiat_providers_for_user(user_id)
+        )
+
     def is_fiat_provider_enabled(self, provider: str | None) -> bool:
         """
         Checks if a specific fiat provider is enabled.
@@ -914,13 +923,13 @@ class NodeUISettings(LNbitsSettings):
 
 
 class BlockExplorerSettings(LNbitsSettings):
-    lnbits_blockexplorer_enabled: bool = Field(default=False)
+    lnbits_blockexplorer_enabled: bool = Field(default=True)
     lnbits_blockexplorer_public_api: bool = Field(default=False)
-    lnbits_blockexplorer_in_user_menu: bool = Field(default=False)
+    lnbits_blockexplorer_in_user_menu: bool = Field(default=True)
     lnbits_blockexplorer_electrum_url: str = Field(
         default="ssl://electrum.blockstream.info:50002"
     )
-    # one of: main, test, regtest, signet (see embit.networks.NETWORKS)
+    # one of: main, test, test4, regtest, signet
     lnbits_blockexplorer_network: str = Field(default="main")
 
 
@@ -993,6 +1002,27 @@ class OidcAuthSettings(LNbitsSettings):
     oidc_client_secret: str = Field(default="")
     oidc_client_custom_org: str | None = Field(default=None)
     oidc_client_custom_icon: str | None = Field(default=None)
+
+
+class TwoFactorSettings(LNbitsSettings):
+    lnbits_two_factor_enabled: bool = Field(default=False)
+    lnbits_two_factor_methods: list[str] = Field(default=["totp"])
+    lnbits_two_factor_mandatory: bool = Field(default=False)
+
+    @field_validator("lnbits_two_factor_methods")
+    @classmethod
+    def validate_two_factor_methods(cls, methods: list[str]) -> list[str]:
+        if any(method != "totp" for method in methods):
+            raise ValueError("Only TOTP is supported.")
+        return list(dict.fromkeys(methods))
+
+
+class SchedulerSettings(LNbitsSettings):
+    lnbits_scheduler_enabled: bool = True
+    lnbits_scheduler_history_retention_days: int = Field(default=7, ge=1)
+    lnbits_scheduler_history_failed_retention_days: int = Field(default=30, ge=1)
+    lnbits_scheduler_history_max_runs_per_user: int = Field(default=1000, ge=1)
+    lnbits_scheduler_history_max_runs_per_extension: int = Field(default=1000, ge=1)
 
 
 class AuditSettings(LNbitsSettings):
@@ -1099,6 +1129,8 @@ class EditableSettings(
     NodeUISettings,
     BlockExplorerSettings,
     AuditSettings,
+    SchedulerSettings,
+    TwoFactorSettings,
     AuthSettings,
     NostrAuthSettings,
     GoogleAuthSettings,
@@ -1106,7 +1138,7 @@ class EditableSettings(
     KeycloakAuthSettings,
     OidcAuthSettings,
 ):
-    @validator(
+    @field_validator(
         "lnbits_admin_users",
         "lnbits_allowed_users",
         "lnbits_wallet_lightning_address_blacklist",
@@ -1114,7 +1146,7 @@ class EditableSettings(
         "lnbits_admin_extensions",
         "lnbits_extensions_manifests",
         "lnbits_wasm_extensions_manifests",
-        pre=True,
+        mode="before",
     )
     @classmethod
     def validate_editable_settings(cls, val):
@@ -1122,24 +1154,23 @@ class EditableSettings(
 
     @classmethod
     def from_dict(cls, d: dict):
-        return cls(
-            **{k: v for k, v in d.items() if k in inspect.signature(cls).parameters}
-        )
-
-    # fixes openapi.json validation, remove field env_names
-    class Config:
-        @staticmethod
-        def schema_extra(schema: dict[str, Any]) -> None:
-            for prop in schema.get("properties", {}).values():
-                prop.pop("env_names", None)
+        return cls(**{k: v for k, v in d.items() if k in cls.model_fields})
 
 
 class UpdateSettings(EditableSettings):
-    class Config(EditableSettings.Config):
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
 
 class EnvSettings(LNbitsSettings):
+    model_config = ConfigDict(populate_by_name=True)
+
+    lnbits_onchain_master_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "lnbits_onchain_master_key", "WATCHONLY_MASTER_KEY"
+        ),
+        exclude=True,
+    )
     debug: bool = Field(default=False)
     debug_database: bool = Field(default=False)
     bundle_assets: bool = Field(default=True)
@@ -1154,6 +1185,8 @@ class EnvSettings(LNbitsSettings):
     lnbits_extensions_path: str = Field(default="lnbits")
     super_user: str = Field(default="")
     auth_secret_key: str = Field(default="")
+    # Generated and persisted as .lnbits_totp_key when unset.
+    totp_encryption_key: str = Field(default="")
     version: str = Field(default="0.0.0")
     user_agent: str = Field(default="")
     enable_log_to_file: bool = Field(default=True)
@@ -1192,18 +1225,34 @@ class EnvSettings(LNbitsSettings):
         with open(auth_key_file, "w+") as file:
             file.write(self.auth_secret_key)
 
+    def check_totp_encryption_key(self):
+        if self.totp_encryption_key:
+            return
+        if not os.path.isdir(settings.lnbits_data_folder):
+            os.mkdir(settings.lnbits_data_folder)
+        totp_key_file = Path(settings.lnbits_data_folder, ".lnbits_totp_key")
+        if totp_key_file.is_file():
+            with open(totp_key_file) as file:
+                self.totp_encryption_key = file.readline()
+            return
+        self.totp_encryption_key = uuid4().hex
+        with open(totp_key_file, "w+") as file:
+            file.write(self.totp_encryption_key)
+
 
 class PersistenceSettings(LNbitsSettings):
     lnbits_data_folder: str = Field(default="./data")
     lnbits_database_url: str | None = Field(default=None)
-    lnbits_wasm_extensions_path: str = Field(default="")
+    lnbits_wasm_extensions_path: str = Field(default="", validate_default=True)
 
-    @validator("lnbits_wasm_extensions_path", pre=True, always=True)
+    @field_validator("lnbits_wasm_extensions_path", mode="before")
     @classmethod
-    def validate_wasm_extensions_path(cls, value, values) -> str:
+    def validate_wasm_extensions_path(cls, value, info: ValidationInfo) -> str:
         if value:
             return str(value)
-        return str(Path(values.get("lnbits_data_folder", "./data"), "wasm_extensions"))
+        return str(
+            Path(info.data.get("lnbits_data_folder", "./data"), "wasm_extensions")
+        )
 
     @property
     def wasm_extensions_dir(self) -> Path:
@@ -1230,7 +1279,7 @@ class SuperUserSettings(LNbitsSettings):
             "AlbyWallet",
             "AmbossWallet",
             "BarkWallet",
-            "BoltzWallet",
+            # BoltzWallet is temporarily excluded.
             "BlinkWallet",
             "BreezSdkWallet",
             "BreezLiquidSdkWallet",
@@ -1286,7 +1335,7 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     @classmethod
     def readonly_fields(cls):
-        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+        return list(cls.model_fields)
 
 
 class ReadOnlySettings(
@@ -1301,25 +1350,45 @@ class ReadOnlySettings(
     def lnbits_extensions_upgrade_path(self) -> str:
         return str(Path(self.lnbits_data_folder, "upgrades"))
 
-    @validator(
-        "lnbits_allowed_funding_sources",
-        pre=True,
-    )
+    @field_validator("lnbits_allowed_funding_sources", mode="before")
     @classmethod
     def validate_readonly_settings(cls, val):
         return super().validate_list(val)
 
     @classmethod
     def readonly_fields(cls):
-        return [f for f in inspect.signature(cls).parameters if not f.startswith("_")]
+        return list(cls.model_fields)
 
 
-class Settings(EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings):
-    class Config(EditableSettings.Config, BaseSettings.Config):  # type: ignore[misc]
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        json_loads = list_parse_fallback  # type: ignore[assignment]
+# BaseSettings narrows BaseModel.model_config from ConfigDict to SettingsConfigDict.
+class Settings(  # pyright: ignore[reportIncompatibleVariableOverride]
+    EditableSettings, ReadOnlySettings, TransientSettings, BaseSettings
+):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        populate_by_name=True,
+        enable_decoding=False,
+    )
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def decode_env_values(cls, value: Any, info: ValidationInfo) -> Any:
+        assert info.field_name is not None
+        annotation = cls.model_fields[info.field_name].annotation
+        types = (annotation, *get_args(annotation))
+        if isinstance(value, str) and any(
+            get_origin(type_) in (list, dict, set) for type_ in types
+        ):
+            return list_parse_fallback(value)
+        if isinstance(value, str) and any(
+            isinstance(type_, type) and issubclass(type_, (BaseModel, list, dict, set))
+            for type_ in types
+        ):
+            return list_parse_fallback(value)
+        return value
 
     def is_user_allowed(self, user_id: str) -> bool:
         return (
@@ -1361,22 +1430,22 @@ class PublicSettings(BaseModel):
     qr_logo: str = Field(alias="qrLogo")
     site_title: str = Field(alias="siteTitle")
     site_tagline: str = Field(alias="siteTagline")
-    site_description: str | None = Field(alias="siteDescription")
+    site_description: str | None = Field(default=None, alias="siteDescription")
     auth_methods: list[str] = Field(alias="authMethods")
-    keycloak_org: str | None = Field(alias="keycloakOrg")
-    keycloak_icon: str | None = Field(alias="keycloakIcon")
-    oidc_org: str | None = Field(alias="oidcOrg")
-    oidc_icon: str | None = Field(alias="oidcIcon")
+    keycloak_org: str | None = Field(default=None, alias="keycloakOrg")
+    keycloak_icon: str | None = Field(default=None, alias="keycloakIcon")
+    oidc_org: str | None = Field(default=None, alias="oidcOrg")
+    oidc_icon: str | None = Field(default=None, alias="oidcIcon")
     has_holdinvoice: bool = Field(alias="hasHoldinvoice")
     has_nodemanager: bool = Field(alias="hasNodemanager")
     show_nodemanager: bool = Field(alias="showNodemanager")
-    custom_logo: str | None = Field(alias="customLogo")
+    custom_logo: str | None = Field(default=None, alias="customLogo")
     show_voidwallet: bool = Field(alias="showVoidwallet")
     version: str = Field(alias="version")
     show_home_page_elements: bool = Field(alias="showHomePageElements")
     hide_api: bool = Field(alias="hideApi")
     cache_key: str = Field(alias="cacheKey")
-    webpush_pubkey: str | None = Field(alias="webpushPubkey")
+    webpush_pubkey: str | None = Field(default=None, alias="webpushPubkey")
     show_extensions: bool = Field(alias="showExtensions")
     show_audit: bool = Field(alias="showAudit")
     show_block_explorer: bool = Field(alias="showBlockExplorer")
@@ -1386,34 +1455,41 @@ class PublicSettings(BaseModel):
     ad_space: list[list[str]] = Field(alias="adSpace")
     ad_space_title: str = Field(alias="adSpaceTitle")
     show_ad_space: bool = Field(alias="showAdSpace")
-    custom_image: str | None = Field(alias="customImage")
-    custom_badge: str | None = Field(alias="customBadge")
-    custom_badge_color: str | None = Field(alias="customBadgeColor")
+    custom_image: str | None = Field(default=None, alias="customImage")
+    custom_badge: str | None = Field(default=None, alias="customBadge")
+    custom_badge_color: str | None = Field(default=None, alias="customBadgeColor")
     service_fee: float = Field(alias="serviceFee")
     service_fee_max: int = Field(alias="serviceFeeMax")
-    service_fee_wallet: str | None = Field(alias="serviceFeeWallet")
+    service_fee_wallet: str | None = Field(default=None, alias="serviceFeeWallet")
     theme_options: list[str] = Field(alias="themeOptions")
     default_reaction: str = Field(alias="defaultReaction")
     default_theme: str = Field(alias="defaultTheme")
     default_border: str = Field(alias="defaultBorder")
-    default_bgimage: str | None = Field(alias="defaultBgimage")
+    default_bgimage: str | None = Field(default=None, alias="defaultBgimage")
     default_gradient: bool = Field(alias="defaultGradient")
     default_dark: bool = Field(alias="defaultDark")
     default_card_rounded: bool = Field(alias="defaultCardRounded")
     default_card_gradient: bool = Field(alias="defaultCardGradient")
     default_card_shadow: bool = Field(alias="defaultCardShadow")
     default_burger_menu_background: bool = Field(alias="defaultBurgerMenuBackground")
-    denomination: str | None = Field()
+    denomination: str | None = Field(default=None)
     extensions: list[str] = Field()
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
+    default_accounting_currency: str = Field(alias="defaultAccountingCurrency")
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
     ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
     email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
-    wallet_featured_button_label: str | None = Field(alias="walletFeaturedButtonLabel")
-    wallet_featured_button_url: str | None = Field(alias="walletFeaturedButtonUrl")
-    wallet_featured_button_icon: str | None = Field(alias="walletFeaturedButtonIcon")
+    wallet_featured_button_label: str | None = Field(
+        default=None, alias="walletFeaturedButtonLabel"
+    )
+    wallet_featured_button_url: str | None = Field(
+        default=None, alias="walletFeaturedButtonUrl"
+    )
+    wallet_featured_button_icon: str | None = Field(
+        default=None, alias="walletFeaturedButtonIcon"
+    )
     enable_wallet_lightning_addresses: bool = Field(
         alias="enableWalletLightningAddresses"
     )
@@ -1486,6 +1562,9 @@ class PublicSettings(BaseModel):
             denomination=settings.lnbits_denomination,
             extensions=list(settings.lnbits_installed_extensions_ids),
             allowedCurrencies=settings.lnbits_allowed_currencies,
+            defaultAccountingCurrency=(
+                settings.lnbits_default_accounting_currency or "USD"
+            ),
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
             extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
@@ -1517,12 +1596,12 @@ class SuperSettings(EditableSettings):
 
 class AdminSettings(EditableSettings):
     is_super_user: bool
-    lnbits_allowed_funding_sources: list[str] | None
+    lnbits_allowed_funding_sources: list[str] | None = None
 
 
 class SettingsField(BaseModel):
     id: str
-    value: Any | None
+    value: Any | None = None
     tag: str = "core"
 
 
@@ -1549,6 +1628,7 @@ settings.lnbits_path = str(path.dirname(path.realpath(__file__)))
 settings.version = importlib.metadata.version("lnbits")
 
 settings.check_auth_secret_key()
+settings.check_totp_encryption_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
@@ -1556,7 +1636,9 @@ if not settings.user_agent:
 # printing environment variable for debugging
 if not settings.lnbits_admin_ui:
     logger.debug("Environment Settings:")
-    for key, value in settings.dict(exclude_none=True).items():
+    for key, value in settings.model_dump(
+        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
+    ).items():
         logger.debug(f"{key}: {value}")
 
 

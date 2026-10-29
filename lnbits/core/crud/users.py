@@ -12,8 +12,10 @@ from lnbits.core.crud.wallets import (
 )
 from lnbits.core.db import db
 from lnbits.core.models import UserAcls
+from lnbits.core.models.users import TwoFactorConfig
 from lnbits.db import Connection, Filters, Page
 from lnbits.helpers import sha256s
+from lnbits.settings import settings
 from lnbits.utils.cache import cache
 
 from ..models import (
@@ -48,6 +50,30 @@ async def update_account(account: Account, conn: Connection | None = None) -> Ac
     account.updated_at = datetime.now(timezone.utc)
     await (conn or db).update("accounts", account)
     return account
+
+
+async def update_account_credentials(
+    account: Account,
+    config: TwoFactorConfig,
+    conn: Connection | None = None,
+) -> None:
+    """Save the password and session revision in a single atomic update."""
+    account.updated_at = datetime.now(timezone.utc)
+    await (conn or db).execute(
+        f"""
+        UPDATE accounts SET username = :username, password_hash = :password_hash,
+            updated_at = {db.timestamp_placeholder("updated_at")},
+            two_factor = :two_factor
+        WHERE id = :id
+        """,  # noqa: S608
+        {
+            "id": account.id,
+            "username": account.username,
+            "password_hash": account.password_hash,
+            "updated_at": account.updated_at.timestamp(),
+            "two_factor": config.model_dump_json(),
+        },
+    )
 
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
@@ -90,8 +116,12 @@ async def get_accounts(
             accounts.pubkey,
             accounts.external_id,
             accounts.activated,
+            accounts.extra,
+            accounts.created_at,
+            accounts.updated_at,
             SUM(COALESCE((
                 SELECT balance FROM balances WHERE wallet_id = wallets.id
+                AND wallets.wallet_type != 'fiat'
             ), 0)) as balance_msat,
             SUM((
                 SELECT COUNT(*) FROM apipayments WHERE wallet_id = wallets.id
@@ -255,6 +285,7 @@ async def get_user_from_account(
         admin=account.is_admin,
         super_user=account.is_super_user,
         fiat_providers=account.fiat_providers,
+        can_create_fiat_wallet=settings.can_create_fiat_wallet(account.id),
         has_password=account.password_hash is not None,
         ui_customization=account.ui_customization or {},
     )
@@ -283,7 +314,7 @@ async def get_user_access_control_lists(
 
 
 async def clear_user_id_cache(user_id: str):
-    user = await get_user(user_id, active_only=True)
+    user = await get_user(user_id, active_only=False)
     if user:
         clear_user_cache(user)
 
@@ -296,3 +327,22 @@ def clear_user_cache(user: User):
         cache.pop(user_cache_key)
     for wallet in user.wallets:
         clear_wallet_cache(wallet)
+
+
+async def get_two_factor_config(
+    user_id: str, conn: Connection | None = None
+) -> TwoFactorConfig:
+    row: dict | None = await (conn or db).fetchone(
+        "SELECT two_factor FROM accounts WHERE id = :id", {"id": user_id}
+    )
+    if not row:
+        raise ValueError("Account not found.")
+    raw = row["two_factor"]
+    return TwoFactorConfig.model_validate_json(raw) if raw else TwoFactorConfig()
+
+
+async def save_two_factor_config(user_id: str, config: TwoFactorConfig) -> None:
+    await db.execute(
+        "UPDATE accounts SET two_factor = :value WHERE id = :id",
+        {"id": user_id, "value": config.model_dump_json()},
+    )

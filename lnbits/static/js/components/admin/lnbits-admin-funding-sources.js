@@ -174,20 +174,10 @@ window.app.component('lnbits-admin-funding-sources', {
           'AmbossWallet',
           'Amboss Payments',
           {
-            amboss_api_endpoint: {label: 'Endpoint', text: true},
+            amboss_api_endpoint: 'Endpoint',
             amboss_service_api_key: 'Service API Key',
-            amboss_wallet_id: {label: 'Wallet ID', text: true},
-            amboss_team_password: 'Team Password (required to send)',
-            amboss_sandbox: {
-              advanced: true,
-              text: true,
-              label: 'Sandbox Wallet (true/false)'
-            },
-            amboss_sandbox_auto_complete: {
-              advanced: true,
-              text: true,
-              label: 'Auto-complete Sandbox Invoices (true/false)'
-            }
+            amboss_wallet_id: 'Wallet ID',
+            amboss_team_password: 'Team Password (required to send)'
           }
         ],
         [
@@ -262,13 +252,6 @@ window.app.component('lnbits-admin-funding-sources', {
           {
             opennode_api_endpoint: 'Endpoint',
             opennode_key: 'Key'
-          }
-        ],
-        [
-          'ClicheWallet',
-          'Cliche (NBD)',
-          {
-            cliche_endpoint: 'Endpoint'
           }
         ],
         [

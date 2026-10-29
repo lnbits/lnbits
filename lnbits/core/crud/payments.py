@@ -5,6 +5,7 @@ from typing import Any
 from lnbits.core.crud.wallets import get_total_balance, get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import PaymentState
+from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, DateTrunc, Filters, Page
 
 from ..models import (
@@ -245,6 +246,13 @@ async def create_payment(
     status: PaymentState = PaymentState.PENDING,
     conn: Connection | None = None,
 ) -> Payment:
+    wallet = await get_wallet(data.wallet_id, conn=conn)
+    if wallet and wallet.is_onchain_wallet:
+        raise ValueError("Onchain transactions cannot enter the Lightning ledger.")
+    if data.amount_msat < 0:
+        if wallet and not wallet.can_send_payments:
+            raise ValueError("Wallet does not have permission to spend funds.")
+
     # we don't allow the creation of the same invoice twice
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
@@ -300,7 +308,9 @@ async def update_payment(
 ) -> Payment:
     payment.updated_at = datetime.now(timezone.utc)
     await (conn or db).update(
-        "apipayments", payment, "WHERE checking_id = :checking_id"
+        "apipayments",
+        payment,
+        "WHERE wallet_id = :wallet_id AND checking_id = :checking_id",
     )
     if new_checking_id and new_checking_id != payment.checking_id:
         await update_payment_checking_id(payment.checking_id, new_checking_id, conn)
@@ -412,12 +422,15 @@ async def get_wallet_payment_total_breakdown(
     if not wallet or not wallet.can_view_payments:
         return []
 
-    values = {"wallet_id": wallet.source_wallet_id}
+    values = {
+        "wallet_id": wallet.source_wallet_id,
+        "is_fiat_wallet": wallet.wallet_type == WalletType.FIAT.value,
+    }
     data = await (conn or db).fetchall(
         query=f"""
             SELECT tag,
                 CASE
-                    WHEN fiat_provider IS NOT NULL
+                    WHEN :is_fiat_wallet OR fiat_provider IS NOT NULL
                     THEN true
                     ELSE false
                 END AS is_fiat,
@@ -581,13 +594,17 @@ async def is_internal_status_success(
     return payment.status == PaymentState.SUCCESS.value
 
 
-async def mark_webhook_sent(payment_hash: str, status: str) -> None:
+async def mark_webhook_sent(payment: Payment, status: str) -> None:
     await db.execute(
         """
         UPDATE apipayments SET webhook_status = :status
-        WHERE payment_hash = :hash
+        WHERE wallet_id = :wallet_id AND checking_id = :checking_id
         """,
-        {"status": status, "hash": payment_hash},
+        {
+            "status": status,
+            "wallet_id": payment.wallet_id,
+            "checking_id": payment.checking_id,
+        },
     )
 
 

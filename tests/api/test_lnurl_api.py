@@ -17,7 +17,7 @@ from lnurl import (
 )
 from lnurl.models import MessageAction
 from lnurl.types import CallbackUrl, LightningInvoice
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from lnbits.core.crud.wallets import create_wallet, get_wallet
 from lnbits.core.models import Account, CreateInvoice
@@ -177,7 +177,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
     )
 
     auth_response = LnurlAuthResponse(
-        callback=parse_obj_as(CallbackUrl, "https://example.com/auth"),
+        callback=TypeAdapter(CallbackUrl).validate_python("https://example.com/auth"),
         k1="k1-value",
     )
     mocker.patch(
@@ -198,7 +198,7 @@ async def test_lnurl_api_auth_and_pay_flow(mocker):
     action_response = LnurlPayActionResponse(
         pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)),
         disposable=False,
-        successAction=parse_obj_as(MessageAction, {"message": "paid"}),
+        successAction=TypeAdapter(MessageAction).validate_python({"message": "paid"}),
     )
     fetch_mock = mocker.patch(
         "lnbits.core.views.lnurl_api.fetch_lnurl_pay_request",

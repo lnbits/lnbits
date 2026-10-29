@@ -164,6 +164,7 @@ async def test_lndrest_unknown_payment_state_is_pending(
             False,
         ),
         ({"code": 2, "message": "invoice expired"}, False),
+        ({"code": 2, "message": "self-payments not allowed"}, False),
         ({"code": 3, "message": "invalid payment request"}, False),
         ({"code": 2, "message": "payment stream interrupted"}, None),
         ({"code": 14, "message": "transport unavailable"}, None),
@@ -200,6 +201,7 @@ async def test_lndrest_only_pre_dispatch_rpc_errors_are_failed(
             False,
         ),
         (grpc.StatusCode.UNKNOWN, "invoice expired", False),
+        (grpc.StatusCode.UNKNOWN, "self-payments not allowed", False),
         (grpc.StatusCode.INVALID_ARGUMENT, "invalid payment request", False),
         (grpc.StatusCode.PERMISSION_DENIED, "permission denied", False),
         (grpc.StatusCode.UNAUTHENTICATED, "invalid macaroon", False),
@@ -473,6 +475,43 @@ async def test_phoenix_request_error_is_pending(mocker: MockerFixture):
     response = await wallet.pay_invoice("bolt11", 1_000)
 
     assert response.ok is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("status", "expected_ok", "expected_error"),
+    [
+        ("LIGHTNING_PAYMENT_FAILED", False, "Lightning fee exceeds the limit"),
+        ("UNKNOWN", None, None),
+        ("LIGHTNING_PAYMENT_SUCCEEDED", True, None),
+    ],
+)
+async def test_spark_sidecar_preserves_explicit_failure_reason(
+    mocker: MockerFixture,
+    status: str,
+    expected_ok: bool | None,
+    expected_error: str | None,
+):
+    wallet = object.__new__(SparkL2Wallet)
+    mocker.patch(
+        "lnbits.wallets.sparkl2.bolt11_decode",
+        return_value=SimpleNamespace(payment_hash="payment-hash"),
+    )
+    mocker.patch.object(
+        wallet,
+        "_request",
+        return_value={
+            "checking_id": "payment-hash",
+            "status": status,
+            "error_message": "Lightning fee exceeds the limit",
+        },
+    )
+
+    response = await wallet.pay_invoice("bolt11", 2_000)
+
+    assert response.ok is expected_ok
+    assert response.error_message == expected_error
+    assert response.checking_id == "payment-hash"
 
 
 @pytest.mark.anyio

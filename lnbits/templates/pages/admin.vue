@@ -228,7 +228,10 @@
               <lnbits-admin-users :form-data="formData" />
             </q-tab-panel>
             <q-tab-panel name="server" class="q-pa-md">
-              <lnbits-admin-server :form-data="formData" />
+              <lnbits-admin-server
+                :form-data="formData"
+                :is-super-user="isSuperUser"
+              />
             </q-tab-panel>
             <q-tab-panel name="exchange_providers" class="q-pa-md">
               <lnbits-admin-exchange-providers :form-data="formData" />
@@ -245,6 +248,43 @@
             <q-tab-panel name="notifications" class="q-pa-md">
               <lnbits-admin-notifications :form-data="formData" />
             </q-tab-panel>
+            <q-tab-panel name="two_factor" class="q-pa-md">
+              <h6 class="q-mt-none" v-text="$t('two_factor_auth')"></h6>
+              <q-toggle
+                v-model="formData.lnbits_two_factor_enabled"
+                :label="$t('two_factor_enable')"
+              ></q-toggle>
+              <p v-text="$t('two_factor_disable_global_hint')"></p>
+              <div class="row q-col-gutter-md q-mb-md">
+                <div class="col-12 col-sm-6">
+                  <q-select
+                    v-model="formData.lnbits_two_factor_methods"
+                    :options="[{label: $t('two_factor_totp'), value: 'totp'}]"
+                    multiple
+                    emit-value
+                    map-options
+                    outlined
+                    :label="$t('two_factor_allowed_methods')"
+                  ></q-select>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-toggle
+                    v-model="formData.lnbits_two_factor_mandatory"
+                    :disable="!formData.lnbits_two_factor_enabled"
+                    :label="$t('two_factor_mandatory')"
+                  ></q-toggle>
+                  <p
+                    class="q-mb-none"
+                    v-text="$t('two_factor_mandatory_hint')"
+                  ></p>
+                </div>
+              </div>
+              <q-btn
+                outline
+                :label="$t('two_factor_my_settings')"
+                to="/account#two_factor"
+              ></q-btn>
+            </q-tab-panel>
             <q-tab-panel name="security" class="q-pa-md">
               <lnbits-admin-security :form-data="formData" />
             </q-tab-panel>
@@ -253,6 +293,67 @@
             </q-tab-panel>
             <q-tab-panel name="audit" class="q-pa-md">
               <lnbits-admin-audit :form-data="formData" />
+            </q-tab-panel>
+            <q-tab-panel name="scheduler" class="q-pa-md">
+              <h6 class="q-mt-none q-mb-sm" v-text="$t('scheduler')"></h6>
+              <q-toggle
+                v-model="formData.lnbits_scheduler_enabled"
+                :label="$t('enabled')"
+                class="q-mb-lg"
+              ></q-toggle>
+              <h6
+                class="q-my-none q-mb-md"
+                v-text="$t('scheduler_history')"
+              ></h6>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_retention_days
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_retention')"
+                :suffix="$t('days')"
+                :hint="$t('scheduler_retention_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_failed_retention_days
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_failed_retention')"
+                :suffix="$t('days')"
+                :hint="$t('scheduler_failed_retention_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_max_runs_per_user
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_history_max_runs_per_user')"
+                :hint="$t('scheduler_history_max_runs_per_user_hint')"
+                class="q-mb-md"
+              ></q-input>
+              <q-input
+                v-model.number="
+                  formData.lnbits_scheduler_history_max_runs_per_extension
+                "
+                type="number"
+                min="1"
+                step="1"
+                outlined
+                :label="$t('scheduler_history_max_runs_per_extension')"
+                :hint="$t('scheduler_history_max_runs_per_extension_hint')"
+              ></q-input>
             </q-tab-panel>
             <q-tab-panel name="assets-config" class="q-pa-md">
               <lnbits-admin-assets-config :form-data="formData" />

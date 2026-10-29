@@ -98,7 +98,7 @@ async def test_info_balances_states_and_public_redaction(node_factory):
     status = await node.get_status()
     assert status.fee_credit_sat == 50
     assert "swapin" in status.capabilities
-    public = (await node.get_public_info()).dict()
+    public = (await node.get_public_info()).model_dump()
     assert public["managed_channels"] is True
     assert not {"balance_msat", "fee_credit_sat", "swap_in", "channels"} & public.keys()
 

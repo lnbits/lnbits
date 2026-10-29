@@ -72,7 +72,12 @@ window.PageAdmin = {
           label: 'settings_access',
           items: [
             {value: 'security', label: 'security', icon: 'security'},
-            {value: 'users', label: 'users', icon: 'group'}
+            {value: 'users', label: 'users', icon: 'group'},
+            {
+              value: 'two_factor',
+              label: 'two_factor_auth',
+              icon: 'verified_user'
+            }
           ]
         },
         {
@@ -88,7 +93,8 @@ window.PageAdmin = {
               value: 'audit',
               label: 'api_watch',
               icon: 'playlist_add_check_circle'
-            }
+            },
+            {value: 'scheduler', label: 'scheduler', icon: 'schedule'}
           ]
         },
         {
@@ -128,6 +134,7 @@ window.PageAdmin = {
           this.$t('watchdog')
         ],
         server: [
+          'Onchain payments and encryption key backup',
           this.$t('currency_settings'),
           this.$t('payments'),
           this.$t('lightning_addresses'),
@@ -186,6 +193,13 @@ window.PageAdmin = {
           this.$t('audit_record_req'),
           this.$t('audit_http_methods_label'),
           this.$t('audit_paths_label')
+        ],
+        scheduler: [
+          this.$t('scheduler_history'),
+          this.$t('scheduler_retention'),
+          this.$t('scheduler_failed_retention'),
+          this.$t('scheduler_history_max_runs_per_user'),
+          this.$t('scheduler_history_max_runs_per_extension')
         ],
         'assets-config': ['Assets', 'Thumbnails', 'Users'],
         site_customisation: [
@@ -314,6 +328,12 @@ window.PageAdmin = {
             this.formData.lnbits_backend_wallet_class
           this.settings = this.formData
           this.formData = _.clone(this.settings)
+          LNbits.api
+            .getAuthUser()
+            .then(res => {
+              this.g.user = LNbits.map.user(res.data)
+            })
+            .catch(LNbits.utils.notifyApiError)
           Quasar.Notify.create({
             type: 'positive',
             message: `Success! Settings changed! ${

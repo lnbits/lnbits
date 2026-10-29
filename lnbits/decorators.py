@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Annotated, Literal
 
@@ -31,6 +32,7 @@ from lnbits.core.models import (
 )
 from lnbits.core.models.users import AccountId, EndpointAccess
 from lnbits.core.models.wallets import BaseWallet, BaseWalletTypeInfo
+from lnbits.core.services.two_factor import check_two_factor_session
 from lnbits.db import Connection, Filter, Filters, TFilterModel
 from lnbits.helpers import normalize_path, path_segments, sha256s
 from lnbits.settings import AuthMethods, settings
@@ -55,6 +57,11 @@ api_key_query = APIKeyQuery(
     auto_error=False,
     description="Admin or Invoice key for wallet API's",
 )
+
+
+@dataclass(frozen=True)
+class OnchainAuth:
+    wallet_id: str
 
 
 class BaseKeyChecker(SecurityBase):
@@ -225,6 +232,22 @@ async def require_base_invoice_key(
     return await check(request)
 
 
+async def require_onchain_read(
+    info: WalletTypeInfo = Depends(require_invoice_key),
+) -> OnchainAuth:
+    if not info.wallet.is_onchain_wallet:
+        raise HTTPException(403, "An onchain wallet key is required")
+    return OnchainAuth(wallet_id=info.wallet.id)
+
+
+async def require_onchain_admin(
+    info: WalletTypeInfo = Depends(require_admin_key),
+) -> OnchainAuth:
+    if not info.wallet.is_onchain_wallet:
+        raise HTTPException(403, "An onchain wallet key is required")
+    return OnchainAuth(wallet_id=info.wallet.id)
+
+
 async def check_access_token(
     header_access_token: Annotated[str | None, Depends(oauth2_scheme)],
     cookie_access_token: Annotated[str | None, Cookie()] = None,
@@ -257,6 +280,9 @@ async def check_account_id_exists(
                         r["method"],
                         conn=conn,
                     )
+                await check_two_factor_session(
+                    account_id.id, payload, r["path"], r["method"], conn
+                )
                 r.scope["user_id"] = account_id.id
                 await _check_user_access(r, account_id.id, conn=conn)
                 return account_id
@@ -315,6 +341,11 @@ async def _check_account_exists(
         if not account:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "User not found.")
 
+        if not access_token:
+            await check_two_factor_session(
+                account.id, None, r["path"], r["method"], new_conn
+            )
+
         r.scope["user_id"] = account.id
         await _check_user_access(r, account.id, conn=new_conn)
 
@@ -340,11 +371,12 @@ async def optional_user_id(
     access_token: Annotated[str | None, Depends(check_access_token)],
     usr: UUID4 | None = None,
 ) -> str | None:
-    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
-        return usr.hex
     if access_token:
         account = await _get_account_from_token(access_token, r["path"], r["method"])
         return account.id if account else None
+    if usr and settings.is_auth_method_allowed(AuthMethods.user_id_only):
+        account = await _check_account_exists(r, None, usr)
+        return account.id
 
     return None
 
@@ -427,8 +459,8 @@ def parse_filters(model: type[TFilterModel]):
 
     def dependency(
         request: Request,
-        limit: int | None = None,
-        offset: int | None = None,
+        limit: int | None = Query(None, ge=0),
+        offset: int | None = Query(None, ge=0),
         sortby: str | None = None,
         direction: Literal["asc", "desc"] | None = None,
         search: str | None = Query(None, description="Text based search"),
@@ -528,10 +560,10 @@ async def _get_account_from_jwt_payload(
     payload: AccessTokenPayload, path: str, method: str, conn: Connection | None = None
 ) -> Account | None:
     account = None
-    if payload.sub:
-        account = await get_account_by_username(payload.sub, conn=conn)
-    elif payload.usr:
+    if payload.usr:
         account = await get_account(payload.usr, conn=conn)
+    elif payload.sub:
+        account = await get_account_by_username(payload.sub, conn=conn)
     elif payload.email:
         account = await get_account_by_email(payload.email, conn=conn)
 
@@ -542,6 +574,8 @@ async def _get_account_from_jwt_payload(
         await _check_account_api_access(
             account.id, payload.api_token_id, path, method, conn=conn
         )
+
+    await check_two_factor_session(account.id, payload, path, method, conn)
 
     return account
 

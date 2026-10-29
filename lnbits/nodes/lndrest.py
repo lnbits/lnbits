@@ -364,7 +364,7 @@ class LndRestNode(Node):
         fee_report = await self.get("/v1/fees")
         balance = await self.get("/v1/balance/channels")
         return NodeInfoResponse(
-            **public.dict(),
+            **public.model_dump(),
             onchain_balance_sat=onchain["total_balance"],
             onchain_confirmed_sat=onchain["confirmed_balance"],
             balance_msat=balance["local_balance"]["msat"],

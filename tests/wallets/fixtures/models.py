@@ -3,24 +3,24 @@ from pydantic import BaseModel
 
 class FundingSourceConfig(BaseModel):
     name: str
-    skip: bool | None
+    skip: bool | None = None
     wallet_class: str
     settings: dict
-    mock_settings: dict | None
+    mock_settings: dict | None = None
 
 
 class FunctionMock(BaseModel):
-    uri: str | None
-    query_params: dict | None
-    headers: dict | None
-    method: str | None
+    uri: str | None = None
+    query_params: dict | None = None
+    headers: dict | None = None
+    method: str | None = None
 
 
 class TestMock(BaseModel):
-    skip: bool | None
-    description: str | None
-    request_type: str | None
-    request_body: dict | None
+    skip: bool | None = None
+    description: str | None = None
+    request_type: str | None = None
+    request_body: dict | None = None
     response_type: str
     response: str | dict | list
 
@@ -61,13 +61,13 @@ class FunctionData(BaseModel):
 
 
 class WalletTest(BaseModel):
-    skip: bool | None
+    skip: bool | None = None
     function: str
     description: str
     funding_source: FundingSourceConfig
     call_params: dict | None = {}
-    expect: dict | None
-    expect_error: dict | None
+    expect: dict | None = None
+    expect_error: dict | None = None
     mocks: list[Mock] = []
 
     @staticmethod
@@ -156,7 +156,7 @@ class WalletTest(BaseModel):
 
         return WalletTest(
             **(
-                self.dict()
+                self.model_dump()
                 | {
                     "description": f"{self.description}:{extra_description}",
                     "mocks": test_mocks,

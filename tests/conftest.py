@@ -1,6 +1,5 @@
 import asyncio
 import copy
-import inspect
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -50,11 +49,7 @@ _PURE_SETTINGS_FIELDS = tuple(
             for field_name in Settings.readonly_fields()
             if field_name != "super_user"
         }
-        | {
-            name
-            for name in inspect.signature(EditableSettings).parameters
-            if not name.startswith("_")
-        }
+        | {name for name in EditableSettings.model_fields if not name.startswith("_")}
     )
 )
 
@@ -86,9 +81,35 @@ def run_before_and_after_tests(settings: Settings):
     _settings_cleanup(settings)
 
 
+@pytest.fixture(scope="session")
+def disable_background_wallet_sync():
+    async def sync_wallets():
+        pass
+
+    # Patch before startup so periodic scans cannot use another test's mocks.
+    # Explicit calls to the onchain service remain available to tests.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("lnbits.app.sync_wallets", sync_wallets)
+        yield
+
+
+@pytest.fixture(scope="session")
+def disable_background_scheduler():
+    async def run():
+        await asyncio.Event().wait()
+
+    # Keep the app's worker out of temporary scheduler databases and mocked clocks.
+    # Tests exercise their own Scheduler instances directly.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("lnbits.app.scheduler.run", run)
+        yield
+
+
 # use session scope to run once before and once after all tests
 @pytest.fixture(scope="session")
-async def app(settings: Settings):
+async def app(
+    settings: Settings, disable_background_wallet_sync, disable_background_scheduler
+):
     app = create_app()
     async with LifespanManager(app, startup_timeout=30) as manager:
         settings.first_install = True
@@ -323,7 +344,9 @@ async def fake_payments(client, inkey_fresh_headers_to):
 
     for invoice in fake_data:
         response = await client.post(
-            "/api/v1/payments", headers=inkey_fresh_headers_to, json=invoice.dict()
+            "/api/v1/payments",
+            headers=inkey_fresh_headers_to,
+            json=invoice.model_dump(),
         )
         assert response.is_success
         data = response.json()

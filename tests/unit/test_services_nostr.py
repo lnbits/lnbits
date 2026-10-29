@@ -1,7 +1,27 @@
+import asyncio
+import json
+import time
+
 import pytest
+from nostr_sdk import (
+    Client,
+    Event,
+    EventBuilder,
+    Keys,
+    Kind,
+    PublicKey,
+    RelayUrl,
+    Tag,
+    Timestamp,
+    nip44_decrypt,
+)
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
+from lnbits.core.services.nostr import (
+    fetch_nip5_details,
+    send_nostr_dm,
+    send_nostr_dm_nip17,
+)
 
 
 class FakeWebSocket:
@@ -62,8 +82,6 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
         "lnbits.core.services.nostr.create_connection",
         side_effect=[ws_one, RuntimeError("boom"), ws_two],
     )
-    mocker.patch("lnbits.core.services.nostr.asyncio.sleep", mocker.AsyncMock())
-
     result = await send_nostr_dm(
         "privkey",
         "pubkey",
@@ -115,3 +133,206 @@ async def test_fetch_nip5_details_rejects_invalid_values(mocker: MockerFixture):
     mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
     with pytest.raises(ValueError, match="NIP5 not name found"):
         await fetch_nip5_details("alice@example.com")
+
+
+@pytest.fixture
+def nip17_sender(mocker: MockerFixture):
+    sender = Keys.generate()
+    receiver = Keys.generate()
+    client = mocker.Mock(spec=Client)
+    client.fetch_events.return_value = mocker.Mock()
+    mocker.patch("lnbits.core.services.nostr.Client", return_value=client)
+    inbox = (
+        EventBuilder(Kind(10050), "")
+        .tags([Tag.parse(["relay", "wss://inbox.example.com"])])
+        .sign_with_keys(receiver)
+    )
+    client.fetch_events.return_value.to_vec.return_value = [inbox]
+    client.send_event_to.return_value.success = [
+        RelayUrl.parse("wss://inbox.example.com")
+    ]
+    return sender, receiver, client
+
+
+@pytest.mark.anyio
+async def test_send_nip17_wraps_and_signs_message_for_recipient(nip17_sender):
+    sender, receiver, client = nip17_sender
+    message = "Payment received: 21 sats ⚡\nLNbits notification"
+    before = int(time.time())
+
+    await send_nostr_dm_nip17(
+        sender.secret_key().to_hex(),
+        receiver.public_key().to_hex(),
+        message,
+        ["wss://discovery.example.com"],
+    )
+
+    relay_urls, event = client.send_event_to.call_args.args
+    assert relay_urls == [RelayUrl.parse("wss://inbox.example.com")]
+    query = json.loads(client.fetch_events.call_args.args[0].as_json())
+    assert query == {
+        "authors": [receiver.public_key().to_hex()],
+        "kinds": [10050],
+        "limit": 1,
+    }
+
+    wrapper = json.loads(event.as_json())
+    assert event.verify()
+    assert wrapper["kind"] == 1059
+    assert wrapper["pubkey"] != sender.public_key().to_hex()
+    assert wrapper["tags"] == [["p", receiver.public_key().to_hex()]]
+    assert message not in wrapper["content"]
+    seal_json = nip44_decrypt(
+        receiver.secret_key(), PublicKey.parse(wrapper["pubkey"]), wrapper["content"]
+    )
+    assert Event.from_json(seal_json).verify()
+    seal = json.loads(seal_json)
+    assert seal["kind"] == 13
+    assert seal["tags"] == []
+    assert seal["pubkey"] == sender.public_key().to_hex()
+    rumor = json.loads(
+        nip44_decrypt(receiver.secret_key(), sender.public_key(), seal["content"])
+    )
+    assert rumor["kind"] == 14
+    assert rumor["pubkey"] == sender.public_key().to_hex()
+    assert rumor["tags"] == [["p", receiver.public_key().to_hex()]]
+    assert rumor["content"] == message
+    assert "sig" not in rumor
+    assert len(rumor["id"]) == 64
+    after = int(time.time())
+    assert before <= rumor["created_at"] <= after
+    for envelope in (seal, wrapper):
+        assert before - 2 * 24 * 60 * 60 <= envelope["created_at"] <= after
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_uses_newest_inbox_list_and_deduplicates(nip17_sender):
+    sender, receiver, client = nip17_sender
+    older = (
+        EventBuilder(Kind(10050), "")
+        .tags([Tag.parse(["relay", "wss://old.example.com"])])
+        .custom_created_at(Timestamp.from_secs(100))
+        .sign_with_keys(receiver)
+    )
+    newer = (
+        EventBuilder(Kind(10050), "")
+        .tags(
+            [
+                Tag.parse(["relay", "wss://inbox.example.com"]),
+                Tag.parse(["relay", "wss://inbox.example.com/"]),
+                Tag.parse(["r", "wss://not-an-inbox.example.com"]),
+            ]
+        )
+        .custom_created_at(Timestamp.from_secs(200))
+        .sign_with_keys(receiver)
+    )
+    client.fetch_events.return_value.to_vec.return_value = [older, newer]
+
+    await send_nostr_dm_nip17(
+        sender.secret_key().to_hex(),
+        receiver.public_key().to_hex(),
+        "hi",
+        ["wss://hint"],
+    )
+
+    assert client.send_event_to.call_args.args[0] == [
+        RelayUrl.parse("wss://inbox.example.com")
+    ]
+
+
+@pytest.mark.anyio
+async def test_send_nip17_uses_existing_relays_when_inbox_list_is_missing(nip17_sender):
+    sender, receiver, client = nip17_sender
+    client.fetch_events.return_value.to_vec.return_value = []
+    relays = ["wss://relay-one.example.com", "wss://relay-two.example.com"]
+    relay_urls = [RelayUrl.parse(relay) for relay in relays]
+    client.send_event_to.return_value.success = relay_urls[:1]
+
+    await send_nostr_dm_nip17(
+        sender.secret_key().to_hex(), receiver.public_key().to_hex(), "hi", relays
+    )
+
+    client.send_event_to.assert_awaited_once()
+    published_relays, event = client.send_event_to.call_args.args
+    assert published_relays == relay_urls
+    assert event.kind() == Kind(1059)
+    assert event.verify()
+    assert json.loads(event.as_json())["tags"] == [
+        ["p", receiver.public_key().to_hex()]
+    ]
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_rejects_empty_inbox_list(nip17_sender):
+    sender, receiver, client = nip17_sender
+    client.fetch_events.return_value.to_vec.return_value = [
+        EventBuilder(Kind(10050), "").sign_with_keys(receiver)
+    ]
+
+    with pytest.raises(ValueError, match="inbox relay list"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            ["wss://hint"],
+        )
+
+    client.send_event_to.assert_not_awaited()
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_requires_discovery_relays(nip17_sender):
+    sender, receiver, client = nip17_sender
+    with pytest.raises(ValueError, match="No NIP-05 relays"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(), receiver.public_key().to_hex(), "hi", []
+        )
+    client.connect.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_requires_relay_acceptance(nip17_sender):
+    sender, receiver, client = nip17_sender
+    client.send_event_to.return_value.success = []
+
+    with pytest.raises(ValueError, match="No NIP-17 inbox relay accepted"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            ["wss://hint"],
+        )
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_send_nip17_times_out_and_closes_client(
+    nip17_sender, mocker: MockerFixture
+):
+    sender, receiver, client = nip17_sender
+    wait_for = asyncio.wait_for
+
+    async def short_timeout(awaitable, timeout):
+        assert timeout == 30
+        return await wait_for(awaitable, timeout=0.01)
+
+    async def never_connect():
+        await asyncio.Event().wait()
+
+    mocker.patch(
+        "lnbits.core.services.nostr.asyncio.wait_for", side_effect=short_timeout
+    )
+    client.connect.side_effect = never_connect
+
+    with pytest.raises(ValueError, match="NIP-17 notification timed out"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            ["wss://hint"],
+        )
+    client.send_event_to.assert_not_awaited()
+    client.shutdown.assert_awaited_once()

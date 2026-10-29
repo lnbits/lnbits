@@ -376,7 +376,7 @@ async def api_users_delete_all_user_wallet(user_id: str) -> SimpleStatus:
 async def api_users_delete_user_wallet(
     user_id: str, wallet: str, account: Account = Depends(check_admin)
 ) -> SimpleStatus:
-    wal = await get_wallet(wallet)
+    wal = await get_wallet(wallet, deleted=None)
     if not wal:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -405,14 +405,16 @@ async def api_update_balance(data: UpdateBalance) -> SimpleStatus:
     wallet = await get_wallet(data.id)
     if not wallet:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Wallet not found.")
-    await update_wallet_balance(wallet=wallet, amount=int(data.amount))
+    memo = (data.memo or "").strip() or ("Credit" if data.amount > 0 else "Debit")
+    await update_wallet_balance(wallet=wallet, amount=int(data.amount), memo=memo)
     enqueue_admin_notification(
         NotificationType.balance_update,
         {
             "amount": int(data.amount),
             "wallet_id": wallet.id,
             "wallet_name": wallet.name,
-            "balance": wallet.balance,
+            "balance": wallet.balance + int(data.amount),
+            "memo": memo,
         },
     )
 

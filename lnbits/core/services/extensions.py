@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -35,11 +34,16 @@ from lnbits.core.crud.extensions import (
 from lnbits.core.crud.extensions import (
     get_wasm_invocations as get_wasm_invocations_crud,
 )
+from lnbits.core.crud.scheduler import delete_namespace_schedules
 from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.services.scheduler import scheduler
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
-from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
+from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
+from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_extension
+from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
 from lnbits.db import Connection
 from lnbits.settings import WasmRuntimeLimits, settings
+from lnbits.utils.error import safe_error_message
 
 from ..models.extensions import (
     Extension,
@@ -51,7 +55,7 @@ from ..models.extensions import (
 )
 
 _WASM_INVOCATION_CLEANUP_INTERVAL = timedelta(hours=1)
-WASM_RUNTIME_LIMIT_FIELDS = tuple(WasmRuntimeLimits.__fields__.keys())
+WASM_RUNTIME_LIMIT_FIELDS = tuple(WasmRuntimeLimits.model_fields.keys())
 
 
 @dataclass
@@ -220,6 +224,11 @@ async def install_extension(
 
     if extension_config.get("extension_type") == "wasm":
         ext_info.extract_wasm_archive()
+        await asyncio.to_thread(
+            warm_wasm_extension,
+            load_wasm_extension(ext_info.id),
+            resolve_wasm_runtime_limits(ext_info),
+        )
     else:
         ext_info.extract_archive()
 
@@ -445,7 +454,7 @@ async def finish_wasm_invocation(
     invocation.response_bytes = response_bytes
     invocation.memory_peak_bytes = memory_peak_bytes
     invocation.error_type = error_type
-    invocation.error_message = _safe_wasm_error_message(error_message)
+    invocation.error_message = safe_error_message(error_message)
     invocation.stop_reason = reason
 
     await update_wasm_invocation(invocation)
@@ -459,7 +468,7 @@ def get_current_wasm_invocations(
         for handle in _wasm_invocation_handles.values():
             if extension_id and handle.invocation.extension_id != extension_id:
                 continue
-            invocation = handle.invocation.copy(deep=True)
+            invocation = handle.invocation.model_copy(deep=True)
             if handle.stop_requested and invocation.status == "running":
                 invocation.status = "stopping"
                 invocation.stop_reason = handle.stop_reason
@@ -613,31 +622,13 @@ def _safe_wasm_invocation_context(context: dict) -> dict:
     return safe_context
 
 
-def _safe_wasm_error_message(message: str | None) -> str | None:
-    if not message:
-        return None
-
-    safe_message = message[:500]
-    redactions = [
-        (
-            r"(?i)(api[-_ ]?key|token|authorization|password|secret|preimage)"
-            r"\s*[:=]\s*[^\s,;]+",
-            r"\1=[redacted]",
-        ),
-        (r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [redacted]"),
-        (r"\b[a-fA-F0-9]{64}\b", "[redacted-hex]"),
-    ]
-    for pattern, replacement in redactions:
-        safe_message = re.sub(pattern, replacement, safe_message)
-    return safe_message
-
-
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
 async def uninstall_extension(ext_id: str):
     await stop_extension_background_work(ext_id)
+    await delete_namespace_schedules(f"extension:{ext_id}")
     core_app_extra.unregister_wasm_ext_routes(ext_id)
 
     settings.deactivate_extension_paths(ext_id)
@@ -653,9 +644,10 @@ async def uninstall_extension(ext_id: str):
 
 async def activate_extension(ext: Extension):
     if ext.is_wasm:
+
         core_app_extra.register_new_wasm_ext_routes(ext.code)
         await update_installed_extension_state(ext_id=ext.code, active=True)
-        return
+        return await _ensure_wasm_extension_schedules(ext)
 
     core_app_extra.register_new_ext_routes(ext)
     await update_installed_extension_state(ext_id=ext.code, active=True)
@@ -675,6 +667,7 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
+    await scheduler.stop_namespace(f"extension:{ext_id}")
     if is_wasm_extension_id(ext_id):
         return True
 
@@ -772,3 +765,13 @@ async def get_valid_extension(
         return None
 
     return Extension.from_installable_ext(ext)
+
+
+async def _ensure_wasm_extension_schedules(ext):
+    try:
+        await ensure_wasm_extension_schedules(ext.code)
+    except Exception:
+        await update_installed_extension_state(ext_id=ext.code, active=False)
+        await scheduler.stop_namespace(f"extension:{ext.code}")
+        raise
+    return

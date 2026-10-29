@@ -52,7 +52,7 @@ window.app.component('lnbits-manage-wallet-list', {
         }
       })
       // if current wallet, update balance and payments
-      if (this.g.wallet.id === data.payment.wallet_id) {
+      if (this.g.wallet?.id === data.payment.wallet_id) {
         this.g.wallet.sat = data.wallet_balance
         // lnbits-payment-list is watching
         this.g.updatePayments = !this.g.updatePayments

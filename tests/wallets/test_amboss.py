@@ -1,4 +1,5 @@
 import hashlib
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -9,9 +10,12 @@ from lnbits.wallets.amboss import (
     _BASE_ASSET_ONLY,
     AmbossApiError,
     AmbossWallet,
+    _normalize_macaroon_hex,
     _pick_rest_socket,
-    _self_check,
+    create_master_password_hash,
+    nip44_decrypt,
 )
+from lnbits.wallets.base import PaymentResponse
 
 
 @pytest.fixture
@@ -61,7 +65,9 @@ def _expect_gql(server: HTTPServer, response: dict, ordered: bool = False):
     expect(uri=_GQL_URI, method="POST").respond_with_json(response)
 
 
-def _wallet_data(asset_type: str = "BASE_ASSET", balance: int = 55) -> dict:
+def _wallet_data(
+    asset_type: str = "BASE_ASSET", balance: int = 55, environment: str = "LIVE"
+) -> dict:
     return {
         "data": {
             "payment": {
@@ -70,6 +76,7 @@ def _wallet_data(asset_type: str = "BASE_ASSET", balance: int = 55) -> dict:
                         "id": "test-wallet-id",
                         "balance": {"balance": balance},
                         "asset": {"type": asset_type},
+                        "environment": {"type": environment},
                     }
                 }
             }
@@ -77,10 +84,55 @@ def _wallet_data(asset_type: str = "BASE_ASSET", balance: int = 55) -> dict:
     }
 
 
-def test_self_check():
-    # Only wired up under `python -m lnbits.wallets.amboss` otherwise — this
-    # is what actually proves the ported crypto in CI.
-    _self_check()
+def test_crypto_matches_sdk_vectors() -> None:
+    """Prove the ported crypto reproduces the TS SDK byte-for-byte.
+
+    Fixtures below were generated offline by the SDK's own libraries
+    (@noble/hashes `argon2id`, nostr-tools `nip44.v2.decrypt`), so they encode
+    that implementation's output rather than this one's.
+    They pin the full send-path crypto: argon2 key derivation (both steps, with
+    the trim/lower + hex-string-as-password encoding) and the two-step NIP-44
+    decrypt chain (masterKey -> symmetricKey -> macaroon).
+    """
+    # Official NIP-44 v2 vector — proves HKDF/ChaCha nonce order/HMAC/unpad.
+    assert (
+        nip44_decrypt(
+            "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABee0G5VSK0/9YypIObAtDKfYEAjD35"
+            "uVkHyB0F4DwrcNaCXlCWZKaArsGrY6M9wnuTMxWfp1RTN9Xga8no+kF5Vsb",
+            "c41c775356fd92eadc63ff5a0dc1da211b268cbea22316767095b2871ea1412d",
+        )
+        == "a"
+    )
+
+    password, team_id = "CorrectHorseBatteryStaple", "Team-ABCDEF-0123456789"
+    enc_symmetric_key = (
+        "AtTigMMQNSYlsDcRdrXNse9tiJHerVNQIualUYH+83z57yJLWYLWR6/F1hOR84jPfSvOgCsoq"
+        "TWufdGoJMrDoR4cFiF9E+RYKp1gKlu89dJKJA5Sl9IUWvwPrrlKCXnU5nlsIKAn8iFzfnUuAk"
+        "IhG/GaGtu7V1wCz68VXSOIIA0l7vg="
+    )
+    enc_macaroon = (
+        "AkpB8MavSNfEH5MvGhVzWUA8kutzu74ETVrjS55Bac2Wcd8gVas2c1mmEYwUM2rVgpme9db1w"
+        "ECXVUJFhVarcKDMTJF6P87LlQfjHRg8t9oxoCyIbEcv6C0Dt3V8UFZrAKei5rE7A5z70PXzLc"
+        "3H8Lr2m+cilXnBBC6TQzg6YVZpgpA="
+    )
+    master_key, master_password_hash = create_master_password_hash(password, team_id)
+    assert (
+        master_key == "1c46299fbd90ea8e026baaaba498e928588c8d371daf3a5c051b5f3a1a5d99c9"
+    )
+    assert (
+        master_password_hash
+        == "4fd0954f3dbfb6ced05286d4a0733f92a5bcd7405761bf7d6d31a1259774dbcc"
+    )
+    symmetric_key = nip44_decrypt(enc_symmetric_key, master_key)
+    assert (
+        symmetric_key
+        == "a3f1c9d2b4e6081357092468acebdf01a3f1c9d2b4e6081357092468acebdf01"
+    )
+    macaroon = nip44_decrypt(enc_macaroon, symmetric_key)
+    assert (
+        _normalize_macaroon_hex(macaroon)
+        == "0201036c6e64025f030a10abababababababababababababababababababab"
+    )
 
 
 @pytest.mark.anyio
@@ -110,6 +162,7 @@ async def test_pay_invoice_rejects_payment_request_hash_mismatch(
     # shaped as a create_send response, so leaving it unset makes pay_invoice
     # fail on a KeyError before it ever reaches the guard under test.
     amboss_wallet._asset_verified = True
+    amboss_wallet._sandbox = False
     mocker.patch.object(
         amboss_wallet,
         "_send_context",
@@ -524,3 +577,90 @@ async def test_get_payment_status_pending_while_tx_not_yet_in_ledger(
     assert status.paid is None
     # Guards against an always-pending stub: the lookup really was attempted.
     assert len(gql_server.log) == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("environment", ["LIVE", "SANDBOX"])
+async def test_create_invoice_uses_api_environment_after_status(
+    http_wallet: AmbossWallet, gql_server: HTTPServer, environment: str
+):
+    for _ in range(2):
+        _expect_gql(gql_server, _wallet_data(environment=environment), ordered=True)
+    _expect_gql(
+        gql_server,
+        {
+            "data": {
+                "payment": {
+                    "transaction": {
+                        "create_receive": {"id": "tx-1", "payment_request": "lnbc1..."}
+                    }
+                }
+            }
+        },
+        ordered=True,
+    )
+
+    assert (await http_wallet.status()).error_message is None
+    invoice = await http_wallet.create_invoice(1000)
+
+    assert invoice.ok is True
+    sent = gql_server.log[-1][0].get_json()["variables"]["input"]
+    if environment == "SANDBOX":
+        assert json.loads(sent["metadata"]) == {"amb_sandbox_behavior": "complete"}
+    else:
+        assert "metadata" not in sent
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("environment", ["LIVE", "SANDBOX"])
+async def test_pay_invoice_uses_api_environment(
+    amboss_wallet: AmbossWallet, mocker, environment: str
+):
+    amboss_wallet.team_password = "CorrectHorseBatteryStaple"
+    payment_hash = amboss_module.bolt11_decode(_BOLT11).payment_hash
+    context = {
+        "payment": {
+            "id": "team-id",
+            "wallet": {"find_one": {"environment": {"type": environment}}},
+        }
+    }
+    gql = mocker.patch.object(
+        amboss_wallet,
+        "_gql",
+        side_effect=[
+            _wallet_data(environment=environment)["data"],
+            context,
+            {
+                "payment": {
+                    "transaction": {
+                        "create_send": {
+                            "payment_hash": payment_hash,
+                            "payment_request": _BOLT11,
+                        }
+                    }
+                }
+            },
+        ],
+    )
+    node = {"sockets": {"lnd": {"rest": "https://node"}}}
+    resolve_node = mocker.patch.object(
+        amboss_wallet, "_resolve_node", return_value=(node, "00ff")
+    )
+    pay_via_node = mocker.patch.object(
+        amboss_wallet, "_pay_via_node", return_value=PaymentResponse(ok=True)
+    )
+
+    result = await amboss_wallet.pay_invoice(_BOLT11, fee_limit_msat=1000)
+
+    sent = gql.call_args.args[1]["input"]
+    if environment == "SANDBOX":
+        assert json.loads(sent["metadata"]) == {"amb_sandbox_behavior": "complete"}
+        resolve_node.assert_not_called()
+        pay_via_node.assert_not_called()
+        assert result.ok is None
+        assert result.checking_id == payment_hash
+    else:
+        assert "metadata" not in sent
+        resolve_node.assert_awaited_once_with("team-id", amboss_wallet.team_password)
+        pay_via_node.assert_awaited_once_with(node, "00ff", _BOLT11, 1000, payment_hash)
+        assert result.ok is True

@@ -237,6 +237,12 @@ window.PageAccount = {
           icon: 'palette'
         },
         {
+          value: 'two_factor',
+          label: this.$t('two_factor_auth_account'),
+          description: this.$t('two_factor_description'),
+          icon: 'verified_user'
+        },
+        {
           value: 'api_acls',
           label: this.$t('access_control_list'),
           description: this.$t('access_control_list_description'),

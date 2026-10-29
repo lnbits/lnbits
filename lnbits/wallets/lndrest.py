@@ -30,6 +30,7 @@ _PRE_DISPATCH_PAYMENT_ERROR_CODES = {3, 7, 16}
 _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
     "invoice not for current active network",
     "invoice expired",
+    "self-payments not allowed",
 )
 
 
@@ -346,13 +347,15 @@ class LndRestWallet(Wallet):
         memo: str | None = None,
         description_hash: bytes | None = None,
         unhashed_description: bytes | None = None,
-        **_,
+        **kwargs,
     ) -> InvoiceResponse:
         data: dict = {
             "value": amount,
             "private": True,
             "hash": base64.b64encode(bytes.fromhex(payment_hash)).decode("ascii"),
         }
+        if kwargs.get("expiry"):
+            data["expiry"] = kwargs["expiry"]
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"

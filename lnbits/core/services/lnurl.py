@@ -31,7 +31,7 @@ from lnurl import (
 from lnurl.models import LnurlResponseModel
 from lnurl.types import CallbackUrl
 from loguru import logger
-from pydantic import ValidationError, parse_obj_as
+from pydantic import TypeAdapter, ValidationError
 
 from lnbits.core.crud import update_wallet
 from lnbits.core.models import CreateLnurlPayment, Wallet
@@ -39,6 +39,7 @@ from lnbits.core.models.lnurl import StoredPayLink
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnbits.utils.network import is_global_address
 
 LNURL_MAX_REDIRECTS = 3
 LNURL_MAX_RESPONSE_BYTES = 262_144
@@ -67,9 +68,9 @@ async def handle(
         raise InvalidLnurl from exc
 
     if parsed_lnurl.is_login:
-        callback = parse_obj_as(CallbackUrl, parsed_lnurl.url)
+        callback = TypeAdapter(CallbackUrl).validate_python(parsed_lnurl.url)
         return LnurlAuthResponse(
-            callback=callback, k1=parsed_lnurl.url.query_params["k1"]
+            callback=callback, k1=dict(parsed_lnurl.url.query_params())["k1"]
         )
 
     return await _get(
@@ -159,7 +160,7 @@ async def perform_withdraw(lnurl: str, payment_request: str) -> None:
     if not isinstance(res, LnurlWithdrawResponse):
         raise LnurlResponseException("Invalid LNURL-withdraw response.")
     try:
-        check_callback_url(res.callback)
+        check_callback_url(str(res.callback))
     except ValueError as exc:
         raise LnurlResponseException(f"Invalid callback URL: {exc!s}") from exc
     res2 = await execute_withdraw(
@@ -452,7 +453,7 @@ async def _validate_lnurl_request_url(
     ):
         raise LnurlResponseException("LNURL request target is not allowed over HTTP.")
     if not settings.lnbits_lnurl_allow_private_ips and any(
-        not address.is_global for address in addresses
+        not is_global_address(address) for address in addresses
     ):
         raise LnurlResponseException(
             "LNURL request target resolves to a private or non-global IP address."

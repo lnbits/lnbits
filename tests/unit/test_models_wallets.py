@@ -14,7 +14,7 @@ def test_copy_with_keys(keep: bool | None):
         adminkey="admin-key",
         inkey="invoice-key",
     )
-    original = json.loads(wallet.json())
+    original = json.loads(wallet.model_dump_json())
 
     result = (
         wallet.copy_with_keys() if keep is None else wallet.copy_with_keys(keep=keep)
@@ -22,9 +22,9 @@ def test_copy_with_keys(keep: bool | None):
 
     assert isinstance(result, Wallet)
     assert result is not wallet
-    assert json.loads(wallet.json()) == original
+    assert json.loads(wallet.model_dump_json()) == original
     expected = original
     if keep is False:
         expected = {**original, "adminkey": "*" * 32, "inkey": "*" * 32}
-    assert json.loads(result.json()) == expected
-    assert Wallet(**result.dict()) == result
+    assert json.loads(result.model_dump_json()) == expected
+    assert Wallet(**result.model_dump()) == result

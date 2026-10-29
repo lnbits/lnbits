@@ -189,6 +189,8 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/extensions")
 @generic_router.get("/users", dependencies=admin_ui_checks)
 @generic_router.get("/audit", dependencies=admin_ui_checks)
+@generic_router.get("/scheduler", dependencies=admin_ui_checks)
+@generic_router.get("/scheduler/runs", dependencies=admin_ui_checks)
 @generic_router.get("/node", dependencies=admin_ui_checks)
 @generic_router.get("/admin", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm", dependencies=admin_ui_checks)
@@ -209,8 +211,18 @@ async def index(
         request,
         "base.html",
         {
-            "user": user.json(),
+            "user": user.model_dump_json(),
         },
+    )
+
+
+@generic_router.get("/2fa")
+async def two_factor_page(request: Request) -> HTMLResponse:
+    return template_renderer().TemplateResponse(
+        request,
+        "two_factor.html",
+        {"public": True},
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
     )
 
 
@@ -228,7 +240,7 @@ async def index_blockexplorer(
     user: User = Depends(check_blockexplorer_access),
 ) -> HTMLResponse:
     return template_renderer().TemplateResponse(
-        request, "base.html", {"user": user.json()}
+        request, "base.html", {"user": user.model_dump_json()}
     )
 
 
@@ -267,8 +279,8 @@ async def lnurlwallet(request: Request, lightning: str = ""):
     if not settings.lnbits_allow_new_accounts:
         return {"status": "ERROR", "reason": "New accounts are not allowed."}
 
-    lnurl = url_decode(lightning)
     try:
+        lnurl = url_decode(lightning)
         check_callback_url(lnurl)
         withdraw = await handle(lnurl, user_agent=settings.user_agent, timeout=2)
         if not isinstance(withdraw, LnurlWithdrawResponse):
@@ -281,7 +293,7 @@ async def lnurlwallet(request: Request, lightning: str = ""):
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Invalid lnurl. Expected maxWithdrawable",
             )
-        check_callback_url(withdraw.callback)
+        check_callback_url(str(withdraw.callback))
     except (LnurlException, ValueError) as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)

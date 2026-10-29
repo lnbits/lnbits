@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Literal
+from uuid import UUID
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -18,6 +19,51 @@ from lnbits.settings import (
     list_parse_fallback,
     set_cli_settings,
 )
+
+
+@pytest.mark.parametrize("admins", ['["alice", "bob"]', "alice,bob"])
+def test_settings_load_env_collections_and_ignore_unrelated_dotenv_values(
+    monkeypatch, tmp_path, admins
+):
+    monkeypatch.setenv("LNBITS_ADMIN_USERS", admins)
+    monkeypatch.setenv("LNBITS_ASSETS_ALLOWED_MIME_TYPES", "image/png,image/jpeg")
+    monkeypatch.setenv("LNBITS_DATA_FOLDER", str(tmp_path))
+    monkeypatch.delenv("LNBITS_WASM_EXTENSIONS_PATH", raising=False)
+    monkeypatch.setenv("STRIKE_API_KEY", "test-strike-key")
+    monkeypatch.setenv(
+        "STRIPE_LIMITS", '{"allowed_users":["alice"],"service_max_fee_sats":5}'
+    )
+    monkeypatch.setenv(
+        "LNBITS_EXCHANGE_RATE_PROVIDERS",
+        '[{"name":"test","api_url":"https://example.com","path":"price"}]',
+    )
+    env_file = tmp_path / ".env"
+    env_file.write_text("UNRELATED_VARIABLE=ignored\n")
+
+    loaded = Settings(_env_file=env_file)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_admin_users == ["alice", "bob"]
+    assert loaded.lnbits_assets_allowed_mime_types == ["image/png", "image/jpeg"]
+    assert loaded.lnbits_exchange_rate_providers[0].name == "test"
+    assert loaded.strike_api_key == "test-strike-key"
+    assert loaded.stripe_limits.allowed_users == ["alice"]
+    assert loaded.stripe_limits.service_max_fee_sats == 5
+    assert loaded.wasm_extensions_dir == tmp_path / "wasm_extensions"
+
+
+def test_settings_master_key_alias_precedence_and_serialization(monkeypatch):
+    monkeypatch.setenv("WATCHONLY_MASTER_KEY", "legacy-test-key")
+    monkeypatch.delenv("LNBITS_ONCHAIN_MASTER_KEY", raising=False)
+    loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_onchain_master_key is not None
+    assert loaded.lnbits_onchain_master_key.get_secret_value() == "legacy-test-key"
+
+    monkeypatch.setenv("LNBITS_ONCHAIN_MASTER_KEY", "current-test-key")
+    loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_onchain_master_key is not None
+    assert loaded.lnbits_onchain_master_key.get_secret_value() == "current-test-key"
+    assert "lnbits_onchain_master_key" not in loaded.model_dump()
+    assert "current-test-key" not in loaded.model_dump_json()
+
 
 lnurlp_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
@@ -65,7 +111,7 @@ def test_ln_address_mode_defaults_to_extension_first():
 
 def test_ln_address_mode_rejects_invalid_value():
     with pytest.raises(ValueError):
-        UsersSettings.parse_obj({"lnbits_ln_address_mode": "invalid"})
+        UsersSettings.model_validate({"lnbits_ln_address_mode": "invalid"})
 
 
 @pytest.fixture()
@@ -234,10 +280,10 @@ def test_settings_keep_wasm_manifests_separate_from_extension_manifests():
         *DEFAULT_WASM_MANIFESTS,
         "https://example.com/extensions.json",
     ]
-    assert settings.dict()["lnbits_extensions_manifests"] == [
+    assert settings.model_dump()["lnbits_extensions_manifests"] == [
         "https://example.com/extensions.json"
     ]
-    assert settings.dict()["lnbits_wasm_extensions_manifests"] == [
+    assert settings.model_dump()["lnbits_wasm_extensions_manifests"] == [
         *DEFAULT_WASM_MANIFESTS,
         "https://example.com/extensions.json",
     ]
@@ -292,6 +338,7 @@ def test_exchange_rate_provider_convert_ticker():
     )
 
     assert provider.convert_ticker("USD") == "USDT"
+    assert provider.convert_ticker("usd") == "USDT"
     assert provider.convert_ticker("EUR") == "EUR"
     assert invalid_provider.convert_ticker("USD") == "USD"
 
@@ -398,6 +445,19 @@ def test_asset_security_and_notification_helpers(
     assert notification_settings.is_telegram_notifications_configured() is True
 
 
+def test_nostr_notification_protocol_default_and_validation():
+    assert NotificationsSettings().lnbits_nostr_notifications_protocol == "nip17"
+    for protocol in ("nip04", "nip17"):
+        config = NotificationsSettings.parse_obj(
+            {"lnbits_nostr_notifications_protocol": protocol}
+        )
+        assert config.lnbits_nostr_notifications_protocol == protocol
+    with pytest.raises(ValueError, match="lnbits_nostr_notifications_protocol"):
+        NotificationsSettings.parse_obj(
+            {"lnbits_nostr_notifications_protocol": "other"}
+        )
+
+
 def test_public_settings_from_settings(settings: Settings):
     original_site_title = settings.lnbits_site_title
     original_ad_space = settings.lnbits_ad_space
@@ -433,3 +493,52 @@ def test_set_cli_settings_updates_runtime_settings(settings: Settings):
         assert settings.host == "0.0.0.0"  # noqa S104
     finally:
         settings.host = original_host
+
+
+@pytest.mark.parametrize(
+    "field,filename",
+    [
+        ("auth_secret_key", ".lnbits_auth_key"),
+        ("totp_encryption_key", ".lnbits_totp_key"),
+    ],
+)
+def test_secret_key_file_lifecycle(settings, tmp_path, monkeypatch, field, filename):
+    data_folder = tmp_path / "data"
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(data_folder))
+    monkeypatch.setattr(settings, field, "")
+    initialize = getattr(settings, f"check_{field}")
+    initialize()
+    generated = getattr(settings, field)
+    assert len(generated) == 32
+    assert UUID(hex=generated).version == 4
+    key_file = data_folder / filename
+    assert key_file.read_text() == generated
+
+    setattr(settings, field, "")
+    initialize()
+    assert getattr(settings, field) == generated
+
+    key_file.unlink()
+    setattr(settings, field, "")
+    initialize()
+    assert getattr(settings, field) != generated
+    assert key_file.read_text() == getattr(settings, field)
+
+
+@pytest.mark.parametrize(
+    "field,filename",
+    [
+        ("auth_secret_key", ".lnbits_auth_key"),
+        ("totp_encryption_key", ".lnbits_totp_key"),
+    ],
+)
+def test_configured_secret_key_takes_precedence(
+    settings, tmp_path, monkeypatch, field, filename
+):
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path))
+    monkeypatch.setattr(settings, field, "ab" * 32)
+    key_file = tmp_path / filename
+    key_file.write_text("cd" * 16)
+    getattr(settings, f"check_{field}")()
+    assert getattr(settings, field) == "ab" * 32
+    assert key_file.read_text() == "cd" * 16

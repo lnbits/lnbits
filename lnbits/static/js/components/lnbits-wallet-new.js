@@ -2,14 +2,26 @@ window.app.component('lnbits-wallet-new', {
   template: '#lnbits-wallet-new',
   data() {
     return {
-      walletTypes: [{label: 'Lightning Wallet', value: 'lightning'}],
-      wallet: {name: '', sharedWalletId: ''},
+      wallet: {
+        name: '',
+        sharedWalletId: '',
+        network: 'Mainnet',
+        currency: null
+      },
       showNewWalletDialog: false
     }
   },
   watch: {
     'g.newWalletType'(val) {
       if (val === null) return
+      if (val === 'fiat') {
+        const defaultCurrency = this.g.settings.defaultAccountingCurrency
+        this.wallet.currency = this.currencyOptions.includes(defaultCurrency)
+          ? defaultCurrency
+          : this.currencyOptions[0]
+      } else {
+        this.wallet.currency = null
+      }
       this.showNewWalletDialog = true
     },
     showNewWalletDialog(val) {
@@ -18,11 +30,52 @@ window.app.component('lnbits-wallet-new', {
     }
   },
   computed: {
-    isLightning() {
-      return this.g.newWalletType === 'lightning'
+    walletTypes() {
+      const types = [
+        {
+          label: 'Lightning',
+          value: 'lightning',
+          description: 'Send and receive Lightning payments'
+        },
+        {
+          label: 'Onchain',
+          value: 'onchain',
+          description:
+            'Bitcoin with a hot wallet, hardware wallet or watch-only account'
+        }
+      ]
+      if (this.g.user?.canCreateFiatWallet) {
+        types.push({
+          label: 'Fiat',
+          value: 'fiat',
+          description: 'Receive only (for use with fiat)'
+        })
+      }
+      const invites = this.g.user?.extra?.wallet_invite_requests?.length
+      if (invites) {
+        types.push({
+          label: `Lightning Wallet (Share Invite: ${invites})`,
+          value: 'lightning-shared'
+        })
+      }
+      return types
     },
     isLightningShared() {
       return this.g.newWalletType === 'lightning-shared'
+    },
+    isFiat() {
+      return this.g.newWalletType === 'fiat'
+    },
+    currencyOptions() {
+      const usedCurrencies = new Set(
+        this.g.user.wallets
+          .filter(wallet => wallet.walletType === 'fiat')
+          .map(wallet => wallet.currency)
+      )
+      const currencies = this.g.allowedCurrencies.length
+        ? this.g.allowedCurrencies
+        : this.g.currencies
+      return currencies.filter(currency => !usedCurrencies.has(currency))
     },
     inviteWalletOptions() {
       return (this.g.user?.extra?.wallet_invite_requests || []).map(i => ({
@@ -35,7 +88,12 @@ window.app.component('lnbits-wallet-new', {
     reset() {
       this.showNewWalletDialog = false
       this.g.newWalletType = null
-      this.wallet = {name: '', sharedWalletId: ''}
+      this.wallet = {
+        name: '',
+        sharedWalletId: '',
+        network: 'Mainnet',
+        currency: null
+      }
     },
     async submitRejectWalletInvitation() {
       try {
@@ -69,7 +127,7 @@ window.app.component('lnbits-wallet-new', {
     },
     submitAddWallet() {
       const data = this.wallet
-      if (this.g.newWalletType === 'lightning' && !data.name) {
+      if (!this.isLightningShared && !data.name) {
         this.$q.notify({
           message: 'Please enter a name for the wallet',
           color: 'warning'
@@ -85,7 +143,9 @@ window.app.component('lnbits-wallet-new', {
       }
       LNbits.api
         .createWallet(data.name, this.g.newWalletType, {
-          shared_wallet_id: data.sharedWalletId
+          shared_wallet_id: data.sharedWalletId,
+          currency: data.currency,
+          onchain_network: data.network
         })
         .then(res => {
           this.$q.notify({
@@ -98,14 +158,6 @@ window.app.component('lnbits-wallet-new', {
           this.$router.push(`/wallet/${res.data.id}`)
         })
         .catch(LNbits.utils.notifyApiError)
-    }
-  },
-  created() {
-    if (this.g.user?.extra?.wallet_invite_requests?.length) {
-      this.walletTypes.push({
-        label: `Lightning Wallet (Share Invite: ${this.g.user.extra.wallet_invite_requests.length})`,
-        value: 'lightning-shared'
-      })
     }
   }
 })

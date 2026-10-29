@@ -1,30 +1,53 @@
+import base64
+import json
 import os
 import time
 from http import HTTPStatus
 from pathlib import Path
 from shutil import make_archive
-from subprocess import Popen
-from urllib.parse import ParseResult, urlparse
+from subprocess import PIPE, Popen
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, File
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Response
 from fastapi.responses import FileResponse
+from loguru import logger
+from pydantic import SecretStr
+from sqlalchemy.engine import URL, make_url
+from sqlalchemy.exc import ArgumentError
+from starlette.concurrency import run_in_threadpool
 
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services import (
     enqueue_admin_notification,
     get_balance_delta,
     update_cached_settings,
 )
 from lnbits.core.services.notifications import send_email_notification
+from lnbits.core.services.onchain import (
+    OnchainKeyStatus,
+    confirm_onchain_key_backup,
+    onchain_key_status,
+    read_onchain_key,
+    setup_onchain_key,
+)
 from lnbits.core.services.settings import dict_to_settings
-from lnbits.decorators import check_admin, check_super_user
+from lnbits.core.services.two_factor import (
+    sync_two_factor_policy,
+    validate_two_factor_policy,
+)
+from lnbits.decorators import access_token_payload, check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
 from lnbits.task_manager import PublicTask, task_manager
 
 from .. import core_app_extra
-from ..crud import get_admin_settings, reset_core_settings, update_admin_settings
+from ..crud import (
+    get_admin_settings,
+    get_total_balance,
+    reset_core_settings,
+    update_admin_settings,
+)
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
@@ -37,7 +60,12 @@ file_upload = File(...)
     dependencies=[Depends(check_admin)],
 )
 async def api_auditor():
-    return await get_balance_delta()
+    balance = await get_balance_delta()
+    fiat_balance = await get_total_balance(fiat=True)
+    return {
+        **balance.model_dump(),
+        "lnbits_fiat_balance_sats": int(fiat_balance) // 1000,
+    }
 
 
 @admin_router.get(
@@ -78,8 +106,28 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(
-    data: UpdateSettings, account: Account = Depends(check_admin)
+    data: UpdateSettings,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
+    policy_changed = await validate_two_factor_policy(data, account.id, payload)
+    if "lnbits_allow_onchain_payments" in data.model_fields_set:
+        enabled = data.lnbits_allow_onchain_payments
+        if (
+            enabled != settings.lnbits_allow_onchain_payments
+            and not account.is_super_user
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN, "Only the super user can change onchain payments."
+            )
+        if enabled:
+            status = await onchain_key_status()
+            if not status.configured or not status.backup_confirmed:
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    "Set up and back up the onchain encryption key "
+                    "before enabling onchain payments.",
+                )
     enqueue_admin_notification(
         NotificationType.settings_update, {"username": account.username}
     )
@@ -87,9 +135,91 @@ async def api_update_settings(
     admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
         raise ValueError("Updated admin settings not found.")
-    update_cached_settings(admin_settings.dict())
+    update_cached_settings(admin_settings.model_dump())
     core_app_extra.register_new_ratelimiter()
+    if policy_changed:
+        from lnbits.core.views.auth_api import _auth_success_response
+
+        policy_revision = await sync_two_factor_policy()
+        # Preserve the acting admin's fresh verification; all other sessions
+        # must satisfy the new policy on their next protected request.
+        response = _auth_success_response(
+            payload=payload.model_copy(update={"mfa_policy": policy_revision})
+        )
+        return response
     return {"status": "Success"}
+
+
+@admin_router.get("/api/v1/onchain/key", dependencies=[Depends(check_super_user)])
+async def api_onchain_key_status(response: Response) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    return await onchain_key_status()
+
+
+@admin_router.post("/api/v1/onchain/key", dependencies=[Depends(check_super_user)])
+async def api_setup_onchain_key(
+    response: Response,
+    recovery_key: Annotated[
+        SecretStr | None, Header(alias="X-Onchain-Recovery-Key")
+    ] = None,
+) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await setup_onchain_key(
+            recovery_key.get_secret_value() if recovery_key else None
+        )
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Cannot set up the onchain key. Check the recovery key, "
+            "existing configuration and data-folder permissions.",
+        ) from exc
+
+
+@admin_router.post(
+    "/api/v1/onchain/key/backup", dependencies=[Depends(check_super_user)]
+)
+async def api_backup_onchain_key() -> Response:
+    try:
+        status = await setup_onchain_key()
+        key = await run_in_threadpool(read_onchain_key)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "The onchain key is unavailable. Restore its original backup.",
+        ) from exc
+    return Response(
+        content=json.dumps(
+            {
+                "version": 1,
+                "key": base64.b64encode(key).decode(),
+                "fingerprint": status.fingerprint,
+            },
+            indent=2,
+        ),
+        media_type="application/json",
+        headers={
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+            "Content-Disposition": 'attachment; filename="lnbits-onchain-key.json"',
+        },
+    )
+
+
+@admin_router.post(
+    "/api/v1/onchain/key/confirm", dependencies=[Depends(check_super_user)]
+)
+async def api_confirm_onchain_key_backup(
+    fingerprint: Annotated[str, Header(alias="X-Onchain-Key-Fingerprint")],
+    response: Response,
+) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await confirm_onchain_key_backup(fingerprint)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT, "The backup does not match the onchain key."
+        ) from exc
 
 
 @admin_router.patch(
@@ -97,10 +227,12 @@ async def api_update_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings_partial(
-    data: dict, account: Account = Depends(check_admin)
+    data: dict,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
-    updatable_settings = dict_to_settings({**settings.dict(), **data})
-    return await api_update_settings(updatable_settings, account)
+    updatable_settings = dict_to_settings({**settings.model_dump(), **data})
+    return await api_update_settings(updatable_settings, account, payload)
 
 
 @admin_router.get(
@@ -109,6 +241,10 @@ async def api_update_settings_partial(
     dependencies=[Depends(check_admin)],
 )
 async def api_reset_settings(field_name: str):
+    if field_name not in UpdateSettings.model_fields:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Only editable settings have public defaults."
+        )
     default_settings = Settings()
     return {"default_value": getattr(default_settings, field_name)}
 
@@ -146,15 +282,28 @@ async def api_download_backup() -> FileResponse:
     is_pg = db_url and db_url.startswith("postgres://")
 
     if is_pg and db_url:
-        p = urlparse(db_url)
-        command = _build_pg_dump_command(p, pg_backup_filename)
+        env = _build_pg_dump_env(db_url)
         try:
             proc = Popen(
-                command,
+                [
+                    "pg_dump",
+                    "--no-password",
+                    "--format=c",
+                    f"--file={pg_backup_filename}",
+                ],
                 shell=False,
-                env={**os.environ, "PGPASSWORD": p.password or ""},
+                env=env,
+                stderr=PIPE,
+                text=True,
             )
-            proc.wait()
+            _, stderr = proc.communicate()
+            if proc.returncode != 0:
+                detail = stderr.strip()
+                logger.error(f"pg_dump exited with code {proc.returncode}: {detail}")
+                raise ValueError(
+                    "PostgreSQL database backup failed."
+                    f"{_pg_dump_error_hint(stderr)}"
+                )
             make_archive(last_filename, "zip", settings.lnbits_data_folder)
         finally:
             pg_backup_filename.unlink(missing_ok=True)
@@ -162,38 +311,44 @@ async def api_download_backup() -> FileResponse:
         make_archive(last_filename, "zip", settings.lnbits_data_folder)
 
     return FileResponse(
-        path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
+        path=f"{last_filename}.zip",
+        filename=filename,
+        media_type="application/zip",
+        headers={"Cache-Control": "no-store"},
     )
 
 
-def _build_pg_dump_command(
-    parsed_url: ParseResult, dump_filename: str | Path
-) -> list[str]:
-    try:
-        hostname = parsed_url.hostname
-        port = parsed_url.port
-    except ValueError as exc:
-        raise ValueError("Invalid PostgreSQL database URL.") from exc
+def _pg_dump_error_hint(stderr: str | None, limit: int = 300) -> str:
+    """Condense pg_dump's own message so the caller learns why it failed."""
+    message = " ".join((stderr or "").split())
+    if not message:
+        return ""
+    if len(message) > limit:
+        message = message[: limit - 3].rstrip() + "..."
+    return f" {message}"
 
-    database = parsed_url.path.removeprefix("/")
-    if (
-        parsed_url.scheme != "postgres"
-        or not hostname
-        or not parsed_url.username
-        or not database
-    ):
+
+def _build_pg_dump_env(database_url: str) -> dict[str, str]:
+    try:
+        url = cast(URL, make_url(database_url))
+    except (ArgumentError, ValueError) as exc:
+        raise ValueError("Invalid PostgreSQL database URL.") from exc
+    if url.drivername != "postgres":
         raise ValueError("Invalid PostgreSQL database URL.")
 
-    command = ["pg_dump", f"--host={hostname}"]
-    if port is not None:
-        command.append(f"--port={port}")
-    command.extend(
-        [
-            f"--dbname={database}",
-            f"--username={parsed_url.username}",
-            "--no-password",
-            "--format=c",
-            f"--file={dump_filename}",
-        ]
-    )
-    return command
+    # Match the connection arguments used by SQLAlchemy's asyncpg dialect.
+    parameters = url.translate_connect_args(username="user")
+    parameters.update(url.query)
+    env = os.environ.copy()
+    for parameter, variable in {
+        "host": "PGHOST",
+        "port": "PGPORT",
+        "user": "PGUSER",
+        "password": "PGPASSWORD",
+        "database": "PGDATABASE",
+        "ssl": "PGSSLMODE",
+    }.items():
+        value = parameters.get(parameter)
+        if value is not None:
+            env[variable] = ",".join(value) if isinstance(value, tuple) else str(value)
+    return env

@@ -949,10 +949,12 @@ class NWCConnection:
             while not self._is_shutting_down():
                 try:
                     await asyncio.sleep(int(self.subscription_timeout * 0.5))
-                    # skip if connection is not established
-                    if not self.connected:
-                        continue
-                    # Find all subscriptions that have timed out
+                    # Find all subscriptions that have timed out.
+                    # This must run even while the connection is down:
+                    # otherwise in-flight request futures on a dropped
+                    # connection are never resolved and callers await forever
+                    # (the socket can reconnect but the old subscriptions never
+                    # complete), which requires a process restart to recover.
                     now = time.time()
                     subscriptions_to_close = []
                     for subscription in self.subscriptions.values():
@@ -970,9 +972,14 @@ class NWCConnection:
                                 subscription["future"].set_exception(
                                     Exception("timed out")
                                 )
-                    # Close all timed out subscriptions
+                    # Close all timed out subscriptions. When the connection is
+                    # down, drop the stale entries locally instead of sending
+                    # CLOSE (which blocks on _wait_for_connection); the futures
+                    # are already resolved above so callers do not hang.
                     for sub_id in subscriptions_to_close:
-                        await self._close_subscription_by_subid(sub_id)
+                        await self._close_subscription_by_subid(
+                            sub_id, send_event=self.connected
+                        )
                 except Exception as e:
                     logger.error("Error handling subscription timeout: " + str(e))
         except Exception as e:

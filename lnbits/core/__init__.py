@@ -16,8 +16,11 @@ from .views.fiat_api import fiat_router
 from .views.generic import generic_router
 from .views.lnurl_api import lnurl_router
 from .views.node_api import node_router, public_node_router, super_node_router
+from .views.onchain_api import onchain_router
 from .views.payment_api import payment_router
+from .views.scheduler_api import scheduler_router
 from .views.tinyurl_api import tinyurl_router
+from .views.two_factor_api import two_factor_router
 from .views.user_api import users_router
 from .views.wallet_api import wallet_router
 from .views.webpush_api import webpush_router
@@ -28,8 +31,10 @@ core_app = APIRouter(tags=["Core"])
 
 
 def init_core_routers(app: FastAPI):
+    app.include_router(onchain_router)
     app.include_router(core_app)
     app.include_router(generic_router)
+    app.include_router(two_factor_router)
     app.include_router(auth_router)
     app.include_router(admin_router)
     app.include_router(node_router)
@@ -47,6 +52,7 @@ def init_core_routers(app: FastAPI):
     app.include_router(webpush_router)
     app.include_router(users_router)
     app.include_router(audit_router)
+    app.include_router(scheduler_router)
     app.include_router(asset_router)
     app.include_router(fiat_router)
     app.include_router(lnurl_router)

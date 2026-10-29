@@ -2,16 +2,20 @@ window.PageWallet = {
   template: '#page-wallet',
   data() {
     return {
+      onchainPaymentFilter: {},
       parse: {
         show: false,
         invoice: null,
         lnurlpay: null,
         lnurlauth: null,
         sending: false,
+        decoding: false,
+        decodeId: 0,
         data: {
           request: '',
           amount: 0,
           comment: '',
+          memo: '',
           internalMemo: null,
           unit: 'sat'
         },
@@ -69,6 +73,19 @@ window.PageWallet = {
     }
   },
   computed: {
+    isFiatWallet() {
+      return this.g.wallet.walletType === 'fiat'
+    },
+    isCashPayment() {
+      return this.isFiatWallet && this.receive.fiatProvider === 'cash'
+    },
+    bolt12AmountMissing() {
+      return !!(
+        this.parse.invoice &&
+        this.parse.invoice.isBolt12Offer &&
+        !(Number(this.parse.data.amount) > 0)
+      )
+    },
     canPay() {
       if (!this.parse.invoice) return false
       if (this.parse.invoice.expired) {
@@ -77,6 +94,12 @@ window.PageWallet = {
           color: 'negative'
         })
         return false
+      }
+      if (this.parse.invoice.isBolt12Offer) {
+        if (this.bolt12AmountMissing) {
+          return true
+        }
+        return Number(this.parse.data.amount) <= this.g.wallet.sat
       }
       return this.parse.invoice.sat <= this.g.wallet.sat
     },
@@ -109,6 +132,12 @@ window.PageWallet = {
       return info
     },
     formattedAmount() {
+      if (this.isFiatWallet) {
+        return LNbits.utils.formatCurrency(
+          this.receive.data.amount,
+          this.receive.unit
+        )
+      }
       if (this.receive.unit != 'sat' || !this.g.isSatsDenomination) {
         return LNbits.utils.formatCurrency(
           Number(this.receive.data.amount).toFixed(2),
@@ -243,12 +272,14 @@ window.PageWallet = {
       this.receive.status = 'pending'
       this.receive.paymentReq = null
       this.receive.paymentHash = null
+      this.receive.fiatPaymentReq = null
+      this.receive.fiatProvider = this.isFiatWallet ? 'cash' : ''
       this.receive.data.amount = null
       this.receive.data.memo = null
       this.receive.data.internalMemo = null
       this.receive.data.payment_hash = null
       this.receive.units = [
-        'sat',
+        ...(this.isFiatWallet ? [] : ['sat']),
         ...(this.g.allowedCurrencies.length > 0
           ? this.g.allowedCurrencies
           : this.g.currencies)
@@ -256,12 +287,18 @@ window.PageWallet = {
       this.receive.unit = this.g.isFiatPriority
         ? this.g.wallet.currency || 'sat'
         : 'sat'
+      if (this.isFiatWallet) {
+        this.receive.unit = this.receive.units.includes(this.g.wallet.currency)
+          ? this.g.wallet.currency
+          : this.receive.units[0]
+      }
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
+      this.receive.lnurlWithdraw = null
     },
     onReceiveDialogHide() {
       if (this.hasNfc) {
-        this.nfcReaderAbortController.abort()
+        this.nfcReaderAbortController?.abort()
       }
     },
     showParseDialog() {
@@ -273,12 +310,16 @@ window.PageWallet = {
         window.isSecureContext && navigator.clipboard?.readText !== undefined
       this.parse.data.request = ''
       this.parse.data.comment = ''
+      this.parse.data.amount = 0
       this.parse.data.internalMemo = null
+      this.parse.data.memo = ''
       this.parse.sending = false
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
     closeParseDialog() {
+      this.parse.decodeId++
+      this.parse.decoding = false
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
@@ -287,31 +328,53 @@ window.PageWallet = {
       this.g.wallet.sat = this.g.wallet.sat + value
     },
     createInvoice() {
+      if (this.receive.status === 'loading') return
       this.receive.status = 'loading'
-      if (!this.g.isSatsDenomination) {
+      if (!this.isFiatWallet && !this.g.isSatsDenomination) {
         this.receive.data.amount = this.receive.data.amount * 100
       }
 
-      LNbits.api
-        .createInvoice(
-          this.g.wallet,
-          this.receive.data.amount,
-          this.receive.data.memo,
-          this.receive.unit,
-          this.receive.lnurlWithdraw,
-          this.receive.fiatProvider,
-          this.receive.data.internalMemo,
-          this.receive.data.payment_hash
-        )
+      const cash = this.isCashPayment
+      const request = cash
+        ? LNbits.api.request(
+            'POST',
+            '/api/v1/fiat/cash',
+            this.g.wallet.adminkey,
+            {
+              amount: this.receive.data.amount,
+              unit: this.receive.unit,
+              memo: this.receive.data.memo,
+              internal_memo: this.receive.data.internalMemo
+            }
+          )
+        : LNbits.api.createInvoice(
+            this.g.wallet,
+            this.receive.data.amount,
+            this.receive.data.memo,
+            this.receive.unit,
+            this.receive.lnurlWithdraw,
+            this.receive.fiatProvider,
+            this.receive.data.internalMemo,
+            this.receive.data.payment_hash
+          )
+      request
         .then(response => {
           this.g.updatePayments = !this.g.updatePayments
           this.receive.status = 'success'
+          if (cash) {
+            this.receive.show = false
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Cash payment validated.'
+            })
+            return
+          }
           this.receive.paymentReq = response.data.bolt11
           this.receive.fiatPaymentReq =
             response.data.extra?.fiat_payment_request
           this.receive.amountMsat = response.data.amount
           this.receive.paymentHash = response.data.payment_hash
-          if (!this.receive.lnurl) {
+          if (!this.isFiatWallet && !this.receive.lnurl) {
             this.readNfcTag()
           }
           // WITHDRAW
@@ -414,12 +477,20 @@ window.PageWallet = {
         req.match(/[\w.+-~_]+@[\w.+-~_]/)
       )
     },
-    decodeRequest() {
+    isBolt12Offer(req) {
+      const text = (req || '').trim().toLowerCase()
+      return text.startsWith('lno1')
+    },
+    async decodeRequest() {
+      if (this.parse.decoding) return
       this.parse.show = true
       this.parse.data.request = this.parse.data.request.trim()
       const req = this.parse.data.request.toLowerCase()
       if (req.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
+        if (this.parse.data.request.startsWith('//')) {
+          this.parse.data.request = this.parse.data.request.slice(2)
+        }
       } else if (req.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.includes('lightning=lnurl1')) {
@@ -429,6 +500,55 @@ window.PageWallet = {
       }
       if (this.isLnurl(this.parse.data.request)) {
         this.lnurlScan()
+        return
+      }
+
+      if (this.isBolt12Offer(this.parse.data.request)) {
+        const offer = this.parse.data.request.trim().split('?')[0].split('#')[0]
+        this.parse.data.request = offer
+        this.parse.data.amount = 0
+        this.parse.invoice = null
+        this.parse.decoding = true
+        const decodeId = ++this.parse.decodeId
+        try {
+          const {data} = await LNbits.api.request(
+            'post',
+            '/api/v1/payments/decode',
+            null,
+            {data: offer}
+          )
+          if (decodeId !== this.parse.decodeId || !this.parse.show) return
+          // Offer payments currently accept whole sats only. Never round an
+          // amount or interpret a foreign currency's minor units as sats.
+          const amount =
+            data.currency == null &&
+            Number.isSafeInteger(data.amount) &&
+            data.amount > 0 &&
+            data.amount % 1000 === 0
+              ? data.amount / 1000
+              : 0
+          this.parse.data.request = data.offer
+          this.parse.data.amount = amount
+          this.parse.invoice = Object.freeze({
+            msat: data.currency == null ? data.amount : null,
+            sat: amount,
+            fsat: 'offer',
+            bolt11: data.offer,
+            description: data.description,
+            hash: null,
+            isBolt12Offer: true,
+            expired: false
+          })
+        } catch (error) {
+          if (decodeId === this.parse.decodeId && this.parse.show) {
+            Quasar.Notify.create({
+              type: 'warning',
+              message: error.response?.data?.message || error.message
+            })
+          }
+        } finally {
+          if (decodeId === this.parse.decodeId) this.parse.decoding = false
+        }
         return
       }
 
@@ -507,6 +627,12 @@ window.PageWallet = {
     },
     payInvoice() {
       if (this.parse.sending) return
+      if (
+        this.parse.invoice?.isBolt12Offer &&
+        !(Number(this.parse.data.amount) > 0)
+      ) {
+        return
+      }
 
       this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({
@@ -514,11 +640,16 @@ window.PageWallet = {
         message: this.$t('payment_processing')
       })
 
+      const amount = this.parse.invoice.isBolt12Offer
+        ? this.parse.data.amount
+        : null
       LNbits.api
         .payInvoice(
           this.g.wallet,
           this.parse.data.request,
-          this.parse.data.internalMemo
+          this.parse.data.internalMemo,
+          amount,
+          this.parse.invoice.isBolt12Offer ? this.parse.data.memo : null
         )
         .then(response => {
           this.parse.sending = false
@@ -798,7 +929,10 @@ window.PageWallet = {
       // is still in flight gets torn down by it, so handle the payment request
       // only once the url rewrite has settled
       this.$router.replace(`/wallet/${wallet.id}`).then(() => {
-        if (urlParams.has('lightning') || urlParams.has('lnurl')) {
+        if (
+          wallet.walletType !== 'onchain' &&
+          (urlParams.has('lightning') || urlParams.has('lnurl'))
+        ) {
           this.parse.data.request =
             urlParams.get('lightning') || urlParams.get('lnurl')
           this.decodeRequest()

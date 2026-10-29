@@ -13,11 +13,8 @@ value = "bar"
 
 
 @pytest.fixture
-async def cache():
-    cache = Cache()
-    task = task_manager.create_permanent_task(cache.invalidate_cache, interval=1)
-    yield cache
-    task_manager.cancel_task(task)
+def cache():
+    return Cache()
 
 
 @pytest.mark.anyio
@@ -29,17 +26,23 @@ async def test_cache_get_set(cache):
 
 
 @pytest.mark.anyio
-async def test_cache_expiry(cache):
+async def test_cache_expiry(cache, mocker: MockerFixture):
+    clock = mocker.patch("lnbits.utils.cache.time", return_value=1000.0)
+
     # gets expired by `get` call
     cache.set(key, value, expiry=1)
-    await asyncio.sleep(2)
+    assert cache.get(key) == value
+    clock.return_value += 2
     assert not cache.get(key)
 
-    # gets expired by invalidation task
+    # cleanup removes expired entries and preserves unexpired entries
     cache.set(key, value, expiry=1)
-    await asyncio.sleep(2)
+    cache.set("fresh", value, expiry=10)
+    clock.return_value += 2
+    await cache.invalidate_cache()
     assert key not in cache._values
     assert not cache.get(key)
+    assert cache.get("fresh") == value
 
 
 @pytest.mark.anyio
@@ -109,7 +112,6 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
         await original_invalidate()
 
     mocker.patch.object(test_cache, "invalidate_cache", side_effect=fake_invalidate)
-    mocker.patch("lnbits.task_manager.asyncio.sleep")
     logger_error = mocker.patch("lnbits.task_manager.logger.error")
 
     bg_task = None

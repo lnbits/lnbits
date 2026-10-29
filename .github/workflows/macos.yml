@@ -1,0 +1,116 @@
+name: Build LNbits macOS DMG
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+    secrets:
+      BUILD_CERTIFICATE_BASE64:
+        required: true
+      P12_PASSWORD:
+        required: true
+      KEYCHAIN_PASSWORD:
+        required: true
+      APPLE_ID:
+        required: true
+      APPLE_TEAM_ID:
+        required: true
+      APPLE_APP_SPECIFIC_PASSWORD:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag (leave empty for an artifact-only build)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref }}
+      - name: Initialize release recovery path
+        run: echo "MACOS_RELEASE_STATE=$RUNNER_TEMP/lnbits-release.json" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+      - name: Verify native runner and report build environment
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(uname -m)" = "$EXPECTED_ARCH"
+          sw_vers
+          uname -m
+          python3 --version
+          uv --version
+          xcodebuild -version
+          df -h . "$RUNNER_TEMP"
+      - name: Prepare dependencies and verify frontend assets
+        run: python3 .github/packaging/macos/release.py --prepare-only
+      - name: Test launcher and packaging
+        run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      - name: Build signed and notarized release artifacts
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: uv run --no-sync python .github/packaging/macos/release.py --ci --prepared
+      # Runs before upload: any cleanup failure keeps both artifacts unpublished.
+      - name: Always clean temporary keychain and mounted image
+        if: always()
+        run: python3 .github/packaging/macos/release.py --cleanup
+      - name: Record signing status
+        run: |
+          echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LNbits-macOS-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.dmg.sha256
+          if-no-files-found: error
+
+  upload:
+    if: inputs.tag_name != ''
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: LNbits-macOS-*
+          merge-multiple: true
+          path: dist
+      - name: Attach signed DMGs and checksums to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          (cd dist && shasum -a 256 -c ./*.dmg.sha256)
+          gh release upload "$TAG_NAME" dist/*.dmg dist/*.dmg.sha256 --clobber

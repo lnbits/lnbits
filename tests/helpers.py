@@ -2,13 +2,12 @@ import random
 import string
 from io import BytesIO
 
-from bolt11.types import MilliSatoshi
 from fastapi import UploadFile
 from httpx import AsyncClient
 from lnurl import LnurlPayResponse
-from lnurl.types import CallbackUrl, LnurlPayMetadata
+from lnurl.types import CallbackUrl, LnurlPayMetadata, MilliSatoshi
 from PIL import Image
-from pydantic import BaseModel, parse_obj_as
+from pydantic import BaseModel, TypeAdapter
 from starlette.datastructures import Headers
 
 from lnbits.core.models.extensions import (
@@ -29,6 +28,21 @@ from lnbits.core.models.extensions_builder import (
     SettingsFields,
 )
 from lnbits.wallets import get_funding_source, set_funding_source
+
+# https://github.com/lightning/bolts/blob/master/bolt12/offers-test.json
+BOLT12_OFFER = "lno1zcss9mk8y3wkklfvevcrszlmu23kfrxh49px20665dqwmn4p72pksese"
+BOLT12_OFFER_WITH_DESCRIPTION = (
+    "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5"
+    "djge4afgfjn7k4rgrkuag0jsd5xvxg"
+)
+BOLT12_OFFER_WITH_AMOUNT = (
+    "lno1pqpzwyq2p32x2um5ypmx2cm5dae8x93pqthvwfzadd7jejes8q9lhc4rvjxd"
+    "022zv5l44g6qah82ru5rdpnpj"
+)
+BOLT12_OFFER_WITH_CURRENCY = (
+    "lno1qcp4256ypqpzwyq2p32x2um5ypmx2cm5dae8x93pqthvwfzadd7jejes8q9lhc4rvjxd"
+    "022zv5l44g6qah82ru5rdpnpj"
+)
 
 
 class DbTestModel(BaseModel):
@@ -169,7 +183,7 @@ def make_lnurl_pay_response(
     callback: str = "https://example.com/callback",
 ) -> LnurlPayResponse:
     return LnurlPayResponse(
-        callback=parse_obj_as(CallbackUrl, callback),
+        callback=TypeAdapter(CallbackUrl).validate_python(callback),
         minSendable=MilliSatoshi(min_sendable_msat),
         maxSendable=MilliSatoshi(max_sendable_msat),
         metadata=LnurlPayMetadata(

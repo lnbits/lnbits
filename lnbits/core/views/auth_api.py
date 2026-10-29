@@ -8,6 +8,7 @@ from time import time
 from typing import Annotated
 from uuid import uuid4
 
+import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi_sso.sso.base import OpenID, SSOBase
@@ -15,6 +16,7 @@ from loguru import logger
 
 from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
+    get_two_factor_config,
     get_user_access_control_lists,
     update_user_access_control_list,
 )
@@ -28,6 +30,11 @@ from lnbits.core.models.users import (
     UpdateAccessControlList,
 )
 from lnbits.core.services import create_user_account
+from lnbits.core.services.two_factor import (
+    issue_challenge,
+    session_payload,
+    update_account_password,
+)
 from lnbits.core.services.users import (
     check_register_activation_settings,
     update_user_account,
@@ -153,7 +160,7 @@ async def login(data: LoginUsernamePassword) -> JSONResponse:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid credentials.")
 
     cache.pop(throttle_key)
-    return _auth_success_response(account.username, account.id, account.email)
+    return await _login_response(account)
 
 
 @auth_router.post("/nostr", description="Login via Nostr")
@@ -171,7 +178,7 @@ async def nostr_login(request: Request) -> JSONResponse:
         await create_user_account(account)
     if not account.activated:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User is not activated.")
-    return _auth_success_response(account.username or "", account.id, account.email)
+    return await _login_response(account)
 
 
 @auth_router.post("/usr", description="Login via the User ID")
@@ -188,7 +195,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Admin users cannot login with user id only."
         )
-    return _auth_success_response(account.username, account.id, account.email)
+    return await _login_response(account)
 
 
 @auth_router.post("/impersonate", description="Login via the User ID of another user")
@@ -213,7 +220,18 @@ async def impersonate_user(
     if not account:
         raise HTTPException(HTTPStatus.UNAUTHORIZED, "User ID does not exist.")
 
-    response = _auth_success_response(account.username, account.id, account.email)
+    admin_payload = AccessTokenPayload(
+        **jwt.decode(cookie_access_token, settings.auth_secret_key, ["HS256"])
+    )
+    impersonation = admin_payload.model_copy(
+        update={
+            "sub": "",
+            "usr": account.id,
+            "email": None,
+            "impersonated_by": user.id,
+        }
+    )
+    response = _auth_success_response(payload=impersonation)
 
     max_age = settings.auth_token_expire_minutes * 60
     response.set_cookie(
@@ -431,6 +449,7 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
 async def logout() -> JSONResponse:
     response = JSONResponse({"status": "success"}, HTTPStatus.OK)
     response.delete_cookie("cookie_access_token")
+    response.delete_cookie("two_factor_challenge")
     response.delete_cookie("is_lnbits_user_authorized")
     response.delete_cookie("is_access_token_expired")
     response.delete_cookie("lnbits_last_active_wallet")
@@ -469,7 +488,7 @@ async def register(data: RegisterUser) -> JSONResponse:
     )
     account.hash_password(data.password)
     await create_user_account(account)
-    return _auth_success_response(account.username, account.id, account.email)
+    return await _login_response(account)
 
 
 @auth_router.put("/pubkey")
@@ -503,12 +522,13 @@ async def update_password(
     _validate_auth_timeout(payload.auth_time)
     if data.user_id != account.id:
         raise ValueError("Invalid user ID.")
-    if (
-        data.username
-        and account.username != data.username
-        and await get_account_by_username(data.username)
-    ):
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+    if account.username != data.username:
+        if not is_valid_username(data.username):
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
+        if await get_account_by_username(data.username):
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
 
     # old accounts do not have a password
     if account.password_hash:
@@ -519,7 +539,7 @@ async def update_password(
 
     account.username = data.username
     account.hash_password(data.password)
-    await update_account(account)
+    await update_account_password(account)
     _user = await get_user_from_account(account)
     if not _user:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
@@ -562,8 +582,8 @@ async def reset_password(data: ResetUserPassword) -> JSONResponse:
         raise HTTPException(HTTPStatus.NOT_FOUND, "User not found.")
 
     account.hash_password(data.password)
-    await update_account(account)
-    return _auth_success_response(account.username, user_id, account.email)
+    await update_account_password(account)
+    return await _login_response(account)
 
 
 @auth_router.patch("")
@@ -609,6 +629,11 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         if settings.first_install_token != data.first_install_token:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, "Invalid first_install_token.")
 
+    if data.password != data.password_repeat:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Passwords do not match.")
+    if not is_valid_username(data.username):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid username.")
+
     account = await get_account_by_username(data.username, False)
     if account:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Username already exists.")
@@ -630,7 +655,7 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
         await set_settings_field(
             "first_install_token_confirmed", data.first_install_token
         )
-    return _auth_success_response(account.username, account.id, account.email)
+    return await _login_response(account)
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = None):
@@ -658,20 +683,39 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
             id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
         )
         await create_user_account(account)
-    return _auth_redirect_response(redirect_path, account.id, email)
+    login_response = await _login_response(account)
+    response = RedirectResponse(
+        (
+            "/2fa"
+            if "two_factor_required" in json.loads(bytes(login_response.body))
+            else redirect_path
+        ),
+        headers={"Cache-Control": "no-store"},
+    )
+    response.raw_headers.extend(
+        (key, value)
+        for key, value in login_response.raw_headers
+        if key == b"set-cookie"
+    )
+    return response
 
 
 def _auth_success_response(
     username: str | None = None,
     user_id: str | None = None,
     email: str | None = None,
+    payload: AccessTokenPayload | None = None,
+    recovery_codes: list[str] | None = None,
 ) -> JSONResponse:
-    payload = AccessTokenPayload(
+    payload = payload or AccessTokenPayload(
         sub=username or "", usr=user_id, email=email, auth_time=int(time())
     )
-    access_token = create_access_token(data=payload.dict())
+    access_token = create_access_token(data=payload.model_dump())
     max_age = settings.auth_token_expire_minutes * 60
-    response = JSONResponse({"access_token": access_token, "token_type": "bearer"})
+    body: dict = {"access_token": access_token, "token_type": "bearer"}
+    if recovery_codes is not None:
+        body["recovery_codes"] = recovery_codes
+    response = JSONResponse(body, headers={"Cache-Control": "no-store"})
     response.set_cookie(
         "cookie_access_token",
         access_token,
@@ -699,34 +743,8 @@ def _auth_api_token_response(
         sub=username, api_token_id=api_token_id, auth_time=int(time())
     )
     return create_access_token(
-        data=payload.dict(), token_expire_minutes=token_expire_minutes
+        data=payload.model_dump(), token_expire_minutes=token_expire_minutes
     )
-
-
-def _auth_redirect_response(path: str, user_id: str, email: str) -> RedirectResponse:
-    payload = AccessTokenPayload(
-        usr=user_id, sub="", email=email, auth_time=int(time())
-    )
-    access_token = create_access_token(data=payload.dict())
-    max_age = settings.auth_token_expire_minutes * 60
-    response = RedirectResponse(path)
-    response.set_cookie(
-        "cookie_access_token",
-        access_token,
-        httponly=True,
-        secure=settings.auth_https_only,
-        samesite="lax",
-        max_age=max_age,
-    )
-    response.set_cookie(
-        "is_lnbits_user_authorized",
-        "true",
-        secure=settings.auth_https_only,
-        samesite="lax",
-        max_age=max_age,
-    )
-    response.delete_cookie("is_access_token_expired")
-    return response
 
 
 def _new_sso(provider: str) -> SSOBase | None:
@@ -832,3 +850,36 @@ def _validate_auth_timeout(auth_time: int | None = 0):
             f" {settings.auth_credetials_update_threshold} seconds."
             " Please login again or ask a new reset key!",
         )
+
+
+async def _login_response(account: Account) -> JSONResponse:
+    config = await get_two_factor_config(account.id)
+    if settings.lnbits_two_factor_enabled and (
+        config.secret or settings.lnbits_two_factor_mandatory
+    ):
+        payload = await issue_challenge(account.id)
+        token = create_access_token(payload.model_dump(), token_expire_minutes=5)
+        response = JSONResponse(
+            {
+                "two_factor_required": True,
+                "enrollment_required": not bool(config.secret),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+        response.set_cookie(
+            "two_factor_challenge",
+            token,
+            max_age=300,
+            httponly=True,
+            secure=settings.auth_https_only,
+            samesite="lax",
+        )
+        response.delete_cookie("cookie_access_token")
+        response.delete_cookie("is_lnbits_user_authorized")
+        return response
+    payload = await session_payload(account.id, config)
+    payload.sub = account.username or ""
+    payload.email = account.email
+    response = _auth_success_response(payload=payload)
+    response.delete_cookie("two_factor_challenge")
+    return response

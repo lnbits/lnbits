@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from lnbits.helpers import (
     download_url,
@@ -39,18 +39,18 @@ class ExplicitRelease(BaseModel):
     archive: str
     hash: str
     dependencies: list[str] = []
-    repo: str | None
-    icon: str | None
-    short_description: str | None
-    min_lnbits_version: str | None
-    max_lnbits_version: str | None
-    html_url: str | None  # todo: release_url
-    warning: str | None
-    info_notification: str | None
-    critical_notification: str | None
-    details_link: str | None
-    paid_features: str | None
-    pay_link: str | None
+    repo: str | None = None
+    icon: str | None = None
+    short_description: str | None = None
+    min_lnbits_version: str | None = None
+    max_lnbits_version: str | None = None
+    html_url: str | None = None  # todo: release_url
+    warning: str | None = None
+    info_notification: str | None = None
+    critical_notification: str | None = None
+    details_link: str | None = None
+    paid_features: str | None = None
+    pay_link: str | None = None
     extension_type: str | None = None
 
     def is_version_compatible(self):
@@ -96,13 +96,12 @@ class ExtensionPermission(BaseModel):
     description: StrictStr | None = None
     policies: list[Any] | None = None
 
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     @staticmethod
     def list_from_config(config_json: Mapping[str, Any]) -> list[ExtensionPermission]:
         return [
-            ExtensionPermission.parse_obj(permission)
+            ExtensionPermission.model_validate(permission)
             for permission in config_json.get("permissions") or []
             if isinstance(permission, dict) and permission.get("id")
         ]
@@ -113,8 +112,8 @@ class ExtensionConfig(BaseModel):
     short_description: str
     tile: str = ""
     warning: str | None = ""
-    min_lnbits_version: str | None
-    max_lnbits_version: str | None
+    min_lnbits_version: str | None = None
+    max_lnbits_version: str | None = None
     extension_type: str | None = None
     permissions: list[ExtensionPermission] = []
 
@@ -125,7 +124,7 @@ class ExtensionConfig(BaseModel):
     async def fetch_release_config(cls, url: str) -> ExtensionConfig:
         error_msg = "Cannot fetch extension release config"
         config = await extension_metadata_get(url, error_msg)
-        return ExtensionConfig.parse_obj(config)
+        return ExtensionConfig.model_validate(config)
 
     @classmethod
     async def fetch_github_release_config(
@@ -136,7 +135,7 @@ class ExtensionConfig(BaseModel):
         )
         error_msg = "Cannot fetch extension release config"
         config = await github_api_get(config_url, error_msg)
-        return ExtensionConfig.parse_obj(config)
+        return ExtensionConfig.model_validate(config)
 
 
 class ReleasePaymentInfo(BaseModel):
@@ -479,7 +478,7 @@ class ExtensionRelease(BaseModel):
         releases_url = f"https://api.github.com/repos/{org}/{repo}/releases"
         error_msg = "Cannot fetch extension releases"
         releases = await github_api_get(releases_url, error_msg)
-        return [GitHubRepoRelease.parse_obj(r) for r in releases]
+        return [GitHubRepoRelease.model_validate(r) for r in releases]
 
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
@@ -523,7 +522,9 @@ class InstallableExtension(BaseModel):
     stars: int = 0
     meta: ExtensionMeta | None = None
     permissions: list[ExtensionPermission] = []
-    wasm_runtime_limits: dict = Field(default_factory=dict, no_database=True)
+    wasm_runtime_limits: dict = Field(
+        default_factory=dict, json_schema_extra={"no_database": True}
+    )
 
     @property
     def hash(self) -> str:
@@ -758,9 +759,22 @@ class InstallableExtension(BaseModel):
 
         shutil.rmtree(self.wasm_ext_dir, True)
 
-    def check_release_updates(self, release: ExtensionRelease | None):
+    def check_release_updates(
+        self,
+        release: ExtensionRelease | None,
+        candidate: InstallableExtension | None = None,
+    ) -> None:
         self._check_latest_version(release)
         self._check_payment_link(release)
+        if (
+            candidate is not None
+            and release is not None
+            and self.meta
+            and self.meta.latest_release is release
+        ):
+            self.name = candidate.name
+            self.short_description = candidate.short_description
+            self.icon = candidate.icon
 
     def find_existing_payment(self, pay_link: str | None) -> ReleasePaymentInfo | None:
         if not pay_link or not self.meta or not self.meta.payments:
@@ -995,7 +1009,9 @@ class InstallableExtension(BaseModel):
                         (ee for ee in extension_list if ee.id == r.id), None
                     )
                     if existing_ext and ext.meta:
-                        existing_ext.check_release_updates(ext.meta.latest_release)
+                        existing_ext.check_release_updates(
+                            ext.meta.latest_release, candidate=ext
+                        )
                         continue
 
                     meta = ext.meta or ExtensionMeta()
@@ -1011,13 +1027,13 @@ class InstallableExtension(BaseModel):
                 for e in manifest.extensions:
                     release = ExtensionRelease.from_explicit_release(url, e)
                     release.manifest_type = manifest_type
+                    ext = InstallableExtension.from_explicit_release(e)
                     existing_ext = next(
                         (ee for ee in extension_list if ee.id == e.id), None
                     )
                     if existing_ext:
-                        existing_ext.check_release_updates(release)
+                        existing_ext.check_release_updates(release, candidate=ext)
                         continue
-                    ext = InstallableExtension.from_explicit_release(e)
                     ext.check_release_updates(release)
                     meta = ext.meta or ExtensionMeta()
                     meta.featured = ext.id in manifest.featured
@@ -1097,7 +1113,7 @@ class InstallableExtension(BaseModel):
         repo_url = f"https://api.github.com/repos/{org}/{repository}"
         error_msg = "Cannot fetch extension repo"
         repo = await github_api_get(repo_url, error_msg)
-        github_repo = GitHubRepo.parse_obj(repo)
+        github_repo = GitHubRepo.model_validate(repo)
 
         lates_release_url = (
             f"https://api.github.com/repos/{org}/{repository}/releases/latest"
@@ -1111,15 +1127,15 @@ class InstallableExtension(BaseModel):
 
         return (
             github_repo,
-            GitHubRepoRelease.parse_obj(latest_release),
-            ExtensionConfig.parse_obj(config),
+            GitHubRepoRelease.model_validate(latest_release),
+            ExtensionConfig.model_validate(config),
         )
 
     @classmethod
     async def fetch_manifest(cls, url) -> Manifest:
         error_msg = "Cannot fetch extensions manifest"
         manifest = await extension_metadata_get(url, error_msg)
-        return Manifest.parse_obj(manifest)
+        return Manifest.model_validate(manifest)
 
 
 class CreateExtension(BaseModel):

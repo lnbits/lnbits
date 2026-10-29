@@ -28,10 +28,15 @@ from lnbits.core.models.notifications import (
     NotificationType,
 )
 from lnbits.core.models.users import UserNotifications
-from lnbits.core.services.nostr import fetch_nip5_details, send_nostr_dm
+from lnbits.core.services.nostr import (
+    fetch_nip5_details,
+    send_nostr_dm,
+    send_nostr_dm_nip17,
+)
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
+from lnbits.utils.network import is_global_address
 from lnbits.utils.nostr import normalize_private_key
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
@@ -121,20 +126,26 @@ async def send_notification(
             await send_telegram_notification(telegram_chat_id, message)
             logger.debug(f"Sent telegram notification: {message_type}")
     except Exception as e:
-        logger.error(f"Error sending telegram notification {message_type}: {e}")
+        logger.warning(
+            f"Error sending telegram notification {message_type}: "
+            f"{_telegram_error_message(e)}"
+        )
 
     try:
         if nostr_identifiers and settings.is_nostr_notifications_configured():
-            await send_nostr_notifications(nostr_identifiers, message)
-            logger.debug(f"Sent nostr notification: {message_type}")
+            sent = await send_nostr_notifications(nostr_identifiers, message)
+            logger.debug(
+                f"Sent nostr notification: {message_type or 'plain text'}"
+                f".Sent: {len(sent)}"
+            )
     except Exception as e:
-        logger.error(f"Error sending nostr notification {message_type}: {e}")
+        logger.warning(f"Error sending nostr notification {message_type}: {e}")
     try:
         if email_addresses and settings.lnbits_email_notifications_enabled:
             await send_email_notification(email_addresses, message)
             logger.debug(f"Sent email notification: {message_type}")
     except Exception as e:
-        logger.error(f"Error sending email notification {message_type}: {e}")
+        logger.warning(f"Error sending email notification {message_type}: {e}")
 
 
 async def send_nostr_notifications(identifiers: list[str], message: str) -> list[str]:
@@ -155,7 +166,12 @@ async def send_nostr_notification(identifier: str, message: str):
     server_private_key = normalize_private_key(
         settings.lnbits_nostr_notifications_private_key
     )
-    await send_nostr_dm(
+    send_dm = (
+        send_nostr_dm_nip17
+        if settings.lnbits_nostr_notifications_protocol == "nip17"
+        else send_nostr_dm
+    )
+    await send_dm(
         server_private_key,
         user_pubkey,
         message,
@@ -256,23 +272,23 @@ async def dispatch_webhook(payment: Payment):
     logger.debug("sending webhook", payment.webhook)
 
     if not payment.webhook:
-        return await mark_webhook_sent(payment.payment_hash, "-1")
+        return await mark_webhook_sent(payment, "-1")
 
     try:
         check_callback_url(payment.webhook)
         status_code = await _post_webhook(payment)
-        await mark_webhook_sent(payment.payment_hash, str(status_code))
+        await mark_webhook_sent(payment, str(status_code))
     except ValueError as exc:
-        await mark_webhook_sent(payment.payment_hash, "-1")
+        await mark_webhook_sent(payment, "-1")
         logger.warning(f"Invalid webhook URL: {exc!s}")
     except httpx.HTTPStatusError as exc:
-        await mark_webhook_sent(payment.payment_hash, str(exc.response.status_code))
+        await mark_webhook_sent(payment, str(exc.response.status_code))
         logger.warning(
             f"webhook returned a bad status_code: {exc.response.status_code} "
             f"while requesting {exc.request.url!r}."
         )
     except httpx.RequestError:
-        await mark_webhook_sent(payment.payment_hash, "-1")
+        await mark_webhook_sent(payment, "-1")
         logger.warning("Could not send webhook.")
 
 
@@ -333,7 +349,7 @@ async def send_notification_in_background(
 
 async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
     # TODO: websocket message should be a clean payment model
-    # await websocket_manager.send(wallet.inkey, payment.json())
+    # await websocket_manager.send(wallet.inkey, payment.model_dump_json())
     # TODO: figure out why we send the balance with the payment here.
     # cleaner would be to have a separate message for the balance
     # and send it with the id of the wallet so wallets can subscribe to it
@@ -341,7 +357,7 @@ async def send_ws_payment_notification(wallet: Wallet, payment: Payment):
         {
             "wallet_balance": wallet.balance,
             # use pydantic json serialization to get the correct datetime format
-            "payment": json.loads(payment.json()),
+            "payment": json.loads(payment.model_dump_json()),
         },
     )
     await websocket_manager.send(wallet.inkey, payment_notification)
@@ -475,7 +491,7 @@ async def _post_webhook(payment: Payment) -> int:
 
     addresses = await _resolve_webhook_host(parsed.hostname, parsed.port)
     if not settings.lnbits_callback_allow_private_ips and any(
-        not address.is_global for address in addresses
+        not is_global_address(address) for address in addresses
     ):
         raise ValueError("Webhook target IP address is not allowed.")
 
@@ -492,7 +508,7 @@ async def _post_webhook(payment: Payment) -> int:
             request_url,
             headers=headers,
             extensions={"sni_hostname": parsed.hostname},
-            json=payment.json(),
+            json=payment.model_dump_json(),
             timeout=40,
         )
         response.raise_for_status()
@@ -524,3 +540,30 @@ async def _resolve_webhook_host(
     if not addresses:
         raise ValueError("Webhook target could not be resolved.")
     return addresses
+
+
+def _telegram_error_message(error: Exception) -> str:
+    if isinstance(error, httpx.HTTPStatusError):
+        response = error.response
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        description = body.get("description") if isinstance(body, dict) else None
+        if not isinstance(description, str) or not description.strip():
+            description = response.reason_phrase or "Telegram request failed"
+        detail = f"HTTP {response.status_code}: {description.strip()}"
+    else:
+        fallbacks: dict[type[Exception], str] = {
+            httpx.ReadTimeout: "Timed out waiting for Telegram",
+            httpx.ConnectTimeout: "Timed out connecting to Telegram",
+            httpx.WriteTimeout: "Timed out sending to Telegram",
+            httpx.PoolTimeout: "Timed out waiting for an available HTTP connection",
+            httpx.TimeoutException: "Telegram request timed out",
+        }
+        description = str(error).strip() or fallbacks.get(
+            type(error), "No error message provided"
+        )
+        detail = f"{type(error).__name__}: {description}"
+    token = settings.lnbits_telegram_notifications_access_token
+    return detail.replace(token, "[redacted]") if token else detail

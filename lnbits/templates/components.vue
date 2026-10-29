@@ -1,4 +1,17 @@
-{% include('components/admin/funding_seed_backup.vue') %} {%
+{% include('components/onchain/wallet.vue') %} {%
+include('components/onchain/wallet-config.vue') %} {%
+include('components/onchain/utxo-list.vue') %} {%
+include('components/onchain/wallet-list.vue') %} {%
+include('components/onchain/address-list.vue') %} {%
+include('components/onchain/fee-rate.vue') %} {%
+include('components/onchain/seed-input.vue') %} {%
+include('components/onchain/send-to.vue') %} {%
+include('components/onchain/payment.vue') %} {%
+include('components/onchain/serial-signer.vue') %} {%
+include('components/onchain/trezor-signer.vue') %} {%
+include('components/onchain/serial-port-config.vue') %} {%
+include('components/onchain/hot-wallet.vue') %} {%
+include('components/admin/funding_seed_backup.vue') %} {%
 include('components/admin/funding.vue') %} {%
 include('components/admin/funding_sources.vue') %} {%
 include('components/admin/fiat_providers.vue') %} {%
@@ -71,21 +84,6 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="g.settings.showNodemanager" to="/node">
-        <q-item-section side>
-          <q-icon
-            name="developer_board"
-            :color="isActive('/node') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('node')"></q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="isActive('/node')">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
       <q-item v-if="g.settings.showAdmin" to="/users">
         <q-item-section side>
           <q-icon
@@ -101,28 +99,41 @@ include('components/lnbits-error.vue') %}
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
-      <q-item v-if="g.settings.showAudit" to="/audit">
-        <q-item-section side>
-          <q-icon
-            name="playlist_add_check_circle"
-            :color="isActive('/audit') ? 'primary' : 'grey-5'"
-            size="md"
-          ></q-icon>
-        </q-item-section>
-        <q-item-section>
-          <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
-        </q-item-section>
-        <q-item-section side v-show="isActive('/audit')">
-          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
-        </q-item-section>
-      </q-item>
     </div>
+    <q-item v-if="g.settings.showExtensions" to="/extensions">
+      <q-item-section side>
+        <q-icon
+          name="extension"
+          :color="isActive('/extensions') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/extensions')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="g.user.admin && g.settings.showNodemanager" to="/node">
+      <q-item-section side>
+        <q-icon
+          name="developer_board"
+          :color="isActive('/node') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('node')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/node')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
     <q-item
       v-if="
         g.settings.showBlockExplorer &&
-        (g.user.admin ||
-          (g.settings.blockExplorerPublic &&
-            g.settings.blockExplorerInUserMenu))
+        (g.user.admin || g.settings.blockExplorerInUserMenu)
       "
       to="/blockexplorer"
     >
@@ -137,6 +148,22 @@ include('components/lnbits-error.vue') %}
         <q-item-label lines="1" v-text="$t('block_explorer')"></q-item-label>
       </q-item-section>
       <q-item-section side v-show="isActive('/blockexplorer')">
+        <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
+      </q-item-section>
+    </q-item>
+    <q-item-label header v-text="$t('monitor')"></q-item-label>
+    <q-item v-if="g.user.admin && g.settings.showAudit" to="/audit">
+      <q-item-section side>
+        <q-icon
+          name="playlist_add_check_circle"
+          :color="isActive('/audit') ? 'primary' : 'grey-5'"
+          size="md"
+        ></q-icon>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label lines="1" v-text="$t('api_watch')"></q-item-label>
+      </q-item-section>
+      <q-item-section side v-show="isActive('/audit')">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
@@ -155,18 +182,18 @@ include('components/lnbits-error.vue') %}
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
-    <q-item v-if="g.settings.showExtensions" to="/extensions">
+    <q-item v-if="g.user.admin && g.settings.showAdmin" to="/scheduler">
       <q-item-section side>
         <q-icon
-          name="extension"
-          :color="isActive('/extensions') ? 'primary' : 'grey-5'"
+          name="schedule"
+          :color="isActive('/scheduler') ? 'primary' : 'grey-5'"
           size="md"
         ></q-icon>
       </q-item-section>
       <q-item-section>
-        <q-item-label lines="1" v-text="$t('extensions')"></q-item-label>
+        <q-item-label lines="1" v-text="$t('scheduler')"></q-item-label>
       </q-item-section>
-      <q-item-section side v-show="isActive('/extensions')">
+      <q-item-section side v-show="isActive('/scheduler')">
         <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
       </q-item-section>
     </q-item>
@@ -520,19 +547,46 @@ include('components/lnbits-error.vue') %}
     size="sm"
     icon="add"
   >
-    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit
+      class="text-white"
+      v-slot="scope"
+      v-model="credit"
+      :cover="false"
+      anchor="bottom left"
+      self="top left"
+      :offset="[0, 8]"
+      transition-show="jump-down"
+      transition-hide="jump-up"
+      @hide="memo = ''"
+    >
       <q-input
         filled
         :label="$t('credit_label', {denomination: g.denomination})"
         v-model="scope.value"
+        type="number"
         dense
         autofocus
         @keyup.enter="updateBalance(scope)"
-      >
-        <template v-slot:append>
-          <q-icon name="edit" />
-        </template>
-      </q-input>
+      ></q-input>
+      <q-input
+        filled
+        :label="$t('credit_memo_label')"
+        v-model="memo"
+        dense
+        maxlength="639"
+        class="q-mt-sm"
+        @keyup.enter="updateBalance(scope)"
+      ></q-input>
+      <q-btn
+        unelevated
+        dense
+        class="full-width q-mt-sm"
+        :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
+        :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
+        :disable="!parseInt(scope.value)"
+        :loading="updating"
+        @click="updateBalance(scope)"
+      ></q-btn>
     </q-popup-edit>
     <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>
@@ -544,7 +598,18 @@ include('components/lnbits-error.vue') %}
     class="float-right q-mt-sm"
     size="sm"
   >
-    <q-popup-edit class="text-white" v-slot="scope" v-model="credit">
+    <q-popup-edit
+      class="text-white"
+      v-slot="scope"
+      v-model="credit"
+      :cover="false"
+      anchor="bottom left"
+      self="top left"
+      :offset="[0, 8]"
+      transition-show="jump-down"
+      transition-hide="jump-up"
+      @hide="memo = ''"
+    >
       <q-input
         filled
         :label="$t('credit_label', {denomination: g.denomination})"
@@ -553,11 +618,26 @@ include('components/lnbits-error.vue') %}
         dense
         autofocus
         @keyup.enter="updateBalance(scope)"
-      >
-        <template v-slot:append>
-          <q-icon name="edit" />
-        </template>
-      </q-input>
+      ></q-input>
+      <q-input
+        filled
+        :label="$t('credit_memo_label')"
+        v-model="memo"
+        dense
+        maxlength="639"
+        class="q-mt-sm"
+        @keyup.enter="updateBalance(scope)"
+      ></q-input>
+      <q-btn
+        unelevated
+        dense
+        class="full-width q-mt-sm"
+        :color="parseInt(scope.value) < 0 ? 'negative' : 'primary'"
+        :label="parseInt(scope.value) < 0 ? $t('debit') : $t('credit')"
+        :disable="!parseInt(scope.value)"
+        :loading="updating"
+        @click="updateBalance(scope)"
+      ></q-btn>
     </q-popup-edit>
     <q-tooltip v-text="$t('credit_hint')"></q-tooltip>
   </q-btn>

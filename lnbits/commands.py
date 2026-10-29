@@ -33,11 +33,13 @@ from lnbits.core.models.extensions import (
     ExtensionRelease,
     InstallableExtension,
 )
+from lnbits.core.models.users import AccessTokenPayload
 from lnbits.core.services import check_admin_settings, create_user_account_no_ckeck
 from lnbits.core.views.extension_api import (
     api_install_extension,
     api_uninstall_extension,
 )
+from lnbits.helpers import create_access_token
 from lnbits.settings import settings
 from lnbits.utils.crypto import AESCipher
 from lnbits.wallets.base import Wallet
@@ -71,6 +73,33 @@ def users():
     """
     Users related commands
     """
+
+
+@lnbits_cli.group("two-factor")
+def two_factor():
+    """Manage TOTP encryption and recover accounts using local server access."""
+
+
+@two_factor.command("generate-key")
+def generate_totp_key():
+    """Generate an optional TOTP_ENCRYPTION_KEY override."""
+    click.echo(uuid4().hex)
+
+
+@two_factor.command("reset")
+@click.argument("user_id")
+@click.confirmation_option(
+    prompt="Reset this user's authenticator and invalidate their 2FA sessions?"
+)
+@coro
+async def reset_user_two_factor(user_id: str):
+    """Clear one account's enrollment. Mandatory policy still requires re-enrollment."""
+    from lnbits.core.services.two_factor import reset_two_factor
+
+    await reset_two_factor(user_id)
+    click.echo(
+        "Authenticator reset. The user must log in again and re-enroll if required."
+    )
 
 
 @lnbits_cli.group()
@@ -699,14 +728,37 @@ def _get_latest_release_per_repo(all_releases):
     return latest_repo_releases
 
 
+def _admin_auth_headers(user_id: str) -> dict[str, str]:
+    """Bearer token for an admin account, for CLI calls to a running server.
+
+    The `?usr=` query parameter cannot be used here: `check_account_exists`
+    only honours it when `AuthMethods.user_id_only` is enabled, and it
+    rejects admin accounts outright ("User id only access for admins is
+    forbidden"). Extension install/uninstall are gated by `check_admin`, so
+    that path can never authenticate.
+
+    The CLI already runs with local access to the database and to
+    `settings.auth_secret_key`, so signing a short-lived token for an
+    account it could otherwise modify directly grants it nothing new.
+    """
+    payload = AccessTokenPayload(sub="", usr=user_id, auth_time=int(time.time()))
+    token = create_access_token(data=payload.model_dump(), token_expire_minutes=5)
+    return {"Authorization": f"Bearer {token}"}
+
+
 async def _call_install_extension(
     data: CreateExtension, url: str | None, user_id: str | None = None
 ):
     if url:
         user_id = user_id or get_super_user()
+        if not user_id:
+            raise ValueError("No admin user found. Use the '--admin-user' option.")
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{url}/api/v1/extension?usr={user_id}", json=data.dict(), timeout=40
+                f"{url}/api/v1/extension",
+                json=data.model_dump(),
+                headers=_admin_auth_headers(user_id),
+                timeout=40,
             )
             resp.raise_for_status()
     else:
@@ -718,9 +770,13 @@ async def _call_uninstall_extension(
 ):
     if url:
         user_id = user_id or get_super_user()
+        if not user_id:
+            raise ValueError("No admin user found. Use the '--admin-user' option.")
         async with httpx.AsyncClient() as client:
             resp = await client.delete(
-                f"{url}/api/v1/extension/{extension}?usr={user_id}", timeout=40
+                f"{url}/api/v1/extension/{extension}",
+                headers=_admin_auth_headers(user_id),
+                timeout=40,
             )
             resp.raise_for_status()
     else:

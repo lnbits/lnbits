@@ -8,10 +8,20 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generic, Literal, TypeVar, get_origin
+from types import UnionType
+from typing import (
+    Annotated,
+    Any,
+    Generic,
+    Literal,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+)
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError, root_validator
+from pydantic import BaseModel, TypeAdapter, model_validator
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.sql import text
 
@@ -153,10 +163,7 @@ class Connection(Compat):
                 clean_values[key] = re.sub(clean_regex, "", raw_value)
             elif isinstance(raw_value, datetime):
                 ts = raw_value.timestamp()
-                if self.type == SQLITE:
-                    clean_values[key] = int(ts)
-                else:
-                    clean_values[key] = ts
+                clean_values[key] = ts
             else:
                 clean_values[key] = raw_value
         return clean_values
@@ -255,7 +262,7 @@ class Connection(Compat):
             self.rewrite_values(parsed_values),
             model,
         )
-        if rows:
+        if rows or filters.offset:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
                 if table_name:
@@ -465,7 +472,7 @@ class Filter(BaseModel, Generic[TFilterModel]):
     table_name: str | None = None
     field: str
     op: Operator = Operator.EQ
-    model: type[TFilterModel] | None
+    model: type[TFilterModel] | None = None
     values: dict | None = None
 
     @classmethod
@@ -487,16 +494,16 @@ class Filter(BaseModel, Generic[TFilterModel]):
             field = key
             op = Operator("eq")
 
-        if field in model.__fields__:
-            compare_field = model.__fields__[field]
+        if field in model.model_fields:
+            compare_field = model.model_fields[field]
             values: dict = {}
             if op in {Operator.EVERY, Operator.ANY, Operator.INCLUDE, Operator.EXCLUDE}:
                 raw_values = [v for rv in raw_values for v in rv.split(",")]
 
             for index, raw_value in enumerate(raw_values):
-                validated, errors = compare_field.validate(raw_value, {}, loc="none")
-                if errors:
-                    raise ValidationError(errors=[errors], model=model)
+                validated = TypeAdapter(
+                    compare_field.rebuild_annotation()
+                ).validate_python(raw_value)
                 values[f"{field}__{i}_{index}"] = validated
         else:
             raise ValueError("Unknown filter field")
@@ -508,7 +515,11 @@ class Filter(BaseModel, Generic[TFilterModel]):
         prefix = f"{self.table_name}." if self.table_name else ""
         stmt = []
         for key in self.values.keys() if self.values else []:
-            if self.model and self.model.__fields__[self.field].type_ == datetime:
+            if (
+                self.model
+                and _field_type(self.model.model_fields[self.field].annotation)
+                is datetime
+            ):
                 placeholder = compat_timestamp_placeholder(key)
             else:
                 placeholder = f":{key}"
@@ -547,14 +558,15 @@ class Filters(BaseModel, Generic[TFilterModel]):
 
     table_name: str | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate_sortby(cls, values):
         sortby = values.get("sortby")
         model = values.get("model")
         if sortby and model:
             model = values["model"]
             # if no sort fields are specified explicitly all fields are allowed
-            allowed = model.__sort_fields__ or model.__fields__
+            allowed = model.__sort_fields__ or model.model_fields
             if sortby not in allowed:
                 raise ValueError("Invalid sort field")
         return values
@@ -670,10 +682,11 @@ def model_to_dict(model: BaseModel) -> dict:
     :param model: Pydantic model
     """
     _dict: dict = {}
-    for key, value in model.dict().items():
-        type_ = model.__fields__[key].type_
-        outertype_ = model.__fields__[key].outer_type_
-        if model.__fields__[key].field_info.extra.get("no_database", False):
+    for key, value in model.model_dump().items():
+        field = type(model).model_fields[key]
+        type_ = _field_type(field.annotation)
+        extra = field.json_schema_extra
+        if isinstance(extra, dict) and extra.get("no_database", False):
             continue
         if isinstance(value, datetime):
             if DB_TYPE == SQLITE:
@@ -684,9 +697,9 @@ def model_to_dict(model: BaseModel) -> dict:
                 _dict[key] = value.replace(tzinfo=None)
             continue
         if (
-            type(type_) is type(BaseModel)
+            _is_subclass(type_, BaseModel)
             or type_ is dict
-            or get_origin(outertype_) is list
+            or get_origin(type_) in (list, dict)
         ):
             _dict[key] = json.dumps(value, cls=DbJsonEncoder)
             continue
@@ -716,17 +729,35 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
     """
     _dict: dict = {}
     for key, value in _row.items():
-        if value is None:
-            continue
-        if key not in model.__fields__:
+        if key not in model.model_fields:
             # Somethimes an SQL JOIN will create additional column
             continue
-        type_ = model.__fields__[key].type_
-        outertype_ = model.__fields__[key].outer_type_
-        if get_origin(outertype_) is list:
+        annotation = model.model_fields[key].annotation
+        if value is None:
+            # keep None for Optional fields, otherwise let the default apply
+            if (
+                annotation is Any
+                or annotation is type(None)
+                or (
+                    get_origin(annotation) in (Union, UnionType)
+                    and type(None) in get_args(annotation)
+                )
+            ):
+                _dict[key] = None
+            continue
+        type_ = _field_type(annotation)
+        if get_origin(type_) is list:
+            item_type = _field_type(get_args(type_)[0])
             _items = _safe_load_json(value) if isinstance(value, str) else value
+            if _items is None:
+                _dict[key] = None
+                continue
             _dict[key] = [
-                dict_to_submodel(type_, v) if _is_subclass(type_, BaseModel) else v
+                (
+                    dict_to_submodel(item_type, v)
+                    if _is_subclass(item_type, BaseModel)
+                    else v
+                )
                 for v in _items
             ]
             continue
@@ -744,15 +775,23 @@ def dict_to_model(_row: dict, model: type[TModel]) -> TModel:  # noqa: C901
             continue
         # TODO: remove this when all sub models are migrated to Pydantic
         # NOTE: this is for type dict on BaseModel, (used in Payment class)
-        if type_ is dict and value:
-            _dict[key] = _safe_load_json(value)
+        if (type_ is dict or get_origin(type_) is dict) and value:
+            _dict[key] = _safe_load_json(value) if isinstance(value, str) else value
             continue
         _dict[key] = value
         continue
-    _model = model.construct(**_dict)
-    if isinstance(_model, BaseModel):
-        _model.__init__(**_dict)  # type: ignore
-    return _model
+    return model.model_validate(_dict)
+
+
+def _field_type(annotation: Any) -> Any:
+    """Unwrap nullable/annotated fields for the existing database encoding."""
+    if get_origin(annotation) is Annotated:
+        return _field_type(get_args(annotation)[0])
+    if get_origin(annotation) in (Union, UnionType):
+        types = [arg for arg in get_args(annotation) if arg is not type(None)]
+        if len(types) == 1:
+            return _field_type(types[0])
+    return annotation
 
 
 def _safe_load_json(value: str) -> dict:

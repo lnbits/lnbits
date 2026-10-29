@@ -43,95 +43,6 @@ from .base import (
     Wallet,
 )
 
-# --- crypto: ports of the SDK's argon2 + nip44 (must match byte-for-byte) ------
-
-
-def _argon2id(password: bytes, salt: bytes) -> bytes:
-    # RFC 9106 Argon2id v0x13. Params must match the Amboss Payments backend
-    # and the @ambosstech/payments SDK, or the derived key won't decrypt anything.
-    return Argon2id(
-        salt=salt, length=32, iterations=3, lanes=4, memory_cost=64000
-    ).derive(password)
-
-
-def _derive_master_key(password: str, team_id: str) -> str:
-    """Argon2id(password, salt=teamId) -> master key (hex)."""
-    salt = team_id.strip().lower().encode()
-    return _argon2id(password.strip().encode(), salt).hex()
-
-
-def create_master_password_hash(password: str, team_id: str) -> tuple[str, str]:
-    """Mirror of the Amboss backend's `createMasterPasswordHash`.
-
-    masterKey          = Argon2id(password, salt=teamId)          # hex string
-    masterPasswordHash = Argon2id(utf8(masterKey_hex), salt=pw)   # sent to server
-    """
-    master_key = _derive_master_key(password, team_id)
-    master_password_hash = _argon2id(
-        master_key.encode(), password.strip().encode()
-    ).hex()
-    return master_key, master_password_hash
-
-
-def _nip44_message_keys(
-    conversation_key: bytes, nonce: bytes
-) -> tuple[bytes, bytes, bytes]:
-    keys = HKDFExpand(algorithm=hashes.SHA256(), length=76, info=nonce).derive(
-        conversation_key
-    )
-    return keys[0:32], keys[32:44], keys[44:76]
-
-
-def nip44_decrypt(payload: str, conversation_key_hex: str) -> str:
-    """NIP-44 v2 symmetric decrypt (ChaCha20 + HMAC-SHA256), keyed by a 32-byte
-    hex key used directly as the conversation key (no ECDH)."""
-    conversation_key = bytes.fromhex(conversation_key_hex)
-    data = base64.b64decode(payload)
-    if not data or data[0] != 2:
-        raise ValueError("unsupported nip44 payload version")
-    nonce, ciphertext, mac = data[1:33], data[33:-32], data[-32:]
-
-    chacha_key, chacha_nonce, hmac_key = _nip44_message_keys(conversation_key, nonce)
-    calc_mac = hmac.new(hmac_key, nonce + ciphertext, hashlib.sha256).digest()
-    if not hmac.compare_digest(calc_mac, mac):
-        raise ValueError("nip44 mac mismatch (wrong key/password)")
-
-    # cryptography's ChaCha20 nonce = 4-byte LE counter (0) + 12-byte nonce.
-    full_nonce = (0).to_bytes(4, "little") + chacha_nonce
-    decryptor = Cipher(
-        algorithms.ChaCha20(chacha_key, full_nonce), mode=None
-    ).decryptor()
-    padded = decryptor.update(ciphertext) + decryptor.finalize()
-    plaintext_len = int.from_bytes(padded[:2], "big")
-    return padded[2 : 2 + plaintext_len].decode("utf-8")
-
-
-def _normalize_macaroon_hex(value: str) -> str:
-    """Macaroon may come back as hex or base64; LND wants hex."""
-    stripped = value.strip()
-    if len(stripped) % 2 == 0 and all(c in "0123456789abcdefABCDEF" for c in stripped):
-        return stripped.lower()
-    return base64.b64decode(stripped).hex()
-
-
-def _pick_rest_socket(sockets: dict) -> str | None:
-    """Pick a usable REST socket, preferring litd over lnd as the SDK's
-    selectSendNode does — litd exposes lnd's own REST gateway, so the same
-    request shape works against either.
-
-    Only https sockets qualify: the admin macaroon travels on this connection,
-    so a plaintext socket is not a candidate. Selection and validation live
-    together deliberately — if they disagree, a plaintext litd socket can mask
-    a usable https lnd socket on the same node.
-    """
-    for kind in ("litd", "lnd"):
-        socket = sockets.get(kind) or {}
-        rest = socket.get("rest")
-        if rest and rest.lower().startswith("https://"):
-            return rest
-    return None
-
-
 _BASE_ASSET_ONLY = "AmbossWallet only supports BASE_ASSET (BTC) wallets"
 
 
@@ -164,7 +75,9 @@ query($id: String!) {{
 
 _GET_WALLET_BALANCE = """
 query($id: String!) {
-  payment { wallet { find_one(id: $id) { id balance { balance } asset { type } } } }
+  payment { wallet { find_one(id: $id) {
+    id balance { balance } asset { type } environment { type }
+  } } }
 }"""
 
 _GET_SEND_CONTEXT = """
@@ -220,8 +133,7 @@ class AmbossWallet(Wallet):
         self.wallet_id = settings.amboss_wallet_id
         self.team_password = settings.amboss_team_password
         self.endpoint = settings.amboss_api_endpoint
-        self.sandbox = settings.amboss_sandbox
-        self.sandbox_auto_complete = settings.amboss_sandbox_auto_complete
+        self._sandbox: bool | None = None
         # Static per wallet: (team_id, is_sandbox, node, macaroon_hex). Cached so
         # repeat sends skip the ~3s GetSendContext + Argon2 + node-permissions
         # decrypt. If the node or macaroon rotates, restart to pick up the change.
@@ -249,32 +161,6 @@ class AmbossWallet(Wallet):
             await self.client.aclose()
         except RuntimeError as exc:
             logger.warning(f"Error closing wallet connection: {exc}")
-
-    async def _gql(self, query: str, variables: dict) -> dict:
-        # httpx.RequestError propagates untouched: those never reached rails and
-        # are the only genuine connectivity failures. Everything below means the
-        # endpoint answered, so it raises AmbossApiError — a wrong wallet id, a
-        # dead API key or a 429 must not be reported as an unreachable host.
-        r = await self.client.post(
-            "", json={"query": query, "variables": variables}, timeout=40
-        )
-        try:
-            body = r.json()
-        except ValueError as exc:
-            raise AmbossApiError(
-                f"HTTP {r.status_code} with an unreadable body"
-            ) from exc
-        # GraphQL errors (including schema-validation failures) come back as a
-        # JSON `errors` array even on HTTP 400 — surface that before the status
-        # code, otherwise the real reason is lost.
-        if body.get("errors"):
-            raise AmbossApiError(str(body["errors"][0].get("message", body["errors"])))
-        if r.is_error:
-            raise AmbossApiError(f"HTTP {r.status_code}")
-        data = body.get("data")
-        if data is None:
-            raise AmbossApiError("response contained no data")
-        return data
 
     async def status(self) -> StatusResponse:
         # Only the request itself is allowed to report a connection problem.
@@ -311,18 +197,6 @@ class AmbossWallet(Wallet):
         # BASE_ASSET wallets — the only kind this wallet supports.
         return StatusResponse(None, balance_sats * 1000)
 
-    async def _ensure_base_asset(self) -> None:
-        """Confirm the wallet is BASE_ASSET (BTC), not a Taproot Asset wallet.
-        create_invoice() and pay_invoice() must check this themselves — neither
-        calls status()."""
-        if self._asset_verified:
-            return
-        data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
-        wallet = data["payment"]["wallet"]["find_one"]
-        if wallet["asset"]["type"] != "BASE_ASSET":
-            raise ValueError(_BASE_ASSET_ONLY)
-        self._asset_verified = True
-
     async def create_invoice(
         self,
         amount: int,
@@ -354,8 +228,8 @@ class AmbossWallet(Wallet):
             }
         if kwargs.get("expiry"):
             _input["expires_in_seconds"] = int(kwargs["expiry"])
-        if self.sandbox and self.sandbox_auto_complete:
-            # rails only acts on this for SANDBOX wallets; harmless otherwise.
+        if self._sandbox:
+            # Sandbox transactions expire by default; simulate success for testing.
             _input["metadata"] = json.dumps({"amb_sandbox_behavior": "complete"})
 
         try:
@@ -388,8 +262,8 @@ class AmbossWallet(Wallet):
                 # same rails transaction instead of creating a second send.
                 "idempotency_key": decoded.payment_hash,
             }
-            if self.sandbox and self.sandbox_auto_complete:
-                # rails only acts on this for SANDBOX wallets; harmless otherwise.
+            if is_sandbox:
+                # Sandbox transactions expire by default; simulate success for testing.
                 send_input["metadata"] = json.dumps(
                     {"amb_sandbox_behavior": "complete"}
                 )
@@ -454,6 +328,73 @@ class AmbossWallet(Wallet):
         return await self._pay_via_node(
             node, macaroon_hex, payment_request, fee_limit_msat, checking_id
         )
+
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        # Invoice checking_id is the Amboss transaction id (UUID).
+        try:
+            tx = (await self._gql(_GET_TRANSACTION, {"id": checking_id}))["payment"][
+                "transaction"
+            ]["find_one"]
+        except Exception as exc:
+            logger.warning(f"AmbossWallet invoice status error: {exc}")
+            return PaymentPendingStatus()
+        return self._map_tx_status(tx)
+
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # Payment checking_id is the bolt11 payment_hash — look it up in the
+        # ledger by hash (never via the node, which is used only for paying).
+        # Deliberate: rails is this wallet's sole source of truth for payment
+        # outcome, even for sends this instance dispatched itself. The node's
+        # own /v2/router/send response is best-effort (core's pay_invoice
+        # wait window is usually shorter than that call), never authoritative.
+        try:
+            tx = (await self._gql(_FIND_BY_PAYMENT_HASH, {"hash": checking_id}))[
+                "payment"
+            ]["transaction"]["find_one"]
+        except Exception as exc:
+            # find_one throws "not found" until the send tx is visible — pending.
+            logger.warning(f"AmbossWallet payment status error: {exc}")
+            return PaymentPendingStatus()
+        return self._map_tx_status(tx)
+
+    async def _gql(self, query: str, variables: dict) -> dict:
+        # httpx.RequestError propagates untouched: those never reached rails and
+        # are the only genuine connectivity failures. Everything below means the
+        # endpoint answered, so it raises AmbossApiError — a wrong wallet id, a
+        # dead API key or a 429 must not be reported as an unreachable host.
+        r = await self.client.post(
+            "", json={"query": query, "variables": variables}, timeout=40
+        )
+        try:
+            body = r.json()
+        except ValueError as exc:
+            raise AmbossApiError(
+                f"HTTP {r.status_code} with an unreadable body"
+            ) from exc
+        # GraphQL errors (including schema-validation failures) come back as a
+        # JSON `errors` array even on HTTP 400 — surface that before the status
+        # code, otherwise the real reason is lost.
+        if body.get("errors"):
+            raise AmbossApiError(str(body["errors"][0].get("message", body["errors"])))
+        if r.is_error:
+            raise AmbossApiError(f"HTTP {r.status_code}")
+        data = body.get("data")
+        if data is None:
+            raise AmbossApiError("response contained no data")
+        return data
+
+    async def _ensure_base_asset(self) -> None:
+        """Confirm the wallet is BASE_ASSET (BTC), not a Taproot Asset wallet.
+        create_invoice() and pay_invoice() must check this themselves — neither
+        calls status()."""
+        if self._asset_verified and self._sandbox is not None:
+            return
+        data = await self._gql(_GET_WALLET_BALANCE, {"id": self.wallet_id})
+        wallet = data["payment"]["wallet"]["find_one"]
+        if wallet["asset"]["type"] != "BASE_ASSET":
+            raise ValueError(_BASE_ASSET_ONLY)
+        self._sandbox = wallet["environment"]["type"] == "SANDBOX"
+        self._asset_verified = True
 
     async def _send_context(self) -> tuple[str, bool, dict | None, str | None]:
         """Resolve (and cache) the static send context for this wallet: the team
@@ -599,34 +540,6 @@ class AmbossWallet(Wallet):
             )
         return PaymentResponse(ok=None, checking_id=checking_id)
 
-    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        # Invoice checking_id is the Amboss transaction id (UUID).
-        try:
-            tx = (await self._gql(_GET_TRANSACTION, {"id": checking_id}))["payment"][
-                "transaction"
-            ]["find_one"]
-        except Exception as exc:
-            logger.warning(f"AmbossWallet invoice status error: {exc}")
-            return PaymentPendingStatus()
-        return self._map_tx_status(tx)
-
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        # Payment checking_id is the bolt11 payment_hash — look it up in the
-        # ledger by hash (never via the node, which is used only for paying).
-        # Deliberate: rails is this wallet's sole source of truth for payment
-        # outcome, even for sends this instance dispatched itself. The node's
-        # own /v2/router/send response is best-effort (core's pay_invoice
-        # wait window is usually shorter than that call), never authoritative.
-        try:
-            tx = (await self._gql(_FIND_BY_PAYMENT_HASH, {"hash": checking_id}))[
-                "payment"
-            ]["transaction"]["find_one"]
-        except Exception as exc:
-            # find_one throws "not found" until the send tx is visible — pending.
-            logger.warning(f"AmbossWallet payment status error: {exc}")
-            return PaymentPendingStatus()
-        return self._map_tx_status(tx)
-
     def _map_tx_status(self, tx: dict | None) -> PaymentStatus:
         if not tx:
             return PaymentPendingStatus()
@@ -644,59 +557,90 @@ class AmbossWallet(Wallet):
         return PaymentPendingStatus()
 
 
-def _self_check() -> None:
-    """Prove the ported crypto reproduces the TS SDK byte-for-byte.
+# --- crypto: ports of the SDK's argon2 + nip44 (must match byte-for-byte) ------
 
-    Run: python -m lnbits.wallets.amboss
 
-    Fixtures below were generated offline by the SDK's own libraries
-    (@noble/hashes `argon2id`, nostr-tools `nip44.v2.decrypt`), so they encode
-    that implementation's output rather than this one's.
-    They pin the full send-path crypto: argon2 key derivation (both steps, with
-    the trim/lower + hex-string-as-password encoding) and the two-step NIP-44
-    decrypt chain (masterKey -> symmetricKey -> macaroon).
+def _argon2id(password: bytes, salt: bytes) -> bytes:
+    # RFC 9106 Argon2id v0x13. Params must match the Amboss Payments backend
+    # and the @ambosstech/payments SDK, or the derived key won't decrypt anything.
+    return Argon2id(
+        salt=salt, length=32, iterations=3, lanes=4, memory_cost=64000
+    ).derive(password)
+
+
+def _derive_master_key(password: str, team_id: str) -> str:
+    """Argon2id(password, salt=teamId) -> master key (hex)."""
+    salt = team_id.strip().lower().encode()
+    return _argon2id(password.strip().encode(), salt).hex()
+
+
+def create_master_password_hash(password: str, team_id: str) -> tuple[str, str]:
+    """Mirror of the Amboss backend's `createMasterPasswordHash`.
+
+    masterKey          = Argon2id(password, salt=teamId)          # hex string
+    masterPasswordHash = Argon2id(utf8(masterKey_hex), salt=pw)   # sent to server
     """
-    # Official NIP-44 v2 vector — proves HKDF/ChaCha nonce order/HMAC/unpad.
-    assert (
-        nip44_decrypt(
-            "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABee0G5VSK0/9YypIObAtDKfYEAjD35"
-            "uVkHyB0F4DwrcNaCXlCWZKaArsGrY6M9wnuTMxWfp1RTN9Xga8no+kF5Vsb",
-            "c41c775356fd92eadc63ff5a0dc1da211b268cbea22316767095b2871ea1412d",
-        )
-        == "a"
-    )
-
-    password, team_id = "CorrectHorseBatteryStaple", "Team-ABCDEF-0123456789"
-    enc_symmetric_key = (
-        "AtTigMMQNSYlsDcRdrXNse9tiJHerVNQIualUYH+83z57yJLWYLWR6/F1hOR84jPfSvOgCsoq"
-        "TWufdGoJMrDoR4cFiF9E+RYKp1gKlu89dJKJA5Sl9IUWvwPrrlKCXnU5nlsIKAn8iFzfnUuAk"
-        "IhG/GaGtu7V1wCz68VXSOIIA0l7vg="
-    )
-    enc_macaroon = (
-        "AkpB8MavSNfEH5MvGhVzWUA8kutzu74ETVrjS55Bac2Wcd8gVas2c1mmEYwUM2rVgpme9db1w"
-        "ECXVUJFhVarcKDMTJF6P87LlQfjHRg8t9oxoCyIbEcv6C0Dt3V8UFZrAKei5rE7A5z70PXzLc"
-        "3H8Lr2m+cilXnBBC6TQzg6YVZpgpA="
-    )
-    master_key, master_password_hash = create_master_password_hash(password, team_id)
-    assert (
-        master_key == "1c46299fbd90ea8e026baaaba498e928588c8d371daf3a5c051b5f3a1a5d99c9"
-    )
-    assert (
-        master_password_hash
-        == "4fd0954f3dbfb6ced05286d4a0733f92a5bcd7405761bf7d6d31a1259774dbcc"  # noqa: S105
-    )
-    symmetric_key = nip44_decrypt(enc_symmetric_key, master_key)
-    assert (
-        symmetric_key
-        == "a3f1c9d2b4e6081357092468acebdf01a3f1c9d2b4e6081357092468acebdf01"
-    )
-    macaroon = nip44_decrypt(enc_macaroon, symmetric_key)
-    assert (
-        _normalize_macaroon_hex(macaroon)
-        == "0201036c6e64025f030a10abababababababababababababababababababab"
-    )
-    print("amboss crypto self-check OK (matches SDK ground-truth fixtures)")
+    master_key = _derive_master_key(password, team_id)
+    master_password_hash = _argon2id(
+        master_key.encode(), password.strip().encode()
+    ).hex()
+    return master_key, master_password_hash
 
 
-if __name__ == "__main__":
-    _self_check()
+def _nip44_message_keys(
+    conversation_key: bytes, nonce: bytes
+) -> tuple[bytes, bytes, bytes]:
+    keys = HKDFExpand(algorithm=hashes.SHA256(), length=76, info=nonce).derive(
+        conversation_key
+    )
+    return keys[0:32], keys[32:44], keys[44:76]
+
+
+def nip44_decrypt(payload: str, conversation_key_hex: str) -> str:
+    """NIP-44 v2 symmetric decrypt (ChaCha20 + HMAC-SHA256), keyed by a 32-byte
+    hex key used directly as the conversation key (no ECDH)."""
+    conversation_key = bytes.fromhex(conversation_key_hex)
+    data = base64.b64decode(payload)
+    if not data or data[0] != 2:
+        raise ValueError("unsupported nip44 payload version")
+    nonce, ciphertext, mac = data[1:33], data[33:-32], data[-32:]
+
+    chacha_key, chacha_nonce, hmac_key = _nip44_message_keys(conversation_key, nonce)
+    calc_mac = hmac.new(hmac_key, nonce + ciphertext, hashlib.sha256).digest()
+    if not hmac.compare_digest(calc_mac, mac):
+        raise ValueError("nip44 mac mismatch (wrong key/password)")
+
+    # cryptography's ChaCha20 nonce = 4-byte LE counter (0) + 12-byte nonce.
+    full_nonce = (0).to_bytes(4, "little") + chacha_nonce
+    decryptor = Cipher(
+        algorithms.ChaCha20(chacha_key, full_nonce), mode=None
+    ).decryptor()
+    padded = decryptor.update(ciphertext) + decryptor.finalize()
+    plaintext_len = int.from_bytes(padded[:2], "big")
+    return padded[2 : 2 + plaintext_len].decode("utf-8")
+
+
+def _normalize_macaroon_hex(value: str) -> str:
+    """Macaroon may come back as hex or base64; LND wants hex."""
+    stripped = value.strip()
+    if len(stripped) % 2 == 0 and all(c in "0123456789abcdefABCDEF" for c in stripped):
+        return stripped.lower()
+    return base64.b64decode(stripped).hex()
+
+
+def _pick_rest_socket(sockets: dict) -> str | None:
+    """Pick a usable REST socket, preferring litd over lnd as the SDK's
+    selectSendNode does — litd exposes lnd's own REST gateway, so the same
+    request shape works against either.
+
+    Only https sockets qualify: the admin macaroon travels on this connection,
+    so a plaintext socket is not a candidate. Selection and validation live
+    together deliberately — if they disagree, a plaintext litd socket can mask
+    a usable https lnd socket on the same node.
+    """
+    for kind in ("litd", "lnd"):
+        socket = sockets.get(kind) or {}
+        rest = socket.get("rest")
+        if rest and rest.lower().startswith("https://"):
+            return rest
+    return None

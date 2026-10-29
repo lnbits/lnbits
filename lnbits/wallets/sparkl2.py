@@ -174,6 +174,7 @@ class SparkL2Wallet(Wallet):
                 checking_id=checking_id,
                 fee_msat=int(fee_msat) if fee_msat is not None else None,
                 preimage=res.get("preimage"),
+                error_message=res.get("error_message") if ok is False else None,
             )
 
         except Exception as e:
@@ -314,6 +315,7 @@ class SparkL2Wallet(Wallet):
             "PREIMAGE_PROVIDING_FAILED",
             "USER_TRANSFER_VALIDATION_FAILED",
             "USER_SWAP_RETURN_FAILED",
+            "USER_SWAP_RETURNED",  # - Breez Spark SDK explicitly maps it to failed
         }
         if status in success:
             return PaymentSuccessStatus()

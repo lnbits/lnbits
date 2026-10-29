@@ -29,16 +29,20 @@ def test_wasm_http_origin_normalization_and_url_rejections():
 
 
 @pytest.mark.anyio
-async def test_wasm_http_rejects_internal_hosts(mocker: MockerFixture):
+@pytest.mark.parametrize(
+    "target_ip", ["127.0.0.1", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"]
+)
+async def test_wasm_http_rejects_internal_hosts(mocker: MockerFixture, target_ip: str):
     with pytest.raises(PermissionError, match="localhost"):
         await wasm_http._reject_internal_host("https://localhost/api")
 
     with pytest.raises(PermissionError, match="internal network"):
-        await wasm_http._reject_internal_host("https://127.0.0.1/api")
+        url = httpx.URL("https://api.example.com/api").copy_with(host=target_ip)
+        await wasm_http._reject_internal_host(str(url))
 
     mocker.patch(
         "lnbits.core.wasm_ext.client.http._resolve_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
+        mocker.AsyncMock(return_value=[ipaddress.ip_address(target_ip)]),
     )
     with pytest.raises(PermissionError, match="internal network"):
         await wasm_http._reject_internal_host("https://api.example.com")
@@ -126,7 +130,7 @@ async def test_wasm_http_request_rejects_oversized_bodies_and_responses(
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
-            HttpRequest.construct(
+            HttpRequest.model_construct(
                 method="GET",
                 url="https://api.example.com/path",
                 headers={},

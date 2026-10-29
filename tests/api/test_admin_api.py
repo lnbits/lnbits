@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
+from lnbits.core.models import BalanceDelta
 from lnbits.server import server_restart
 from lnbits.settings import DEFAULT_WASM_MANIFESTS, Settings
 
@@ -44,6 +45,28 @@ async def test_admin_update_settings(
 
 
 @pytest.mark.anyio
+async def test_admin_nostr_notification_protocol(client, superuser_token, settings):
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    field = "lnbits_nostr_notifications_protocol"
+    for protocol in ("nip04", "nip17"):
+        response = await client.put(
+            "/admin/api/v1/settings", json={field: protocol}, headers=headers
+        )
+        assert response.status_code == 200
+        assert settings.lnbits_nostr_notifications_protocol == protocol
+        stored = await get_settings_field(field)
+        assert stored and stored.value == protocol
+        response = await client.get("/admin/api/v1/settings", headers=headers)
+        assert response.json()[field] == protocol
+
+    response = await client.put(
+        "/admin/api/v1/settings", json={field: "invalid"}, headers=headers
+    )
+    assert response.status_code == 400
+    assert settings.lnbits_nostr_notifications_protocol == "nip17"
+
+
+@pytest.mark.anyio
 async def test_admin_update_noneditable_settings(
     client: AsyncClient,
     superuser_token: str,
@@ -63,8 +86,12 @@ async def test_admin_audit_monitor_and_test_email(
     mocker.patch(
         "lnbits.core.views.admin_api.get_balance_delta",
         mocker.AsyncMock(
-            return_value={"lnbits_balance_sats": 21, "node_balance_sats": 13}
+            return_value=BalanceDelta(lnbits_balance_sats=21, node_balance_sats=13)
         ),
+    )
+    fiat_balance = mocker.patch(
+        "lnbits.core.views.admin_api.get_total_balance",
+        mocker.AsyncMock(return_value=1234567),
     )
     mocker.patch(
         "lnbits.core.views.admin_api.send_email_notification",
@@ -77,6 +104,8 @@ async def test_admin_audit_monitor_and_test_email(
     )
     assert audit.status_code == 200
     assert audit.json()["lnbits_balance_sats"] == 21
+    assert audit.json()["lnbits_fiat_balance_sats"] == 1234
+    fiat_balance.assert_awaited_once_with(fiat=True)
 
     monitor = await client.get(
         "/admin/api/v1/monitor",
@@ -188,3 +217,69 @@ async def test_admin_delete_settings_requires_superuser(
     assert spark_l2_confirmed and spark_l2_confirmed.value is True
 
     server_restart.clear()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "method,path",
+    [("GET", ""), ("POST", ""), ("POST", "/backup"), ("POST", "/confirm")],
+)
+async def test_onchain_key_requires_superuser(client, from_user, method, path):
+    response = await client.request(
+        method, f"/admin/api/v1/onchain/key{path}", params={"usr": from_user.id}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_onchain_key_survives_settings_reset(
+    client, superuser_token, settings, tmp_path, monkeypatch
+):
+    from lnbits.core.crud.settings import reset_core_settings
+    from lnbits.core.db import db
+    from lnbits.core.services.onchain import KEY_RECORD, key_path
+
+    original = await get_settings_field(KEY_RECORD)
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path))
+    monkeypatch.setattr(settings, "lnbits_onchain_master_key", None)
+    monkeypatch.delenv("WATCHONLY_MASTER_KEY", raising=False)
+    headers = {"Authorization": f"Bearer {superuser_token}"}
+    try:
+        await db.execute(
+            "DELETE FROM system_settings WHERE id = :id AND tag = 'core'",
+            {"id": KEY_RECORD},
+        )
+        created = await client.post("/admin/api/v1/onchain/key", headers=headers)
+        assert created.status_code == 200
+        backup = await client.post("/admin/api/v1/onchain/key/backup", headers=headers)
+        assert backup.status_code == 200
+        saved_key = key_path().read_text()
+        confirmed = await client.post(
+            "/admin/api/v1/onchain/key/confirm",
+            headers={
+                **headers,
+                "X-Onchain-Key-Fingerprint": backup.json()["fingerprint"],
+            },
+        )
+        assert confirmed.status_code == 200
+        enabled = await client.patch(
+            "/admin/api/v1/settings",
+            headers=headers,
+            json={"lnbits_allow_onchain_payments": True},
+        )
+        assert enabled.status_code == 200
+        assert settings.lnbits_allow_onchain_payments
+        normal_settings = await client.get("/admin/api/v1/settings", headers=headers)
+        assert backup.json()["key"] not in normal_settings.text
+        await reset_core_settings()
+        assert key_path().read_text() == saved_key
+        status = await client.get("/admin/api/v1/onchain/key", headers=headers)
+        assert status.json()["backup_confirmed"]
+        assert status.json()["fingerprint"] == backup.json()["fingerprint"]
+    finally:
+        await db.execute(
+            "DELETE FROM system_settings WHERE id = :id AND tag = 'core'",
+            {"id": KEY_RECORD},
+        )
+        if original:
+            await set_settings_field(KEY_RECORD, original.value)

@@ -3,6 +3,7 @@ window.app.component('lnbits-admin-notifications', {
   template: '#lnbits-admin-notifications',
   data() {
     return {
+      showNostrPrivateKey: false,
       nostrNotificationIdentifier: '',
       emailNotificationAddress: ''
     }

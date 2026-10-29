@@ -52,6 +52,48 @@
           class="text-caption q-mb-xs"
           v-text="description"
         ></p>
+        <ul
+          v-if="
+            ['scheduler.user', 'scheduler.extension'].includes(permission.id)
+          "
+          class="q-my-sm q-pl-md"
+        >
+          <li
+            v-for="(policy, index) of permissions.find(
+              item => item.id === permission.id
+            )?.policies || []"
+            :key="index"
+            class="q-mb-sm"
+          >
+            <div>Handler: <code v-text="policy?.handler"></code></div>
+            <div>Cron: <code v-text="policy?.cron_expression"></code></div>
+            <div>
+              Timezone: <span v-text="policy?.timezone || 'UTC'"></span>
+            </div>
+            <template v-if="permission.id === 'scheduler.user'">
+              <q-input
+                v-if="editableSchedulerUserLimits"
+                v-model.number="policy.max_jobs_per_user"
+                type="number"
+                dense
+                outlined
+                class="q-mt-sm q-mb-sm"
+                style="max-width: 240px"
+                :min="1"
+                :label="$t('extension_permission_scheduler_max_jobs_per_user')"
+              ></q-input>
+              <div v-else>
+                <span
+                  v-text="
+                    $t('extension_permission_scheduler_max_jobs_per_user')
+                  "
+                ></span
+                >:
+                <span v-text="policy?.max_jobs_per_user ?? 10"></span>
+              </div>
+            </template>
+          </li>
+        </ul>
         <p
           v-for="policy of permission.invoicePolicies"
           :key="policy.table + ':' + policy.walletField"

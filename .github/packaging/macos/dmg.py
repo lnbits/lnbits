@@ -1,0 +1,128 @@
+"""Finalize metadata before signing; image creation never edits the staged app."""
+
+import hashlib
+import platform
+import plistlib
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+import tomllib
+
+
+def output_path():
+    from packaging.version import Version
+
+    version = Version(
+        tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+    )
+    return Path("dist", f"LNbits-v{version}-macOS-{platform.machine()}.dmg").resolve()
+
+
+def finalize_app(app):
+    from packaging.version import Version
+
+    version = Version(
+        tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+    )
+    plist = app / "Contents/Info.plist"
+    info = plistlib.loads(plist.read_bytes())
+    info.update(
+        CFBundleIdentifier="com.lnbits.desktop",
+        CFBundleDisplayName="LNbits",
+        CFBundleShortVersionString=version.base_version,
+        CFBundleVersion=version.base_version,
+        LSMinimumSystemVersion="15.0",
+        LSApplicationCategoryType="public.app-category.finance",
+        NSHighResolutionCapable=True,
+    )
+    plist.write_bytes(plistlib.dumps(info))
+
+
+def create(app, output, runner, *, signed):
+    with tempfile.TemporaryDirectory(prefix="lnbits-dmg-") as directory:
+        workspace = Path(directory)
+        staging = workspace / "contents"
+        staging.mkdir()
+        uncompressed = workspace / "uncompressed.dmg"
+        # ditto preserves the stapled ticket, resource forks, xattrs and symlinks.
+        runner.run("Copy finalized app", "/usr/bin/ditto", app, staging / "LNbits.app")
+        (staging / "Applications").symlink_to("/Applications")
+        instructions = "Read me.txt" if signed else "Read me unsigned.txt"
+        shutil.copyfile(Path(__file__).with_name(instructions), staging / "Read me.txt")
+        runner.run(
+            "Inspect DMG staging size", "/usr/bin/du", "-sh", staging, log_output=True
+        )
+        runner.run(
+            "Inspect DMG free space",
+            "/bin/df",
+            "-h",
+            workspace,
+            output.parent,
+            log_output=True,
+        )
+        # Separate filesystem creation from compression on slower Intel runners.
+        # The intermediate image is outside the source folder and is never signed
+        # or notarized. Conversion finishes before the final DMG release sequence.
+        runner.run(
+            "Create uncompressed DMG",
+            "/usr/bin/hdiutil",
+            "create",
+            "-volname",
+            "LNbits",
+            "-srcfolder",
+            staging,
+            "-fs",
+            "HFS+",
+            "-format",
+            "UDRW",
+            "-nospotlight",
+            "-verbose",
+            "-puppetstrings",
+            "-ov",
+            uncompressed,
+            timeout=1200,
+            log_output=True,
+        )
+        runner.run(
+            "Compress final DMG",
+            "/usr/bin/hdiutil",
+            "convert",
+            uncompressed,
+            "-format",
+            "UDZO",
+            "-tasks",
+            "2",
+            "-verbose",
+            "-puppetstrings",
+            "-ov",
+            "-o",
+            output,
+            timeout=1200,
+            log_output=True,
+        )
+
+
+def checksum(output):
+    digest = hashlib.sha256()
+    with output.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return f"{digest.hexdigest()}  {output.name}\n"
+
+
+def write_checksum(output):
+    path = output.with_suffix(".dmg.sha256")
+    path.write_text(checksum(output), encoding="utf-8")
+    if path.read_text(encoding="utf-8") != checksum(output):
+        path.unlink()
+        raise RuntimeError("Final DMG checksum verification failed")
+
+
+if __name__ == "__main__":
+    # Keep the old unsigned command, routed through the single verification path.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from macos.release import main
+
+    main(["--unsigned", "--skip-build"])
