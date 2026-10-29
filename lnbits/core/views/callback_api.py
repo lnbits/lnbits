@@ -302,7 +302,7 @@ def _paypal_extract_payment_hash(resource: dict) -> str | None:
             return pu.get("invoice_id")
         if pu.get("custom_id"):
             return pu.get("custom_id")
-    return None
+    return resource.get("invoice_id") or resource.get("custom_id")
 
 
 def _deserialize_paypal_metadata(custom_id: str) -> FiatSubscriptionPaymentOptions:
