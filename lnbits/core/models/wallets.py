@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.core.models.onchain import ScanCheckpoint
@@ -134,11 +134,13 @@ class Wallet(BaseWallet):
     currency: str | None = None
     lightning_address: str | None = None
     onchain_network: Literal["Mainnet", "Testnet", "Testnet4"] | None = None
-    balance_msat: int = Field(default=0, no_database=True)
+    balance_msat: int = Field(default=0, json_schema_extra={"no_database": True})
     extra: WalletExtra = WalletExtra()
     stored_paylinks: StoredPayLinks = StoredPayLinks()
     # What permission this wallet has when it's a shared wallet
-    share_permissions: list[WalletPermission] = Field(default=[], no_database=True)
+    share_permissions: list[WalletPermission] = Field(
+        default=[], json_schema_extra={"no_database": True}
+    )
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -146,7 +148,7 @@ class Wallet(BaseWallet):
 
     def copy_with_keys(self, keep: bool = True) -> Wallet:
         """Return a wallet copy, masking its credentials when keep is False."""
-        wallet = self.copy()
+        wallet = self.model_copy()
         if not keep:
             wallet.adminkey = "*" * 32
             wallet.inkey = "*" * 32
@@ -283,10 +285,10 @@ class WalletsFilters(FilterModel):
         "updated_at",
     ]
 
-    id: str | None
-    name: str | None
-    currency: str | None
-    lightning_address: str | None
+    id: str | None = None
+    name: str | None = None
+    currency: str | None = None
+    lightning_address: str | None = None
 
 
 class OnchainMeta(BaseModel):
@@ -309,7 +311,7 @@ class OnchainConfig(BaseModel):
     change_gap_limit: int = Field(default=5, ge=1, le=1000)
     sats_denominated: bool = True
 
-    @validator("mempool_endpoint")
+    @field_validator("mempool_endpoint")
     @classmethod
     def valid_endpoint(cls, value):
         url = urlsplit(value)
@@ -359,7 +361,7 @@ class NewHotWallet(BaseModel):
     script_type: Literal["p2pkh", "p2sh", "p2wpkh", "p2tr"] = "p2wpkh"
     account_path: str | None = Field(None, min_length=1, max_length=3037)
 
-    @validator("account_path")
+    @field_validator("account_path")
     @classmethod
     def valid_account_path(cls, value: str | None) -> str | None:
         if value is None:
@@ -380,5 +382,4 @@ class NewHotWallet(BaseModel):
             str(int(p.rstrip("'"))) + ("'" if p.endswith("'") else "") for p in parts
         )
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")

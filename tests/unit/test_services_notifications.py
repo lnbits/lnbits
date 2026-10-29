@@ -661,10 +661,16 @@ async def test_dispatch_webhook_status_is_scoped_to_payment(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "target_ip", ["169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"]
+)
 async def test_dispatch_webhook_blocks_private_targets(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture, target_ip: str
 ):
     settings.lnbits_callback_url_rules = []
+    target_url = httpx.URL("http://metadata.internal/metadata").copy_with(
+        host=target_ip
+    )
     wallet = await _create_wallet()
     response = httpx.Response(
         200,
@@ -676,9 +682,7 @@ async def test_dispatch_webhook_blocks_private_targets(
         return_value=client,
     )
 
-    direct_payment = await _create_payment(
-        wallet, webhook="http://169.254.169.254/metadata"
-    )
+    direct_payment = await _create_payment(wallet, webhook=str(target_url))
     await dispatch_webhook(direct_payment)
 
     assert (await get_payment(direct_payment.checking_id)).webhook_status == "-1"
@@ -689,7 +693,7 @@ async def test_dispatch_webhook_blocks_private_targets(
         mocker.AsyncMock(
             return_value=[
                 ipaddress.ip_address("93.184.216.34"),
-                ipaddress.ip_address("10.0.0.1"),
+                ipaddress.ip_address(target_ip),
             ]
         ),
     )
@@ -702,14 +706,16 @@ async def test_dispatch_webhook_blocks_private_targets(
     assert client.posts == []
 
     settings.lnbits_callback_allow_private_ips = True
-    resolver.return_value = [ipaddress.ip_address("10.0.0.1")]
+    resolver.return_value = [ipaddress.ip_address(target_ip)]
     allowed_payment = await _create_payment(
         wallet, webhook="https://attacker.example/internal"
     )
     await dispatch_webhook(allowed_payment)
 
     assert (await get_payment(allowed_payment.checking_id)).webhook_status == "200"
-    assert str(client.posts[0][0]) == "https://10.0.0.1/internal"
+    assert client.posts[0][0] == httpx.URL(
+        "https://attacker.example/internal"
+    ).copy_with(host=str(ipaddress.ip_address(target_ip)))
 
 
 @pytest.mark.anyio

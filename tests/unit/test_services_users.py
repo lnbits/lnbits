@@ -264,9 +264,9 @@ async def test_check_admin_settings_initializes_cache_and_marks_first_install(
         if previous_settings:
             await create_admin_settings(
                 previous_settings.super_user,
-                previous_settings.dict(exclude={"super_user"}),
+                previous_settings.model_dump(exclude={"super_user"}),
             )
-            update_cached_settings(previous_settings.dict())
+            update_cached_settings(previous_settings.model_dump())
         settings.super_user = previous_super_user
         settings.lnbits_data_folder = previous_data_folder
         settings.lnbits_admin_ui = previous_admin_ui

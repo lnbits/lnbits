@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
 from loguru import logger
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat.base import (
@@ -58,7 +58,7 @@ class ChangePaymentStatus(BaseModel):
     send_payment_notifications: bool = True
     fee_msat: int = Field(default=0, ge=0)
     preimage: str | None = Field(
-        default=None, min_length=64, max_length=64, regex=r"^[0-9a-fA-F]+$"
+        default=None, min_length=64, max_length=64, pattern=r"^[0-9a-fA-F]+$"
     )
 
 
@@ -75,7 +75,7 @@ class ValidatedPaymentRequest(BaseModel):
     payment_request: str
     amount_msat: int
     payment_hash: str
-    expiry_date: datetime | None
+    expiry_date: datetime | None = None
     description: str
     is_offer: bool
 
@@ -95,7 +95,8 @@ class CreatePayment(BaseModel):
     labels: list[str] | None = None
     external_id: str | None = None
 
-    @validator("external_id")
+    @field_validator("external_id")
+    @classmethod
     def validate_external_id(cls, external_id):
         return _validate_external_id(external_id)
 
@@ -107,7 +108,9 @@ class Payment(BaseModel):
     amount: int
     fee: int
     bolt11: str
-    payment_request: str | None = Field(default=None, no_database=True)
+    payment_request: str | None = Field(
+        default=None, json_schema_extra={"no_database": True}
+    )
     fiat_provider: str | None = None
     status: str = PaymentState.PENDING
     memo: str | None = None
@@ -124,7 +127,8 @@ class Payment(BaseModel):
     extra: dict = {}
     external_id: str | None = None
 
-    @validator("external_id")
+    @field_validator("external_id")
+    @classmethod
     def validate_external_id(cls, external_id):
         return _validate_external_id(external_id)
 
@@ -223,18 +227,18 @@ class PaymentFilters(FilterModel):
         "external_id",
     ]
 
-    status: str | None
-    tag: str | None
-    checking_id: str | None
-    external_id: str | None
+    status: str | None = None
+    tag: str | None = None
+    checking_id: str | None = None
+    external_id: str | None = None
     amount: int
     fee: int
-    memo: str | None
+    memo: str | None = None
     time: datetime
-    preimage: str | None
-    payment_hash: str | None
-    wallet_id: str | None
-    labels: str | None
+    preimage: str | None = None
+    payment_hash: str | None = None
+    wallet_id: str | None = None
+    labels: str | None = None
 
 
 class PaymentDataPoint(BaseModel):
@@ -300,7 +304,7 @@ class CreateInvoice(BaseModel):
     unit: str = "sat"
     internal: bool = False
     out: bool = True
-    amount: float = Query(None, ge=0)
+    amount: float | None = Query(None, ge=0)
     memo: str | None = Query(None, max_length=640)
     description_hash: str | None = None
     unhashed_description: str | None = None
@@ -330,24 +334,27 @@ class CreateInvoice(BaseModel):
     def is_fiat_subscription(self) -> bool:
         return (self.extra or {}).get("fiat_method") == "subscription"
 
-    @validator("payment_hash")
+    @field_validator("payment_hash")
+    @classmethod
     def check_hex(cls, v):
         if v:
             _ = bytes.fromhex(v)
         return v
 
-    @validator("unit")
+    @field_validator("unit")
     @classmethod
     def unit_is_from_allowed_currencies(cls, v):
         if v != "sat" and v not in allowed_currencies():
             raise ValueError("The provided unit is not supported")
         return v
 
-    @validator("external_id")
+    @field_validator("external_id")
+    @classmethod
     def validate_external_id(cls, external_id):
         return _validate_external_id(external_id)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def _normalize_payment_request(cls, values: dict) -> dict:
         payment_request = values.get("payment_request")
         bolt11 = values.get("bolt11")
@@ -373,7 +380,8 @@ class SettleInvoice(BaseModel):
         max_length=64,
     )
 
-    @validator("preimage")
+    @field_validator("preimage")
+    @classmethod
     def check_hex(cls, v):
         _ = bytes.fromhex(v)
         return v
@@ -387,7 +395,8 @@ class CancelInvoice(BaseModel):
         max_length=64,
     )
 
-    @validator("payment_hash")
+    @field_validator("payment_hash")
+    @classmethod
     def check_hex(cls, v):
         _ = bytes.fromhex(v)
         return v

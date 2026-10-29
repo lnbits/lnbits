@@ -5,7 +5,7 @@ from uuid import UUID
 
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
@@ -38,10 +38,10 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str = Field(regex=r"([A-Za-z0-9 ._-]{1,100}$)")
+    name: str = Field(pattern=r"^[A-Za-z0-9 ._-]{1,100}$")
     description: str | None = Field(default=None, max_length=250)
     color: str | None = Field(
-        default=None, regex=r"^#[0-9A-Fa-f]{6}$"
+        default=None, pattern=r"^#[0-9A-Fa-f]{6}$"
     )  # e.g., "#RRGGBB"
 
 
@@ -193,9 +193,11 @@ class Account(AccountId):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    is_super_user: bool = Field(default=False, no_database=True)
-    is_admin: bool = Field(default=False, no_database=True)
-    fiat_providers: list[str] = Field(default=[], no_database=True)
+    is_super_user: bool = Field(default=False, json_schema_extra={"no_database": True})
+    is_admin: bool = Field(default=False, json_schema_extra={"no_database": True})
+    fiat_providers: list[str] = Field(
+        default=[], json_schema_extra={"no_database": True}
+    )
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -328,8 +330,8 @@ class CreateUser(BaseModel):
     username: str | None = Query(default=None, min_length=2, max_length=20)
     password: str | None = Query(default=None, min_length=8, max_length=50)
     password_repeat: str | None = Query(default=None, min_length=8, max_length=50)
-    pubkey: str = Query(default=None, max_length=64)
-    external_id: str = Query(default=None, max_length=256)
+    pubkey: str | None = Query(default=None, max_length=64)
+    external_id: str | None = Query(default=None, max_length=256)
     extensions: list[str] | None = None
     extra: UserExtra | None = None
 
@@ -394,7 +396,8 @@ class UpdateBalance(BaseModel):
     amount: int
     memo: str | None = Field(default=None, max_length=639)
 
-    @validator("memo")
+    @field_validator("memo")
+    @classmethod
     def memo_max_bytes(cls, value: str | None) -> str | None:
         # bolt11 invoice descriptions are limited to 639 bytes
         if value and len(value.encode("utf-8")) > 639:

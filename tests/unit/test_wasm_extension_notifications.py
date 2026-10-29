@@ -166,7 +166,9 @@ async def test_notification_rejects_missing_or_mismatched_event_metadata(
     mocker: MockerFixture,
     fields: dict | None,
 ):
-    invocation = event_invocation.copy(update=fields) if fields is not None else None
+    invocation = (
+        event_invocation.model_copy(update=fields) if fields is not None else None
+    )
     mocker.patch(
         "lnbits.core.crud.extensions.get_wasm_invocation",
         AsyncMock(return_value=invocation),
@@ -218,7 +220,7 @@ async def test_user_notification_uses_only_selected_saved_user_destination(
         "lnbits.core.services.notifications.send_admin_notification", AsyncMock()
     )
 
-    preferences_before = notification_user.extra.notifications.copy(deep=True)
+    preferences_before = notification_user.extra.notifications.model_copy(deep=True)
     api = ExtensionHostAPI("forms", [METHOD], user_id="recipient-user")
     result = await ExtensionAPIHost(api).invoke(
         METHOD, {**REQUEST, "type": notification_type}
@@ -392,7 +394,7 @@ def test_notification_permission_and_sdk_are_available():
         "short_description": "Forms",
         "extension_type": "wasm",
         "wasm": {"module": "extension.wasm"},
-        "permissions": [permission.dict()],
+        "permissions": [permission.model_dump()],
     }
     extension = make_installable_extension("forms")
 

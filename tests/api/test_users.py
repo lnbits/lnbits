@@ -13,6 +13,7 @@ from lnbits.core.models.users import Account, User
 from lnbits.core.services.users import create_user_account
 from lnbits.db import Filters
 from lnbits.settings import Settings
+from lnbits.utils.cache import cache
 from lnbits.utils.nostr import generate_keypair, hex_to_npub
 
 
@@ -668,6 +669,7 @@ async def test_delete_wallet_twice_removes_it(
 async def test_user_activation(
     http_client: AsyncClient, invoice: Payment, settings: Settings, superuser_token: str
 ):
+    settings.auth_authentication_cache_minutes = 1
 
     # Register a new user
     username = f"u21.{shortuuid.uuid()[:8]}"
@@ -694,6 +696,16 @@ async def test_user_activation(
         "/api/v1/auth", json={"username": username, "password": "secret1234"}
     )
     assert response.status_code == 200, "User logs in OK"
+
+    # Cache both wallet keys before deactivation.
+    wallets = await get_wallets(user_id=user_id)
+    for wallet in wallets:
+        for key in (wallet.adminkey, wallet.inkey):
+            response = await http_client.get(
+                "/api/v1/payments", headers={"X-Api-Key": key}
+            )
+            assert response.status_code == 200
+            assert cache.get(f"auth:x-api-key:{key}") is not None
 
     # Deactivate the user
     respones = await http_client.put(

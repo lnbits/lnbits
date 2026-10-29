@@ -96,8 +96,10 @@ async def test_two_factor_enrollment_privacy_and_account_updates(
     assert len(enrollment["recovery_codes"]) == 10
     config = await get_two_factor_config(account.id)
     assert config.secret and not config.pending_secret
-    assert base64.b32encode(secret).decode() not in config.json()
-    assert all(code not in config.json() for code in enrollment["recovery_codes"])
+    assert base64.b32encode(secret).decode() not in config.model_dump_json()
+    assert all(
+        code not in config.model_dump_json() for code in enrollment["recovery_codes"]
+    )
     assert (await http_client.get("/api/v1/auth")).status_code == 200
     profile = await http_client.patch("/api/v1/auth/ui", json={"theme": "test"})
     assert profile.status_code == 200
@@ -248,7 +250,7 @@ async def test_password_update_revokes_sessions(
     assert challenge.jti not in after.challenges
     assert not before.challenges.keys() & after.challenges.keys()
     assert (
-        after.copy(
+        after.model_copy(
             update={"revision": before.revision, "challenges": before.challenges}
         )
         == before
@@ -261,7 +263,7 @@ async def test_password_update_revokes_sessions(
         assert (await http_client.get(path)).status_code == 401
         http_client.cookies.clear()
     challenge_headers = {
-        "Authorization": f"Bearer {create_access_token(challenge.dict())}"
+        "Authorization": f"Bearer {create_access_token(challenge.model_dump())}"
     }
     assert (
         await http_client.get("/api/v1/auth/2fa/status", headers=challenge_headers)
@@ -545,7 +547,7 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     await update_account(factor_account)
     await enroll(http_client, factor_account)
     response = await _handle_sso_login(
-        OpenID.parse_obj({"email": factor_account.email})
+        OpenID.model_validate({"email": factor_account.email})
     )
     assert response.headers["location"] == "/2fa"
     cookies = response.headers.getlist("set-cookie")
@@ -617,7 +619,7 @@ async def test_two_factor_key_and_methods_validation(
 ):
     settings.lnbits_admin_users = [factor_account.id]
     await login(http_client, factor_account)
-    for field in ("totp_encryption_key", "__dict__", "__fields__"):
+    for field in ("totp_encryption_key", "__dict__", "model_fields"):
         assert (
             await http_client.get(
                 "/admin/api/v1/settings/default", params={"field_name": field}

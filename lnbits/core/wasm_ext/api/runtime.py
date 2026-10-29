@@ -96,7 +96,7 @@ class ExtensionAPIHost:
         if isinstance(payload, method.request_model):
             return payload
         if isinstance(payload, BaseModel):
-            payload = payload.dict()
+            payload = payload.model_dump()
         if payload is None:
             payload = {}
         if not isinstance(payload, Mapping):
@@ -108,7 +108,7 @@ class ExtensionAPIHost:
             data["extra"] = dict(data["extra"])
         if isinstance(data.get("headers"), list):
             data["headers"] = dict(data["headers"])
-        return method.request_model.parse_obj(data)
+        return method.request_model.model_validate(data)
 
     @staticmethod
     def _response_payload(
@@ -116,8 +116,8 @@ class ExtensionAPIHost:
         response: Any,
     ) -> dict[str, Any]:
         if not isinstance(response, method.response_model):
-            response = method.response_model.parse_obj(response)
-        payload = response.dict()
+            response = method.response_model.model_validate(response)
+        payload = response.model_dump()
         if method.method_id in {"http.request", "extension.api.request"} and isinstance(
             payload.get("headers"), Mapping
         ):

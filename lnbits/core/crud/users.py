@@ -71,7 +71,7 @@ async def update_account_credentials(
             "username": account.username,
             "password_hash": account.password_hash,
             "updated_at": account.updated_at.timestamp(),
-            "two_factor": config.json(),
+            "two_factor": config.model_dump_json(),
         },
     )
 
@@ -314,7 +314,7 @@ async def get_user_access_control_lists(
 
 
 async def clear_user_id_cache(user_id: str):
-    user = await get_user(user_id, active_only=True)
+    user = await get_user(user_id, active_only=False)
     if user:
         clear_user_cache(user)
 
@@ -338,11 +338,11 @@ async def get_two_factor_config(
     if not row:
         raise ValueError("Account not found.")
     raw = row["two_factor"]
-    return TwoFactorConfig.parse_raw(raw) if raw else TwoFactorConfig()
+    return TwoFactorConfig.model_validate_json(raw) if raw else TwoFactorConfig()
 
 
 async def save_two_factor_config(user_id: str, config: TwoFactorConfig) -> None:
     await db.execute(
         "UPDATE accounts SET two_factor = :value WHERE id = :id",
-        {"id": user_id, "value": config.json()},
+        {"id": user_id, "value": config.model_dump_json()},
     )

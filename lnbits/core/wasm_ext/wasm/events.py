@@ -142,7 +142,7 @@ def _has_wallet_watch_grant(user_extension: Any, wallet_id: str) -> bool:
         if not isinstance(grant_data, dict):
             continue
         try:
-            grant = ExtensionWalletPaymentsWatchGrant.parse_obj(grant_data)
+            grant = ExtensionWalletPaymentsWatchGrant.model_validate(grant_data)
         except ValueError:
             continue
         if grant.enabled and grant.wallet_id == wallet_id:
@@ -252,5 +252,5 @@ def _wasm_invoice_paid_payload(payment: Any) -> dict[str, Any]:
         "tag": payment.tag,
         "extension": payment.extension,
         "extra": payment.extra or {},
-        "payment": json.loads(payment.json()),
+        "payment": json.loads(payment.model_dump_json()),
     }

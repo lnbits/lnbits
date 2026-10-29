@@ -7,6 +7,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.extensions import ExtensionRelease
+from lnbits.core.models.extensions_builder import DataField
 from lnbits.core.services.extensions_builder import (
     build_extension_from_data,
     clean_extension_builder_data,
@@ -14,6 +15,17 @@ from lnbits.core.services.extensions_builder import (
 )
 from lnbits.settings import Settings
 from tests.helpers import make_extension_data
+
+
+def test_generated_optional_fields_have_defaults():
+    assert (
+        DataField(name="memo", type="text", optional=True).field_to_py()
+        == "memo: str | None = None"
+    )
+    assert (
+        DataField(name="unit", type="currency", optional=True).field_to_py()
+        == 'unit: str | None = "sat"'
+    )
 
 
 @pytest.mark.anyio

@@ -1,6 +1,5 @@
 import asyncio
 import copy
-import inspect
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -50,11 +49,7 @@ _PURE_SETTINGS_FIELDS = tuple(
             for field_name in Settings.readonly_fields()
             if field_name != "super_user"
         }
-        | {
-            name
-            for name in inspect.signature(EditableSettings).parameters
-            if not name.startswith("_")
-        }
+        | {name for name in EditableSettings.model_fields if not name.startswith("_")}
     )
 )
 
@@ -349,7 +344,9 @@ async def fake_payments(client, inkey_fresh_headers_to):
 
     for invoice in fake_data:
         response = await client.post(
-            "/api/v1/payments", headers=inkey_fresh_headers_to, json=invoice.dict()
+            "/api/v1/payments",
+            headers=inkey_fresh_headers_to,
+            json=invoice.model_dump(),
         )
         assert response.is_success
         data = response.json()

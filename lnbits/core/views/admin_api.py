@@ -63,7 +63,7 @@ async def api_auditor():
     balance = await get_balance_delta()
     fiat_balance = await get_total_balance(fiat=True)
     return {
-        **balance.dict(),
+        **balance.model_dump(),
         "lnbits_fiat_balance_sats": int(fiat_balance) // 1000,
     }
 
@@ -111,7 +111,7 @@ async def api_update_settings(
     payload: AccessTokenPayload = Depends(access_token_payload),
 ):
     policy_changed = await validate_two_factor_policy(data, account.id, payload)
-    if "lnbits_allow_onchain_payments" in data.__fields_set__:
+    if "lnbits_allow_onchain_payments" in data.model_fields_set:
         enabled = data.lnbits_allow_onchain_payments
         if (
             enabled != settings.lnbits_allow_onchain_payments
@@ -135,7 +135,7 @@ async def api_update_settings(
     admin_settings = await get_admin_settings(account.is_super_user)
     if not admin_settings:
         raise ValueError("Updated admin settings not found.")
-    update_cached_settings(admin_settings.dict())
+    update_cached_settings(admin_settings.model_dump())
     core_app_extra.register_new_ratelimiter()
     if policy_changed:
         from lnbits.core.views.auth_api import _auth_success_response
@@ -144,7 +144,7 @@ async def api_update_settings(
         # Preserve the acting admin's fresh verification; all other sessions
         # must satisfy the new policy on their next protected request.
         response = _auth_success_response(
-            payload=payload.copy(update={"mfa_policy": policy_revision})
+            payload=payload.model_copy(update={"mfa_policy": policy_revision})
         )
         return response
     return {"status": "Success"}
@@ -231,7 +231,7 @@ async def api_update_settings_partial(
     account: Account = Depends(check_admin),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ):
-    updatable_settings = dict_to_settings({**settings.dict(), **data})
+    updatable_settings = dict_to_settings({**settings.model_dump(), **data})
     return await api_update_settings(updatable_settings, account, payload)
 
 
@@ -241,7 +241,7 @@ async def api_update_settings_partial(
     dependencies=[Depends(check_admin)],
 )
 async def api_reset_settings(field_name: str):
-    if field_name not in UpdateSettings.__fields__:
+    if field_name not in UpdateSettings.model_fields:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Only editable settings have public defaults."
         )

@@ -170,7 +170,7 @@ class Scheduler:
                 )
         return await save_scheduled_job(
             ScheduledJob(
-                **config.dict(),
+                **config.model_dump(),
                 namespace=namespace,
                 user_id=user_id,
                 next_run_at=next_run,

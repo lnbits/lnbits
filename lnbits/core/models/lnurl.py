@@ -1,12 +1,18 @@
 from time import time
+from typing import Annotated
 
 from lnurl import LnAddress, Lnurl, LnurlPayResponse
-from pydantic import BaseModel, Field
+from lnurl.exceptions import LnAddressError
+from pydantic import BaseModel, Field, ValidateAs
+
+LightningAddress = Annotated[
+    LnAddress, ValidateAs(str, lambda value: _validate_lightning_address(value))
+]
 
 
 class CreateLnurlPayment(BaseModel):
     res: LnurlPayResponse | None = None
-    lnurl: Lnurl | LnAddress | None = None
+    lnurl: Lnurl | LightningAddress | None = None
     amount: int
     comment: str | None = None
     unit: str | None = None
@@ -18,7 +24,7 @@ class CreateLnurlWithdraw(BaseModel):
 
 
 class LnurlScan(BaseModel):
-    lnurl: Lnurl | LnAddress
+    lnurl: Lnurl | LightningAddress
 
 
 class StoredPayLink(BaseModel):
@@ -29,3 +35,10 @@ class StoredPayLink(BaseModel):
 
 class StoredPayLinks(BaseModel):
     links: list[StoredPayLink] = []
+
+
+def _validate_lightning_address(value: str) -> LnAddress:
+    try:
+        return LnAddress(value)
+    except LnAddressError as exc:
+        raise ValueError("Invalid Lightning address.") from exc

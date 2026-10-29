@@ -163,6 +163,8 @@ async def create_payment_request(
 async def create_fiat_invoice(
     wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
 ) -> Payment:
+    if invoice_data.amount is None:
+        raise ValueError("Invoice amount is required.")
     fiat_provider_name = invoice_data.fiat_provider
     if not fiat_provider_name:
         raise ValueError("Fiat provider is required for fiat invoices.")
@@ -232,6 +234,8 @@ async def create_fiat_invoice(
 
 
 async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
+    if data.amount is None:
+        raise ValueError("Invoice amount is required.")
     if data.webhook:
         check_callback_url(data.webhook)
 
@@ -277,7 +281,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
 
     if data.lnurl_withdraw:
         try:
-            check_callback_url(data.lnurl_withdraw.callback)
+            check_callback_url(str(data.lnurl_withdraw.callback))
             await lnurl_withdraw(
                 data.lnurl_withdraw,
                 payment.bolt11,
@@ -639,18 +643,27 @@ async def check_wallet_daily_withdraw_limit(
     if limit < 0:
         raise ValueError("It is not allowed to spend funds from this server.")
 
-    payments = await get_payments(
-        since=daystart_timestamp(),
-        outgoing=True,
-        wallet_id=wallet_id,
-        conn=conn,
-    )
-    if len(payments) == 0:
-        return
-
     total = 0
-    for pay in payments:
-        total += pay.amount
+    offset = 0
+    since = daystart_timestamp()
+    page_size = 1000
+    while settings.lnbits_running:
+        payments = await get_payments(
+            since=since,
+            outgoing=True,
+            wallet_id=wallet_id,
+            limit=page_size,
+            offset=offset,
+            conn=conn,
+        )
+        for pay in payments:
+            total += pay.amount
+        if len(payments) < page_size:
+            break
+        offset += len(payments)
+    else:
+        raise PaymentError("Server is shutting down.", status="failed")
+
     total = total - amount_msat
     if limit * 1000 + total < 0:
         raise ValueError(

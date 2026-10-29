@@ -5,11 +5,12 @@ from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     StrictBool,
     StrictStr,
     ValidationError,
-    root_validator,
+    model_validator,
 )
 
 from lnbits.core.models.extensions import ExtensionPermission
@@ -19,9 +20,7 @@ _EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 class _StrictWasmModel(BaseModel):
-    class Config:
-        extra = "ignore"
-        allow_population_by_field_name = True
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
 
 class WasmExtensionExport(_StrictWasmModel):
@@ -82,7 +81,7 @@ class WasmExtensionConfig(_StrictWasmModel):
     extension_type: Literal["wasm"]
     wasm: WasmRuntimeConfig
     events: WasmEventsConfig = Field(
-        default_factory=lambda: WasmEventsConfig.parse_obj({})
+        default_factory=lambda: WasmEventsConfig.model_validate({})
     )
     ui: WasmUIConfig | None = None
     sdk: WasmSDKConfig | None = None
@@ -90,12 +89,12 @@ class WasmExtensionConfig(_StrictWasmModel):
     ui_routes: list[WasmUIRouteConfig] = Field(default_factory=list)
     api_routes: list[WasmAPIRouteConfig] = Field(default_factory=list)
     permissions: list[ExtensionPermission] = Field(default_factory=list)
-    schedules: list[SchedulePolicy] = Field(default_factory=list, max_items=100)
+    schedules: list[SchedulePolicy] = Field(default_factory=list, max_length=100)
 
-    @root_validator
-    def validate_schedules(cls, values: dict[str, Any]) -> dict[str, Any]:
-        schedules = values.get("schedules", [])
-        wasm = values.get("wasm")
+    @model_validator(mode="after")
+    def validate_schedules(self):
+        schedules = self.schedules
+        wasm = self.wasm
         handlers = [schedule.handler for schedule in schedules]
         if len(set(handlers)) != len(handlers):
             raise ValueError("Automatic schedules must have unique handlers.")
@@ -103,7 +102,7 @@ class WasmExtensionConfig(_StrictWasmModel):
             export.name for export in wasm.exports if export.visibility == "event"
         ):
             raise ValueError("Automatic schedule handlers must be event exports.")
-        return values
+        return self
 
 
 def parse_wasm_extension_config(
@@ -112,7 +111,7 @@ def parse_wasm_extension_config(
 ) -> WasmExtensionConfig:
     validate_wasm_extension_config_id(ext_id, config)
     try:
-        return WasmExtensionConfig.parse_obj(config)
+        return WasmExtensionConfig.model_validate(config)
     except ValidationError as exc:
         raise ValueError(
             f"Invalid WASM extension config for '{ext_id}': {exc}"

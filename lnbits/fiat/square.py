@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
@@ -27,8 +27,7 @@ FiatMethod = Literal["checkout", "subscription"]
 
 
 class SquareCheckoutOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     success_url: str | None = None
     metadata: dict[str, str] = Field(default_factory=dict)
@@ -36,16 +35,14 @@ class SquareCheckoutOptions(BaseModel):
 
 
 class SquareSubscriptionOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     checking_id: str | None = None
     payment_request: str | None = None
 
 
 class SquareCreateInvoiceOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     fiat_method: FiatMethod = "checkout"
     checkout: SquareCheckoutOptions | None = None
@@ -518,7 +515,7 @@ class SquareWallet(FiatProvider):
         self, raw_opts: dict[str, Any]
     ) -> SquareCreateInvoiceOptions | None:
         try:
-            return SquareCreateInvoiceOptions.parse_obj(raw_opts)
+            return SquareCreateInvoiceOptions.model_validate(raw_opts)
         except ValidationError as e:
             logger.warning(f"Invalid Square options: {e}")
             return None

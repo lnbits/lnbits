@@ -291,5 +291,5 @@ def _payment(ext_id: str, *, extra: dict | None = None) -> SimpleNamespace:
         memo="memo",
         pending=False,
         status="success",
-        json=lambda: json.dumps({"id": "payment-row"}),
+        model_dump_json=lambda: json.dumps({"id": "payment-row"}),
     )

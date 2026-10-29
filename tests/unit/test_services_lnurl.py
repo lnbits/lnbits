@@ -4,7 +4,6 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from bolt11.types import MilliSatoshi
 from lnurl import (
     LnAddress,
     LnurlErrorResponse,
@@ -13,13 +12,13 @@ from lnurl import (
     LnurlSuccessResponse,
     LnurlWithdrawResponse,
 )
-from lnurl.types import CallbackUrl, LightningInvoice
-from pydantic import parse_obj_as
+from lnurl.types import CallbackUrl, LightningInvoice, MilliSatoshi
+from pydantic import TypeAdapter, ValidationError
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
 from lnbits.core.models import Account
-from lnbits.core.models.lnurl import CreateLnurlPayment
+from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services import lnurl as lnurl_service
 from lnbits.core.services.lnurl import (
@@ -41,22 +40,36 @@ TEST_BOLT11 = (
 )
 
 
+def test_lightning_address_model_validation_and_schema():
+    scan = LnurlScan.model_validate({"lnurl": "alice@example.com"})
+    assert isinstance(scan.lnurl, LnAddress)
+    assert scan.model_dump(mode="json") == {"lnurl": "alice@example.com"}
+    assert LnurlScan.model_json_schema()["properties"]["lnurl"]
+    for invalid in [123, {}, "not-an-address"]:
+        with pytest.raises(ValidationError):
+            LnurlScan.model_validate({"lnurl": invalid})
+
+
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "target_ip", ["169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"]
+)
 async def test_lnurl_requests_reject_private_ips_by_default(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture, target_ip: str
 ):
     settings.lnbits_lnurl_allow_private_ips = False
+    target_url = httpx.URL("https://metadata.internal/latest/meta-data/").copy_with(
+        host=target_ip
+    )
 
     with pytest.raises(
         LnurlResponseException, match="resolves to a private or non-global IP address"
     ):
-        await lnurl_service._validate_lnurl_request_url(
-            httpx.URL("https://169.254.169.254/latest/meta-data/"), tor_socks=None
-        )
+        await lnurl_service._validate_lnurl_request_url(target_url, tor_socks=None)
 
     mocker.patch(
         "lnbits.core.services.lnurl._resolve_lnurl_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
+        mocker.AsyncMock(return_value=[ipaddress.ip_address(target_ip)]),
     )
     with pytest.raises(
         LnurlResponseException, match="resolves to a private or non-global IP address"
@@ -66,6 +79,12 @@ async def test_lnurl_requests_reject_private_ips_by_default(
         )
 
     settings.lnbits_lnurl_allow_private_ips = True
+    addresses, proxy = await lnurl_service._validate_lnurl_request_url(
+        target_url, tor_socks=None
+    )
+    assert addresses == [ipaddress.ip_address(target_ip)]
+    assert proxy is None
+
     with pytest.raises(LnurlResponseException, match="not allowed over HTTP"):
         await lnurl_service._validate_lnurl_request_url(
             httpx.URL("http://93.184.216.34/lnurl"), tor_socks=None
@@ -239,7 +258,9 @@ async def test_lnurl_requests_are_pinned_to_validated_ip(mocker: MockerFixture):
 @pytest.mark.anyio
 async def test_perform_withdraw_success_and_validation(mocker: MockerFixture):
     withdraw_response = LnurlWithdrawResponse(
-        callback=parse_obj_as(CallbackUrl, "https://example.com/callback"),
+        callback=TypeAdapter(CallbackUrl).validate_python(
+            "https://example.com/callback"
+        ),
         k1="k1",
         minWithdrawable=MilliSatoshi(1),
         maxWithdrawable=MilliSatoshi(1000),

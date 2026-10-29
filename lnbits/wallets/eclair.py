@@ -45,7 +45,9 @@ class EclairWallet(Wallet):
             raise ValueError("cannot initialize EclairWallet: missing eclair_pass")
 
         self.url = normalize_endpoint(settings.eclair_url)
-        self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
+        parsed_url = urllib.parse.urlsplit(self.url)
+        ws_scheme = "wss" if parsed_url.scheme == "https" else "ws"
+        self.ws_url = f"{ws_scheme}://{parsed_url.netloc}/ws"
 
         password = settings.eclair_pass
         encoded_auth = base64.b64encode(f":{password}".encode())

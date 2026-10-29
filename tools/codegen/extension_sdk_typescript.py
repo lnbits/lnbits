@@ -81,8 +81,8 @@ def _collect_models(methods: Sequence[ExtensionAPIMethod]) -> list[type[BaseMode
         if model.__name__ in models:
             continue
         models[model.__name__] = model
-        for field in model.__fields__.values():
-            pending.extend(_nested_model_types(field.outer_type_))
+        for field in model.model_fields.values():
+            pending.extend(_nested_model_types(field.annotation))
     return [models[name] for name in sorted(models)]
 
 
@@ -97,20 +97,20 @@ def _nested_model_types(type_: Any) -> list[type[BaseModel]]:
 
 def _render_model_type(model: type[BaseModel]) -> list[str]:
     name = _model_name(model)
-    fields = model.__fields__
+    fields = model.model_fields
     if not fields:
         return [f"export type {name} = Record<string, never>"]
 
     lines = [f"export type {name} = {{"]
     for field_name, field in fields.items():
-        optional = "?" if not field.required else ""
-        ts_type = _python_type_to_ts(field.outer_type_, field.allow_none)
+        optional = "?" if not field.is_required() else ""
+        ts_type = _python_type_to_ts(field.annotation)
         lines.append(f"  {_camel(field_name)}{optional}: {ts_type}")
     lines.append("}")
     return lines
 
 
-def _python_type_to_ts(type_: Any, allow_none: bool = False) -> str:
+def _python_type_to_ts(type_: Any) -> str:
     origin = get_origin(type_)
     args = get_args(type_)
 
@@ -147,7 +147,7 @@ def _python_type_to_ts(type_: Any, allow_none: bool = False) -> str:
     else:
         ts = "unknown"
 
-    return f"{ts} | null" if allow_none else ts
+    return ts
 
 
 def _literal_to_ts(value: Any) -> str:
@@ -337,7 +337,7 @@ def _ts_access(value: str) -> str:
 
 
 def _is_empty_model(model: type[BaseModel]) -> bool:
-    return not model.__fields__
+    return not model.model_fields
 
 
 def main(argv: Sequence[str] | None = None) -> int:

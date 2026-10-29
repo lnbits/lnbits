@@ -80,7 +80,7 @@ async def test_wallet_keys_require_current_endpoint_write_access(
 
     token_id = uuid4().hex
     token = create_access_token(
-        AccessTokenPayload(sub=user.username or "", api_token_id=token_id).dict()
+        AccessTokenPayload(sub=user.username or "", api_token_id=token_id).model_dump()
     )
     endpoint = EndpointAccess(path=acl_path, name="Wallet response", read=True)
     acl = AccessControlList(

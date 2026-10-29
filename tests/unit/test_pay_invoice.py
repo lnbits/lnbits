@@ -1047,7 +1047,7 @@ async def test_service_fee_repeated_success_credits_once(
     mocker: MockerFixture,
 ):
     _, fee_wallet = service_fee_wallets
-    stale_payment = pending_service_fee_payment.copy(deep=True)
+    stale_payment = pending_service_fee_payment.model_copy(deep=True)
     mocker.patch.object(
         external_funding_source,
         "get_payment_status",
@@ -1089,8 +1089,8 @@ async def test_service_fee_concurrent_success_credits_once(
         AsyncMock(side_effect=successful_status),
     )
     results = await asyncio.gather(
-        update_pending_payment(pending_service_fee_payment.copy(deep=True)),
-        update_pending_payment(pending_service_fee_payment.copy(deep=True)),
+        update_pending_payment(pending_service_fee_payment.model_copy(deep=True)),
+        update_pending_payment(pending_service_fee_payment.model_copy(deep=True)),
         return_exceptions=True,
     )
 

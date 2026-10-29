@@ -20,6 +20,51 @@ from lnbits.settings import (
     set_cli_settings,
 )
 
+
+@pytest.mark.parametrize("admins", ['["alice", "bob"]', "alice,bob"])
+def test_settings_load_env_collections_and_ignore_unrelated_dotenv_values(
+    monkeypatch, tmp_path, admins
+):
+    monkeypatch.setenv("LNBITS_ADMIN_USERS", admins)
+    monkeypatch.setenv("LNBITS_ASSETS_ALLOWED_MIME_TYPES", "image/png,image/jpeg")
+    monkeypatch.setenv("LNBITS_DATA_FOLDER", str(tmp_path))
+    monkeypatch.delenv("LNBITS_WASM_EXTENSIONS_PATH", raising=False)
+    monkeypatch.setenv("STRIKE_API_KEY", "test-strike-key")
+    monkeypatch.setenv(
+        "STRIPE_LIMITS", '{"allowed_users":["alice"],"service_max_fee_sats":5}'
+    )
+    monkeypatch.setenv(
+        "LNBITS_EXCHANGE_RATE_PROVIDERS",
+        '[{"name":"test","api_url":"https://example.com","path":"price"}]',
+    )
+    env_file = tmp_path / ".env"
+    env_file.write_text("UNRELATED_VARIABLE=ignored\n")
+
+    loaded = Settings(_env_file=env_file)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_admin_users == ["alice", "bob"]
+    assert loaded.lnbits_assets_allowed_mime_types == ["image/png", "image/jpeg"]
+    assert loaded.lnbits_exchange_rate_providers[0].name == "test"
+    assert loaded.strike_api_key == "test-strike-key"
+    assert loaded.stripe_limits.allowed_users == ["alice"]
+    assert loaded.stripe_limits.service_max_fee_sats == 5
+    assert loaded.wasm_extensions_dir == tmp_path / "wasm_extensions"
+
+
+def test_settings_master_key_alias_precedence_and_serialization(monkeypatch):
+    monkeypatch.setenv("WATCHONLY_MASTER_KEY", "legacy-test-key")
+    monkeypatch.delenv("LNBITS_ONCHAIN_MASTER_KEY", raising=False)
+    loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_onchain_master_key is not None
+    assert loaded.lnbits_onchain_master_key.get_secret_value() == "legacy-test-key"
+
+    monkeypatch.setenv("LNBITS_ONCHAIN_MASTER_KEY", "current-test-key")
+    loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_onchain_master_key is not None
+    assert loaded.lnbits_onchain_master_key.get_secret_value() == "current-test-key"
+    assert "lnbits_onchain_master_key" not in loaded.model_dump()
+    assert "current-test-key" not in loaded.model_dump_json()
+
+
 lnurlp_redirect_path: dict[str, Any] = {
     "from_path": "/.well-known/lnurlp",
     "redirect_to_path": "/api/v1/well-known",
@@ -66,7 +111,7 @@ def test_ln_address_mode_defaults_to_extension_first():
 
 def test_ln_address_mode_rejects_invalid_value():
     with pytest.raises(ValueError):
-        UsersSettings.parse_obj({"lnbits_ln_address_mode": "invalid"})
+        UsersSettings.model_validate({"lnbits_ln_address_mode": "invalid"})
 
 
 @pytest.fixture()
@@ -235,10 +280,10 @@ def test_settings_keep_wasm_manifests_separate_from_extension_manifests():
         *DEFAULT_WASM_MANIFESTS,
         "https://example.com/extensions.json",
     ]
-    assert settings.dict()["lnbits_extensions_manifests"] == [
+    assert settings.model_dump()["lnbits_extensions_manifests"] == [
         "https://example.com/extensions.json"
     ]
-    assert settings.dict()["lnbits_wasm_extensions_manifests"] == [
+    assert settings.model_dump()["lnbits_wasm_extensions_manifests"] == [
         *DEFAULT_WASM_MANIFESTS,
         "https://example.com/extensions.json",
     ]

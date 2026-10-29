@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Address(BaseModel):
@@ -43,8 +43,8 @@ class MasterPublicKey(BaseModel):
 
 class CreatePsbt(BaseModel):
     masterpubs: list[MasterPublicKey]
-    inputs: list[TransactionInput] = Field(..., min_items=1, max_items=200)
-    outputs: list[TransactionOutput] = Field(..., min_items=1, max_items=100)
+    inputs: list[TransactionInput] = Field(..., min_length=1, max_length=200)
+    outputs: list[TransactionOutput] = Field(..., min_length=1, max_length=100)
     fee_rate: int
     tx_size: int
 
@@ -62,8 +62,7 @@ class ExtractPsbt(BaseModel):
     inputs: list[SerializedTransaction]
     network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ExtractTx(BaseModel):
@@ -72,15 +71,15 @@ class ExtractTx(BaseModel):
 
 
 class SignedTransaction(BaseModel):
-    tx_hex: str | None
-    tx_json: str | None
+    tx_hex: str | None = None
+    tx_json: str | None = None
 
 
 class HotWalletPayment(BaseModel):
     transaction: CreatePsbt
     max_fee_sat: int = Field(..., gt=0, le=10_000_000)
 
-    @validator("transaction", pre=True)
+    @field_validator("transaction", mode="before")
     @classmethod
     def whole_satoshis(cls, value):
         if isinstance(value, dict):
@@ -92,7 +91,7 @@ class HotWalletPayment(BaseModel):
 
 class ScanCheckpoint(BaseModel):
     height: int = Field(ge=0)
-    block_hash: str = Field(regex=r"^[0-9a-f]{64}$")
+    block_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class Snapshot(BaseModel):

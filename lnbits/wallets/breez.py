@@ -39,8 +39,8 @@ else:
         default_config,
         mnemonic_to_seed,
     )
-    from breez_sdk import (
-        PaymentStatus as BreezPaymentStatus,  # type: ignore[reportMissingImports]
+    from breez_sdk import (  # type: ignore[reportMissingImports]
+        PaymentStatus as BreezPaymentStatus,
     )
     from loguru import logger
 

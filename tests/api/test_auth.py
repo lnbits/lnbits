@@ -95,7 +95,7 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
 
     # Login with user ID
     login_data = LoginUsr(usr=account.id)
-    response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
+    response = await http_client.post("/api/v1/auth/usr", json=login_data.model_dump())
     http_client.cookies.clear()
     assert response.status_code == 200, "User logs in OK."
     access_token = response.json().get("access_token")
@@ -106,7 +106,7 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
     settings.lnbits_admin_users = [account.id]
 
     # Attempt to login with user ID for admin
-    response = await http_client.post("/api/v1/auth/usr", json=login_data.dict())
+    response = await http_client.post("/api/v1/auth/usr", json=login_data.model_dump())
 
     assert response.status_code == 403
     assert (
@@ -1435,7 +1435,7 @@ async def test_api_update_user_acl_success(http_client: AsyncClient, user_alan: 
     )
     response = await http_client.put(
         "/api/v1/auth/acl",
-        json=data.dict(),
+        json=data.model_dump(),
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be created successfully."
@@ -1463,7 +1463,7 @@ async def test_api_update_user_acl_invalid_password(
     )
     response = await http_client.put(
         "/api/v1/auth/acl",
-        json=data.dict(),
+        json=data.model_dump(),
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert (
@@ -1490,7 +1490,7 @@ async def test_api_update_user_acl_update_existing(
     )
     response = await http_client.put(
         "/api/v1/auth/acl",
-        json=data.dict(),
+        json=data.model_dump(),
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be created successfully."
@@ -1503,7 +1503,7 @@ async def test_api_update_user_acl_update_existing(
     )
     response = await http_client.put(
         "/api/v1/auth/acl",
-        json=data.dict(),
+        json=data.model_dump(),
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert response.status_code == 200, "ACL should be updated successfully."
@@ -1529,7 +1529,7 @@ async def test_api_update_user_acl_missing_password(
     data = UpdateAccessControlList(id="", name="New ACL", password="", endpoints=[])
     response = await http_client.put(
         "/api/v1/auth/acl",
-        json=data.dict(),
+        json=data.model_dump(),
         headers={"Authorization": f"Bearer {access_token}"},
     )
     assert (
@@ -1635,7 +1635,7 @@ async def test_api_get_user_acls_with_acl(http_client: AsyncClient):
     response = await http_client.put(
         "/api/v1/auth/acl",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
+        json=acl_data.model_dump(),
     )
     assert response.status_code == 200, "ACL created successfully."
 
@@ -1883,7 +1883,7 @@ async def test_api_create_user_api_token_success(
     response = await http_client.put(
         "/api/v1/auth/acl",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
+        json=acl_data.model_dump(),
     )
     assert response.status_code == 200, "ACL created."
     acl_id = response.json()["access_control_list"][0]["id"]
@@ -1898,7 +1898,7 @@ async def test_api_create_user_api_token_success(
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
+        json=token_request.model_dump(),
     )
     assert response.status_code == 200, "API token created."
     api_token = response.json().get("api_token")
@@ -1956,7 +1956,7 @@ async def test_api_create_user_api_token_invalid_password(http_client: AsyncClie
     response = await http_client.put(
         "/api/v1/auth/acl",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
+        json=acl_data.model_dump(),
     )
     assert response.status_code == 200, "ACL created."
     acl_id = response.json()["access_control_list"][0]["id"]
@@ -1971,7 +1971,7 @@ async def test_api_create_user_api_token_invalid_password(http_client: AsyncClie
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
+        json=token_request.model_dump(),
     )
     assert response.status_code == 401, "Invalid credentials."
 
@@ -1989,7 +1989,7 @@ async def test_acl_api_token_access(user_alan: User, http_client: AsyncClient):
         auth_time=int(time.time()),
     )
 
-    api_token = create_access_token(data=payload.dict(), token_expire_minutes=10)
+    api_token = create_access_token(data=payload.model_dump(), token_expire_minutes=10)
     acl.token_id_list.append(SimpleItem(id=api_token_id, name="Test Token"))
     await update_user_access_control_list(user_acls)
 
@@ -2083,7 +2083,7 @@ async def test_cached_acl_api_token_access_is_revalidated(
                 sub=username,
                 api_token_id=api_token_id,
                 auth_time=int(time.time()),
-            ).dict(),
+            ).model_dump(),
             token_expire_minutes=10,
         )
         acl.token_id_list.append(SimpleItem(id=api_token_id, name="Status Token"))
@@ -2115,7 +2115,7 @@ async def test_cached_acl_api_token_access_is_revalidated(
                 sub=username,
                 api_token_id=api_token_id,
                 auth_time=int(time.time()),
-            ).dict(),
+            ).model_dump(),
             token_expire_minutes=10,
         )
         acl.endpoints = [
@@ -2194,7 +2194,7 @@ async def test_api_create_user_api_token_invalid_acl_id(http_client: AsyncClient
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
+        json=token_request.model_dump(),
     )
     assert response.status_code == 401, "Invalid ACL id."
 
@@ -2225,7 +2225,7 @@ async def test_api_create_user_api_token_expiration_time_invalid(
     response = await http_client.put(
         "/api/v1/auth/acl",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=acl_data.dict(),
+        json=acl_data.model_dump(),
     )
     assert response.status_code == 200, "ACL created."
     acl_id = response.json()["access_control_list"][0]["id"]
@@ -2240,7 +2240,7 @@ async def test_api_create_user_api_token_expiration_time_invalid(
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=token_request.dict(),
+        json=token_request.model_dump(),
     )
     assert response.status_code == 400, "Expiration time must be in the future."
 
@@ -2286,7 +2286,7 @@ async def test_api_delete_user_api_token_success(
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=api_token_request.dict(),
+        json=api_token_request.model_dump(),
     )
     assert response.status_code == 200, "API token created."
     api_token_id = response.json().get("id")
@@ -2300,7 +2300,7 @@ async def test_api_delete_user_api_token_success(
         "DELETE",
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=delete_token_request.dict(),
+        json=delete_token_request.model_dump(),
     )
     assert response.status_code == 200, "API token deleted."
 
@@ -2346,7 +2346,7 @@ async def test_api_delete_user_api_token_invalid_password(
     response = await http_client.post(
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=api_token_request.dict(),
+        json=api_token_request.model_dump(),
     )
     assert response.status_code == 200, "API token created."
     api_token_id = response.json().get("id")
@@ -2360,7 +2360,7 @@ async def test_api_delete_user_api_token_invalid_password(
         "DELETE",
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=delete_token_request.dict(),
+        json=delete_token_request.model_dump(),
     )
     assert response.status_code == 401, "Invalid credentials."
 
@@ -2392,7 +2392,7 @@ async def test_api_delete_user_api_token_invalid_acl_id(
         "DELETE",
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=delete_token_request.dict(),
+        json=delete_token_request.model_dump(),
     )
     assert response.status_code == 401, "Invalid ACL id."
 
@@ -2436,7 +2436,7 @@ async def test_api_delete_user_api_token_missing_token_id(
         "DELETE",
         "/api/v1/auth/acl/token",
         headers={"Authorization": f"Bearer {access_token}"},
-        json=delete_token_request.dict(),
+        json=delete_token_request.model_dump(),
     )
     assert response.status_code == 200, "Does noting if token not found."
 
@@ -2454,7 +2454,9 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     ]
     data = UpdateUser(user_id=user.id, username=f"u{tiny_id}", extra=user.extra)
     assert data.extra
-    response = await http_client.patch("/api/v1/auth?usr=" + user.id, json=data.dict())
+    response = await http_client.patch(
+        "/api/v1/auth?usr=" + user.id, json=data.model_dump()
+    )
     assert response.status_code == 200
     user_data = response.json()
     assert len(user_data["extra"]["labels"]) == 2
@@ -2464,21 +2466,21 @@ async def test_api_update_user_labels(http_client: AsyncClient):
     assert user_data["extra"]["labels"][1]["color"] == "#00FF00"
 
     data.extra.labels = []
-    response = await http_client.patch("/api/v1/auth?usr=" + user.id, json=data.dict())
+    response = await http_client.patch(
+        "/api/v1/auth?usr=" + user.id, json=data.model_dump()
+    )
     assert response.status_code == 200
     user_data = response.json()
     assert len(user_data["extra"]["labels"]) == 0
 
-    json_data = data.dict()
+    json_data = data.model_dump()
     json_data["extra"] = {"labels": [{"name": "label + 01", "color": "#FF0000"}]}
     response = await http_client.patch("/api/v1/auth?usr=" + user.id, json=json_data)
 
     assert response.status_code == 400
     data = response.json()
-    assert (
-        """string does not match regex "([A-Za-z0-9 ._-]{1,100}$)"""
-        in data["detail"][0]["msg"]
-    )
+    assert data["detail"][0]["type"] == "string_pattern_mismatch"
+    assert data["detail"][0]["loc"] == ["body", "extra", "labels", 0, "name"]
 
 
 @pytest.mark.anyio
@@ -2619,7 +2621,7 @@ async def test_impersonate_user_invalid_data(
     )
 
     assert response.status_code == 400
-    assert "type_error.none.not_allowed" in str(response.json()["detail"])
+    assert response.json()["detail"][0]["type"] == "string_type"
 
 
 @pytest.mark.anyio
@@ -2636,7 +2638,7 @@ async def test_impersonate_user_missing_usr_field(
         headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 400
-    assert "value_error.missing" in str(response.json()["detail"])
+    assert response.json()["detail"][0]["type"] == "missing"
 
 
 @pytest.mark.anyio

@@ -560,10 +560,10 @@ async def _get_account_from_jwt_payload(
     payload: AccessTokenPayload, path: str, method: str, conn: Connection | None = None
 ) -> Account | None:
     account = None
-    if payload.sub:
-        account = await get_account_by_username(payload.sub, conn=conn)
-    elif payload.usr:
+    if payload.usr:
         account = await get_account(payload.usr, conn=conn)
+    elif payload.sub:
+        account = await get_account_by_username(payload.sub, conn=conn)
     elif payload.email:
         account = await get_account_by_email(payload.email, conn=conn)
 

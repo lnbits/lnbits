@@ -580,7 +580,7 @@ async def test_onchain_conditional_sync_policy(
     assert stored
     stored.onchain_config.explorer_provider = provider
     await update_onchain_wallet_config(stored.onchain_config, wallet.id)
-    meta = stored.onchain_meta.dict()
+    meta = stored.onchain_meta.model_dump()
     meta.update(sync_checked_at=checked_at, sync_failed_at=failed_at, sync_error=error)
     await db.execute(
         "UPDATE wallets SET onchain_meta = :meta, onchain_sync_lease_until = :lease "
@@ -816,7 +816,7 @@ async def test_onchain_hot_wallet_custom_path(
     assert meta["accountPath"] == "m/100'/7/3'"
     assert meta["script_type"] == script_type
     stored = await get_onchain_wallet(wallet.id)
-    assert stored and stored.onchain_meta.dict() == meta
+    assert stored and stored.onchain_meta.model_dump() == meta
     backup = await http_client.post(
         f"/api/v1/onchain/hot-wallet/{wallet.id}/backup", headers=headers
     )
@@ -927,10 +927,10 @@ async def test_onchain_signing_preflight_rejects_spent_coin(
         ),
     )
     path = f"/api/v1/onchain/hot-wallet/{account['id']}/sign"
-    rejected = await http_client.post(path, headers=headers, json=payment.dict())
+    rejected = await http_client.post(path, headers=headers, json=payment.model_dump())
     assert rejected.status_code == 400
     spent = False
-    signed = await http_client.post(path, headers=headers, json=payment.dict())
+    signed = await http_client.post(path, headers=headers, json=payment.model_dump())
     assert signed.status_code == 200, signed.text
     assert signed.json()["tx_hex"]
     assert signed.headers["cache-control"] == "no-store"
@@ -1187,7 +1187,7 @@ async def test_onchain_metadata_and_seed_survive_generic_wallet_updates(
     assert "network" not in json.loads(stored["onchain_config"])
     loaded = await get_wallet(wallet.id)
     assert loaded and loaded.name == "Onchain savings"
-    assert "onchain_encrypted_seed" not in loaded.dict()
+    assert "onchain_encrypted_seed" not in loaded.model_dump()
     assert await get_wallet_for_key(wallet.adminkey)
     assert await get_wallets(user.id)
     assert wallet.id in await get_wallets_ids(user.id)
@@ -1261,7 +1261,7 @@ async def test_onchain_scan_metadata_preserves_setup_and_newer_leases(
     assert updated["sync_error"] is None
     assert updated["sync_checked_at"] > 42
     assert updated["sync_failed_at"] == 0
-    assert updated["sync_checkpoint"] == checkpoint.dict()
+    assert updated["sync_checkpoint"] == checkpoint.model_dump()
     for key in ("masterpub", "fingerprint", "script_type", "accountPath"):
         assert updated[key] == meta[key]
 
