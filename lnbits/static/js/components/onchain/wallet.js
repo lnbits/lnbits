@@ -17,6 +17,7 @@ window.app.component('lnbits-onchain-wallet', {
       selectedWalletId: null,
       receiving: false,
       receiveAmount: null,
+      receiveQr: false,
       lastSynced: null,
       lastBroadcastTxId: null,
       liveUpdates: null,
@@ -377,6 +378,10 @@ window.app.component('lnbits-onchain-wallet', {
       }
     },
 
+    showReceiveQr() {
+      this.receiveQr = true
+    },
+
     //################### ADDRESS HISTORY ###################
     addressHistoryFromTxs: function (addressData, txs) {
       const addressHistory = []
@@ -677,6 +682,7 @@ window.app.component('lnbits-onchain-wallet', {
     },
     openQrCodeDialog: function (addressData) {
       this.receiveAmount = null
+      this.receiveQr = false
       this.currentAddress = addressData
       this.addressNote = addressData.note || ''
       this.showAddress = true
