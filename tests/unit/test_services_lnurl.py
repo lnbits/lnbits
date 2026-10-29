@@ -42,21 +42,25 @@ TEST_BOLT11 = (
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "target_ip", ["169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"]
+)
 async def test_lnurl_requests_reject_private_ips_by_default(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture, target_ip: str
 ):
     settings.lnbits_lnurl_allow_private_ips = False
+    target_url = httpx.URL("https://metadata.internal/latest/meta-data/").copy_with(
+        host=target_ip
+    )
 
     with pytest.raises(
         LnurlResponseException, match="resolves to a private or non-global IP address"
     ):
-        await lnurl_service._validate_lnurl_request_url(
-            httpx.URL("https://169.254.169.254/latest/meta-data/"), tor_socks=None
-        )
+        await lnurl_service._validate_lnurl_request_url(target_url, tor_socks=None)
 
     mocker.patch(
         "lnbits.core.services.lnurl._resolve_lnurl_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
+        mocker.AsyncMock(return_value=[ipaddress.ip_address(target_ip)]),
     )
     with pytest.raises(
         LnurlResponseException, match="resolves to a private or non-global IP address"
@@ -66,6 +70,12 @@ async def test_lnurl_requests_reject_private_ips_by_default(
         )
 
     settings.lnbits_lnurl_allow_private_ips = True
+    addresses, proxy = await lnurl_service._validate_lnurl_request_url(
+        target_url, tor_socks=None
+    )
+    assert addresses == [ipaddress.ip_address(target_ip)]
+    assert proxy is None
+
     with pytest.raises(LnurlResponseException, match="not allowed over HTTP"):
         await lnurl_service._validate_lnurl_request_url(
             httpx.URL("http://93.184.216.34/lnurl"), tor_socks=None
