@@ -1,7 +1,7 @@
 [project]
 name = "lnbits"
 version = "1.6.2"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
 urls = { Homepage = "https://lnbits.com", Repository = "https://github.com/lnbits/lnbits" }
@@ -96,13 +96,23 @@ dev = [
 [tool.uv]
 exclude-newer = "1 week"
 # Newer pyln-proto releases pull in a fork that collides with coincurve.
-constraint-dependencies = ["pyln-proto==26.4.1"]
+constraint-dependencies = [
+    "pyln-proto==26.4.1",
+    # bolt11 and pyln-proto require ConstBitStream, removed in bitstring 5.
+    "bitstring<5",
+]
+# coincurve 20's source build uses the pre-0.10 scikit-build-core configuration.
+build-constraint-dependencies = ["scikit-build-core<0.10"]
 
 [tool.poetry]
 packages = [
   {include = "lnbits"},
   {include = "lnbits/py.typed"},
 ]
+
+[tool.poetry.dependencies]
+# Poetry enforces LNURL's declared upper bound. Use uv for Python 3.13.
+python = ">=3.10,<3.13"
 
 [tool.pyright]
 include = [
