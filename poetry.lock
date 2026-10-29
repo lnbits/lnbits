@@ -5389,4 +5389,4 @@ migration = ["psycopg2-binary"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "930df24630fe4fc2edbeef333e22c0f53bb03e53413b0f8b3c6b51b1d34d2d68"
+content-hash = "9f6648ada388e1172418da2c0bc1e9c86fa6df499cdbe27c497c91a0912a5343"

@@ -64,7 +64,10 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 AUTH_HTTPS_ONLY=false ./LNbits-lates
 ## Option 2: UV (recommended for developers)
 
 > [!IMPORTANT]
-> **It is recommended to use the latest version of UV & Make sure you have Python version 3.12 installed.**
+> **Use the latest version of UV with Python 3.10 through 3.13.**
+
+Python 3.13 requires UV; the legacy Poetry workflow supports Python 3.10 through
+3.12 because LNURL's package metadata declares an older Python limit.
 
 ### Verify Python
 

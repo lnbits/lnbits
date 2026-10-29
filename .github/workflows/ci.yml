@@ -11,7 +11,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.13"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -25,7 +25,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.13"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -39,7 +39,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.13"]
         db-url: ["", "postgres://lnbits:lnbits@0.0.0.0:5432/lnbits"]
     uses: ./.github/workflows/tests.yml
     with:
@@ -53,7 +53,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.13"]
     uses: ./.github/workflows/migration.yml
     with:
       python-version: ${{ matrix.python-version }}
@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/regtest.yml
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
         backend-wallet-class:
           # Temporarily skip Boltz while its regtest backend is failing.
           # - BoltzWallet
@@ -95,7 +95,7 @@ jobs:
     needs: [ lint ]
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
     uses: ./.github/workflows/jmeter.yml
     with:
       python-version: ${{ matrix.python-version }}
