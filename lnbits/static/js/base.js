@@ -41,14 +41,7 @@ window.LNbits = {
         uiCustomization: data.ui_customization || {}
       }
       const mapWallet = this.wallet
-      const isLightningWallet = wallet =>
-        this.walletTypes.lightning.includes(wallet.walletType)
       const sortWallets = (a, b) => {
-        const aLightning = isLightningWallet(a)
-        const bLightning = isLightningWallet(b)
-        if (aLightning !== bLightning) {
-          return aLightning ? -1 : 1
-        }
         if (a.extra.pinned !== b.extra.pinned) {
           return a.extra.pinned ? -1 : 1
         }
