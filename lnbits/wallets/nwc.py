@@ -70,6 +70,37 @@ def _choose_preferred_encryption(encryptions: list[str]) -> str:
     return NWC_ENCRYPTION_NIP04
 
 
+def _coerce_unix_timestamp(value: Any, default: int) -> int:
+    """Parse an NWC unix timestamp.
+
+    Providers sometimes include created_at or expires_at as an empty string
+    or null. A blank value falls back to default. Numeric zero is preserved.
+    """
+    if isinstance(value, bool) or value is None:
+        return default
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _nwc_invoice_timestamps(
+    payment_data: dict[str, Any], expiry: int | None
+) -> tuple[int, int]:
+    created_at = _coerce_unix_timestamp(
+        payment_data.get("created_at"), int(time.time())
+    )
+    window = expiry if expiry is not None else 3600
+    expires_at = _coerce_unix_timestamp(
+        payment_data.get("expires_at"), created_at + window
+    )
+    return created_at, expires_at
+
+
 class NWCWallet(Wallet):
     """
     A funding source that connects to a Nostr Wallet Connect (NWC) service provider.
@@ -97,8 +128,12 @@ class NWCWallet(Wallet):
         self.transactions_refresh_lock = asyncio.Lock()
         self.last_transactions_refresh_at: dict[bool, float] = {}
         self.pending_invoices_maintenance_interval = 5
+        # Safety net after a payment_received notification has been observed.
         self.notification_lookup_schedule = [60, 120, 300, 600, 1200, 1800]
-        self.lookup_only_schedule = [15, 30, 60, 120, 300, 600, 1200, 1800]
+        # Used until a notification arrives. Delays accumulate to lookups at
+        # 5, 10, 15, 25 and 35s, then back off to at most 10 minutes.
+        self.lookup_only_schedule = [5, 5, 5, 10, 10, 15, 30, 60, 120, 300, 600]
+        self.payment_notifications_seen = False
         self.pending_invoices_lookup_cooldown = 1.0
         self.pending_invoices_reconcile_interval = 180
         self.next_reconcile_at = 0.0
@@ -122,6 +157,8 @@ class NWCWallet(Wallet):
             return
 
         if notification_type == "payment_received":
+            first_notification = not self.payment_notifications_seen
+            self.payment_notifications_seen = True
             checking_id = str(notification_payload.get("payment_hash") or "")
             if checking_id:
                 logger.debug(
@@ -129,6 +166,12 @@ class NWCWallet(Wallet):
                 )
                 self._cache_payment_data(checking_id, notification_payload)
                 self._mark_invoice_settled(checking_id, source="notification")
+            if first_notification:
+                logger.debug(
+                    "NWC payment_received notification observed; "
+                    "reducing lookup_invoice polling"
+                )
+                self._reschedule_pending_lookups()
         elif notification_type == "payment_sent":
             checking_id = str(notification_payload.get("payment_hash") or "")
             if checking_id:
@@ -150,7 +193,10 @@ class NWCWallet(Wallet):
             )
 
     def _get_lookup_schedule(self) -> list[int]:
-        if self.conn.supports_notification_type("payment_received"):
+        # Advertised notification support is not proof that events arrive.
+        # Some providers list payment_received and never send it, so poll
+        # lookup_invoice until one notification is actually observed.
+        if self.payment_notifications_seen:
             return self.notification_lookup_schedule
         return self.lookup_only_schedule
 
@@ -161,6 +207,15 @@ class NWCWallet(Wallet):
         delay = schedule[min(attempt, len(schedule) - 1)]
         jitter = random.uniform(0, min(15, max(1, delay * 0.1)))  # noqa: S311
         invoice["next_lookup_at"] = now + delay + jitter
+
+    def _reschedule_pending_lookups(self, now: float | None = None) -> None:
+        now = now or time.time()
+        for checking_id in list(self.pending_invoices):
+            invoice = self.pending_invoice_details.get(checking_id)
+            if not invoice:
+                continue
+            invoice["lookup_attempts"] = 0
+            self._schedule_next_lookup(invoice, now)
 
     def _track_pending_invoice(
         self, checking_id: str, created_at: int, expires_at: int
@@ -420,8 +475,7 @@ class NWCWallet(Wallet):
         state = payment_data.get("state")
         if state in {"expired", "failed"}:
             return True
-        created_at = int(payment_data.get("created_at", time.time()))
-        expires_at = int(payment_data.get("expires_at", created_at + 3600))
+        _, expires_at = _nwc_invoice_timestamps(payment_data, None)
         return bool(
             expires_at
             and time.time() > expires_at
@@ -556,7 +610,7 @@ class NWCWallet(Wallet):
         memo: str | None = None,
         description_hash: bytes | None = None,
         unhashed_description: bytes | None = None,
-        **_,
+        **kwargs,
     ) -> InvoiceResponse:
         desc = ""
         desc_hash = None
@@ -575,18 +629,21 @@ class NWCWallet(Wallet):
                     ok=False,
                     error_message="make_invoice is not supported by this NWC service.",
                 )
-            resp = await self.conn.call(
-                "make_invoice",
-                {
-                    "amount": int(amount * 1000),  # nwc uses msats denominations
-                    "description_hash": desc_hash,
-                    "description": desc,
-                },
-            )
+            params: dict[str, Any] = {
+                "amount": int(amount * 1000),  # nwc uses msats denominations
+                "description_hash": desc_hash,
+                "description": desc,
+            }
+            # NIP-47 expiry is optional and expressed in seconds. Without it,
+            # some providers default to a much longer invoice lifetime.
+            expiry = kwargs.get("expiry")
+            expiry_seconds = int(expiry) if expiry else None
+            if expiry_seconds:
+                params["expiry"] = expiry_seconds
+            resp = await self.conn.call("make_invoice", params)
             checking_id = str(resp["payment_hash"])
             payment_request = resp.get("invoice", None)
-            created_at = int(resp.get("created_at", time.time()))
-            expires_at = int(resp.get("expires_at", created_at + 3600))
+            created_at, expires_at = _nwc_invoice_timestamps(resp, expiry_seconds)
             if (
                 self.conn.supports_method("lookup_invoice")
                 or self.conn.supports_method("list_transactions")
