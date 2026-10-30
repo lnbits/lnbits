@@ -108,22 +108,26 @@ async def test_db_fetch_page_past_last_page_preserves_total(
 
 
 @pytest.mark.anyio
-async def test_db_fetch_page_group_by(fetch_page, db):
+@pytest.mark.parametrize("table_name", [None, "test_db_fetch_page"])
+async def test_db_fetch_page_group_by(fetch_page, db, table_name):
     row = await db.fetch_page(
         query="select max(id) as id, name from test_db_fetch_page",
         model=DbTestModel,
         group_by=["name"],
+        table_name=table_name,
     )
     assert row
     assert row.total == len({test_row["name"] for test_row in TEST_DB_FETCH_PAGE_ROWS})
 
 
 @pytest.mark.anyio
-async def test_db_fetch_page_group_by_multiple(fetch_page, db):
+@pytest.mark.parametrize("table_name", [None, "test_db_fetch_page"])
+async def test_db_fetch_page_group_by_multiple(fetch_page, db, table_name):
     row = await db.fetch_page(
         query="select max(id) as id, name, value from test_db_fetch_page",
         model=DbTestModel,
         group_by=["value", "name"],
+        table_name=table_name,
     )
     assert row
     assert row.total == len(
@@ -139,3 +143,21 @@ async def test_db_fetch_page_group_by_evil(fetch_page, db):
             model=DbTestModel,
             group_by=["name;"],
         )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("offset", [0, 100])
+async def test_db_fetch_page_grouped_filtered_total(fetch_page, db, offset):
+    page = await db.fetch_page(
+        query="SELECT MAX(id) AS id, name FROM test_db_fetch_page",
+        where=["value = :value"],
+        values={"value": "bar"},
+        filters=Filters(limit=1, offset=offset),
+        model=DbTestModel,
+        group_by=["name"],
+        table_name="test_db_fetch_page",
+    )
+    assert page.total == len(
+        {row["name"] for row in TEST_DB_FETCH_PAGE_ROWS if row["value"] == "bar"}
+    )
+    assert len(page.data) == (0 if offset else 1)
