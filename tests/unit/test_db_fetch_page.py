@@ -1,6 +1,6 @@
 import pytest
 
-from lnbits.db import Filters
+from lnbits.db import FilterModel, Filters
 from tests.helpers import DbTestModel
 
 TEST_DB_FETCH_PAGE_ROWS: tuple[dict[str, str], ...] = (
@@ -139,3 +139,28 @@ async def test_db_fetch_page_group_by_evil(fetch_page, db):
             model=DbTestModel,
             group_by=["name;"],
         )
+
+
+@pytest.mark.anyio
+async def test_db_fetch_page_search_qualifies_joined_fields(fetch_page, db):
+    class SearchModel(FilterModel):
+        __search_fields__ = ["id", "name"]
+
+        id: int
+        name: str
+        value: str | None = None
+
+    page = await db.fetch_page(
+        query="""
+            SELECT test_db_fetch_page.id, test_db_fetch_page.name,
+                   test_db_fetch_page.value
+            FROM test_db_fetch_page
+            JOIN test_db_fetch_page AS other
+              ON test_db_fetch_page.id = other.id
+        """,
+        filters=Filters(search="Alice", model=SearchModel),
+        model=SearchModel,
+        table_name="test_db_fetch_page",
+    )
+    assert [row.name for row in page.data] == ["Alice"]
+    assert page.total == 1
