@@ -3,6 +3,29 @@ window.LNbits = {
   utils: window._lnbitsUtils,
   api: window._lnbitsApi,
   map: {
+    walletTypes: {
+      all: null,
+      lightning: ['lightning', 'lightning-shared']
+    },
+    wallets(wallets, walletType = 'lightning') {
+      if (walletType === 'all') return wallets
+      const walletTypes = this.walletTypes[walletType]
+      return wallets.filter(wallet =>
+        walletTypes
+          ? walletTypes.includes(wallet.walletType)
+          : wallet.walletType === walletType
+      )
+    },
+    walletOptions(wallets) {
+      return wallets.map(wallet => {
+        return {
+          label: [wallet.name, ' - ', wallet.id.substring(0, 5), '...'].join(
+            ''
+          ),
+          value: wallet.id
+        }
+      })
+    },
     user(data) {
       const obj = {
         id: data.id,
@@ -10,7 +33,6 @@ window.LNbits = {
         admin: data.admin,
         email: data.email,
         extensions: data.extensions,
-        wallets: data.wallets,
         fiat_providers: data.fiat_providers || [],
         canCreateFiatWallet: data.can_create_fiat_wallet ?? false,
         super_user: data.super_user,
@@ -19,21 +41,18 @@ window.LNbits = {
         uiCustomization: data.ui_customization || {}
       }
       const mapWallet = this.wallet
-      obj.wallets = obj.wallets.map(mapWallet).sort((a, b) => {
+      const sortWallets = (a, b) => {
         if (a.extra.pinned !== b.extra.pinned) {
           return a.extra.pinned ? -1 : 1
         }
         return a.name.localeCompare(b.name)
-      })
-      obj.walletOptions = obj.wallets.map(obj => {
-        return {
-          label: [obj.name, ' - ', obj.id.substring(0, 5), '...'].join(''),
-          value: obj.id
-        }
-      })
+      }
+      obj.wallets = data.wallets.map(mapWallet).sort(sortWallets)
+      obj.walletOptions = this.walletOptions(this.wallets(obj.wallets))
+      obj.allWalletOptions = this.walletOptions(obj.wallets)
       obj.hiddenWalletsCount = Math.max(
         0,
-        data.wallets.length - data.extra.visible_wallet_count
+        obj.wallets.length - data.extra.visible_wallet_count
       )
       obj.walletInvitesCount = data.extra.wallet_invite_requests?.length || 0
       return obj

@@ -798,7 +798,7 @@
                       map-options
                       multiple
                       v-model="g.user.extra.notifications.excluded_wallets"
-                      :options="g.user.walletOptions"
+                      :options="g.user.allWalletOptions"
                       :label="$t('exclude_wallets')"
                       :hint="$t('notifications_excluded_wallets_desc')"
                       class="q-mt-sm"
