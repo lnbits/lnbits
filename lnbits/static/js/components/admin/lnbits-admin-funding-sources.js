@@ -171,6 +171,16 @@ window.app.component('lnbits-admin-funding-sources', {
           }
         ],
         [
+          'AmbossWallet',
+          'Amboss Payments',
+          {
+            amboss_api_endpoint: 'Endpoint',
+            amboss_service_api_key: 'Service API Key',
+            amboss_wallet_id: 'Wallet ID',
+            amboss_team_password: 'Team Password (required to send)'
+          }
+        ],
+        [
           'BarkWallet',
           'Bark',
           {
