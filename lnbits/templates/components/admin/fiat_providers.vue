@@ -109,11 +109,9 @@
                         dense
                         filled
                         type="text"
-                        disable
-                        :model-value="stripeWebhookUrl"
+                        v-model="formData.stripe_payment_webhook_url"
                         :label="$t('webhook_url')"
                         :hint="$t('webhook_url_hint')"
-                        readonly
                       ></q-input>
                     </div>
                     <div class="col-auto">
@@ -419,11 +417,9 @@
                         dense
                         filled
                         type="text"
-                        disable
-                        :model-value="paypalWebhookUrl"
+                        v-model="formData.paypal_payment_webhook_url"
                         :label="$t('webhook_url')"
                         :hint="$t('webhook_url_hint')"
-                        readonly
                       ></q-input>
                     </div>
                     <div class="col-auto">
