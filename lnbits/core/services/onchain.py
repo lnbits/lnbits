@@ -48,7 +48,12 @@ from lnbits.core.models.onchain import (
     Snapshot,
 )
 from lnbits.core.models.wallets import OnchainMeta, OnchainWallet
-from lnbits.core.services.blockexplorer import TXID, Explorer, explorer_client
+from lnbits.core.services.blockexplorer import (
+    TXID,
+    Explorer,
+    ExplorerNotAllowedError,
+    explorer_client,
+)
 from lnbits.core.services.wallets import get_wallet_addresses
 from lnbits.db import Connection
 from lnbits.settings import settings
@@ -654,7 +659,11 @@ async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> Non
         outcome = "failed"
         reason = type(exc).__name__
         # Never return credentials, explorer URLs, raw responses or stack traces.
-        error = "Blockchain update failed. Previous balances and history are retained."
+        error = (
+            str(exc)
+            if isinstance(exc, ExplorerNotAllowedError)
+            else "Blockchain update failed. Previous balances and history are retained."
+        )
     finally:
         try:
             saved = await _finish_scan(wallet_id, lease, error, checkpoint=checkpoint)

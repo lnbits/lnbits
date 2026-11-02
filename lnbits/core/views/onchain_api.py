@@ -25,7 +25,11 @@ from lnbits.core.models.onchain import (
     SignedTransaction,
 )
 from lnbits.core.models.wallets import NewHotWallet, OnchainMeta, OnchainWallet
-from lnbits.core.services.blockexplorer import TXID, explorer_client
+from lnbits.core.services.blockexplorer import (
+    TXID,
+    ExplorerNotAllowedError,
+    explorer_client,
+)
 from lnbits.core.services.onchain import (
     decrypt_wallet_mnemonic,
     encrypt_wallet_mnemonic,
@@ -202,6 +206,8 @@ async def api_tx_broadcast(
                 raise ValueError("Invalid broadcast response")
         request_scan(auth.wallet_id)
         return tx_id
+    except ExplorerNotAllowedError as exc:
+        raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(
             400, "Broadcast failed. Check the transaction status before retrying."
@@ -354,6 +360,8 @@ async def sign_hot_wallet_payment(
                 ):
                     raise ValueError("Inputs have changed")
         return await run_in_threadpool(sign_payment, wallet, encrypted, data)
+    except ExplorerNotAllowedError as exc:
+        raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
     except Exception as exc:
         # Native library/encryption errors must not disclose key material.
         raise HTTPException(
@@ -393,6 +401,8 @@ async def fee_estimates(auth: OnchainAuth = Depends(require_onchain_read)):
             wallet.onchain_config, wallet.onchain_network or "Mainnet"
         ) as client:
             return await client.fees()
+    except ExplorerNotAllowedError as exc:
+        raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(503, "Fee estimates are unavailable") from exc
 
@@ -414,6 +424,8 @@ async def previous_transaction(
             if len(raw) > 8_000_000 or not re.fullmatch(r"[0-9a-fA-F]+", raw):
                 raise ValueError("Invalid transaction")
             return raw
+    except ExplorerNotAllowedError as exc:
+        raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(503, "Previous transaction is unavailable") from exc
 

@@ -67,6 +67,41 @@ async def test_admin_nostr_notification_protocol(client, superuser_token, settin
 
 
 @pytest.mark.anyio
+async def test_explorer_approval_requires_server_admin(
+    client, admin_user, user_headers_from, adminkey_headers_from, settings
+):
+    field = "lnbits_onchain_explorer_urls"
+    approved = ["https://mempool.space", "http://127.0.0.1:3006/testnet4"]
+    for headers in (user_headers_from, adminkey_headers_from):
+        rejected = await client.put(
+            "/admin/api/v1/settings", json={field: approved}, headers=headers
+        )
+        assert rejected.status_code in (401, 403)
+        assert settings.lnbits_onchain_explorer_urls == ["https://mempool.space"]
+
+    assert admin_user.id != settings.super_user
+    # The fixture grants admin access in memory; settings updates reload the DB.
+    await set_settings_field("lnbits_admin_users", settings.lnbits_admin_users)
+    login = await client.post(
+        "/api/v1/auth",
+        json={"username": admin_user.username, "password": "secret1234"},
+    )
+    assert login.status_code == 200
+    client.cookies.clear()
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = await client.put(
+        "/admin/api/v1/settings", json={field: approved}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    assert settings.lnbits_onchain_explorer_urls == approved
+    stored = await get_settings_field(field)
+    assert stored and stored.value == approved
+    loaded = await client.get("/admin/api/v1/settings", headers=headers)
+    assert loaded.status_code == 200
+    assert loaded.json()[field] == approved
+
+
+@pytest.mark.anyio
 async def test_admin_update_noneditable_settings(
     client: AsyncClient,
     superuser_token: str,

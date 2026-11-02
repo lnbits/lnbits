@@ -62,7 +62,7 @@ def test_custom_mempool_url_is_specific_to_network():
         "http://[::1]:8080",
     ],
 )
-async def test_local_mempool_urls_are_allowed(monkeypatch, url):
+async def test_local_mempool_urls_require_admin_approval(settings, monkeypatch, url):
     real_client = httpx.AsyncClient
     requests = []
 
@@ -74,11 +74,85 @@ async def test_local_mempool_urls_are_allowed(monkeypatch, url):
         return real_client(**kwargs, transport=httpx.MockTransport(response))
 
     monkeypatch.setattr(blockexplorer.httpx, "AsyncClient", client)
-    async with blockexplorer.MempoolExplorer(
-        OnchainConfig(mempool_endpoint=url), "Mainnet"
-    ) as provider:
+    config = OnchainConfig(mempool_endpoint=url)
+    with pytest.raises(blockexplorer.ExplorerNotAllowedError, match="not approved"):
+        blockexplorer.MempoolExplorer(config, "Mainnet")
+    assert requests == []
+    settings.lnbits_onchain_explorer_urls = [url]
+    async with blockexplorer.MempoolExplorer(config, "Mainnet") as provider:
         assert await provider.fees() == {"fastestFee": 1}
     assert str(requests[0].url) == url + "/api/v1/fees/recommended"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.169.254",
+        "http://2130706433",
+        "http://[::ffff:127.0.0.1]",
+        "https://unapproved.example",
+        "https://mempool.space.evil.example",
+        "https://mempool.space:8443",
+        "http://mempool.space",
+        "https://mempool.space/custom",
+        "https://mempool.space/testnet4/../custom",
+        "https://mempool.space/%2e%2e/custom",
+    ],
+)
+def test_unapproved_explorer_is_rejected_before_client_creation(monkeypatch, url):
+    def unexpected_client(**_kwargs):
+        pytest.fail("Unapproved explorer must not create an HTTP client")
+
+    monkeypatch.setattr(blockexplorer.httpx, "AsyncClient", unexpected_client)
+    with pytest.raises(blockexplorer.ExplorerNotAllowedError):
+        blockexplorer.MempoolExplorer(OnchainConfig(mempool_endpoint=url), "Mainnet")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("method", "args"),
+    [
+        ("checkpoint", []),
+        ("block_hash", [1]),
+        ("fees", []),
+        ("history", ["address"]),
+        ("utxos", ["address"]),
+        ("raw_transaction", ["a" * 64]),
+        ("broadcast", ["raw"]),
+    ],
+)
+async def test_revoked_explorer_blocks_every_operation(settings, method, args):
+    def unexpected_request(_request):
+        pytest.fail("A revoked explorer must not receive requests")
+
+    client = httpx.AsyncClient(
+        base_url="https://mempool.space/",
+        transport=httpx.MockTransport(unexpected_request),
+    )
+    async with blockexplorer.MempoolExplorer(OnchainConfig(), "Mainnet", client) as p:
+        settings.lnbits_onchain_explorer_urls = []
+        with pytest.raises(blockexplorer.ExplorerNotAllowedError):
+            await getattr(p, method)(*args)
+
+
+@pytest.mark.anyio
+async def test_approved_explorer_cannot_redirect_to_another_destination():
+    requests = []
+
+    def redirect(request):
+        requests.append(request)
+        return httpx.Response(302, headers={"Location": "http://127.0.0.1/private"})
+
+    client = httpx.AsyncClient(
+        base_url="https://mempool.space/",
+        follow_redirects=True,
+        transport=httpx.MockTransport(redirect),
+    )
+    async with blockexplorer.MempoolExplorer(OnchainConfig(), "Mainnet", client) as p:
+        with pytest.raises(httpx.HTTPStatusError):
+            await p.fees()
+    assert len(requests) == 1
+    assert requests[0].url.host == "mempool.space"
 
 
 @pytest.mark.anyio

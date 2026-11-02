@@ -353,6 +353,7 @@ class OnchainWalletConfigResponse(OnchainConfig):
     network: Literal["Mainnet", "Testnet", "Testnet4"] = "Mainnet"
     lnbits_explorer_network: str | None = None
     explorer_url: str
+    approved_mempool_endpoints: list[str]
 
 
 class NewHotWallet(BaseModel):

@@ -1062,6 +1062,7 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     assert config["explorer_provider"] == "lnbits"
     assert config["explorer_url"] == "/blockexplorer"
     assert config["lnbits_explorer_network"] == "Testnet4"
+    assert config["approved_mempool_endpoints"] == ["https://mempool.space"]
     config.update(
         explorer_provider="mempool", mempool_endpoint="https://example.com/testnet4"
     )
@@ -1076,6 +1077,12 @@ async def test_onchain_explorer_selection_defaults_and_persists(
         path, headers={"X-API-KEY": wallet.inkey}, params=params, json=config
     )
     assert forbidden.status_code == 403
+    rejected = await http_client.put(path, headers=headers, params=params, json=config)
+    assert rejected.status_code == 400
+    assert "not approved" in rejected.json()["detail"]
+    monkeypatch.setattr(
+        settings, "lnbits_onchain_explorer_urls", ["https://example.com/testnet4"]
+    )
     saved = await http_client.put(path, headers=headers, params=params, json=config)
     assert saved.status_code == 200, saved.text
     assert saved.json()["network"] == "Testnet4"
@@ -1095,6 +1102,63 @@ async def test_onchain_explorer_selection_defaults_and_persists(
     monkeypatch.setattr(settings, "lnbits_blockexplorer_enabled", False)
     rejected = await http_client.put(path, headers=headers, params=params, json=config)
     assert rejected.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_saved_unapproved_explorer_is_blocked_and_can_be_replaced(
+    http_client, onchain_wallet, monkeypatch
+):
+    from lnbits.core.services import blockexplorer
+
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored
+    stored.onchain_config.explorer_provider = "mempool"
+    stored.onchain_config.mempool_endpoint = "http://127.0.0.1:3006"
+    # Simulate a configuration saved before the approval requirement existed.
+    await update_onchain_wallet_config(stored.onchain_config, wallet.id)
+
+    def unexpected_client(**_kwargs):
+        pytest.fail("Saved unapproved explorers must not create an HTTP client")
+
+    monkeypatch.setattr(blockexplorer.httpx, "AsyncClient", unexpected_client)
+    path = "/api/v1/wallet/onchain/config"
+    config_response = await http_client.get(path, headers=headers)
+    assert config_response.status_code == 200
+    config = config_response.json()
+    assert config["mempool_endpoint"] == "http://127.0.0.1:3006"
+    assert config["explorer_provider"] == "mempool"
+    assert config["approved_mempool_endpoints"] == ["https://mempool.space"]
+    for method, url, kwargs in [
+        ("GET", "/api/v1/onchain/fees", {}),
+        ("GET", "/api/v1/onchain/tx/" + "a" * 64 + "/hex", {}),
+        ("POST", "/api/v1/onchain/tx", {"json": {"tx_hex": "deadbeef"}}),
+    ]:
+        response = await http_client.request(method, url, headers=headers, **kwargs)
+        assert response.status_code == 403
+        assert "not approved" in response.json()["detail"]
+        assert "127.0.0.1" not in response.json()["detail"]
+
+    await onchain.scan_wallet(wallet.id)
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and "not approved" in (stored.onchain_meta.sync_error or "")
+    assert stored.onchain_config.mempool_endpoint == "http://127.0.0.1:3006"
+
+    # A wallet owner cannot approve a URL by changing the returned choices.
+    config["approved_mempool_endpoints"] = [config["mempool_endpoint"]]
+    rejected = await http_client.put(
+        path, headers=headers, params={"network": "Testnet4"}, json=config
+    )
+    assert rejected.status_code == 400
+    assert settings.lnbits_onchain_explorer_urls == ["https://mempool.space"]
+
+    config["mempool_endpoint"] = "https://mempool.space"
+    saved = await http_client.put(
+        path, headers=headers, params={"network": "Testnet4"}, json=config
+    )
+    assert saved.status_code == 200
+    assert saved.json()["explorer_url"] == "https://mempool.space/testnet4"
 
 
 @pytest.mark.anyio

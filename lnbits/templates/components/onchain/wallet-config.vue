@@ -4,6 +4,17 @@
       >Could not load onchain settings.<template v-slot:action
         ><q-btn flat label="Retry" @click="getConfig"></q-btn></template
     ></q-banner>
+    <q-banner
+      v-if="
+        config.explorer_provider === 'mempool' &&
+        !config.approved_mempool_endpoints?.includes(config.mempool_endpoint)
+      "
+      class="q-mb-md"
+    >
+      This wallet's explorer URL is not approved. Select an approved explorer in
+      Blockchain settings or ask a server administrator to approve the current
+      URL.
+    </q-banner>
     <q-card-section>
       <div class="row items-center no-wrap">
         <div class="col row items-center q-gutter-sm">
@@ -35,16 +46,22 @@
             :options="explorerOptions"
             label="Block explorer"
           ></q-select>
-          <q-input
+          <q-select
             v-if="config.explorer_provider === 'mempool'"
             filled
             dense
-            v-model.trim="config.mempool_endpoint"
-            hint="Use mempool.space or your own Mempool server URL for this network."
-            type="text"
+            v-model="config.mempool_endpoint"
+            :options="config.approved_mempool_endpoints"
+            hint="Choose an explorer approved by a server administrator."
+            :error="
+              !config.approved_mempool_endpoints?.includes(
+                config.mempool_endpoint
+              )
+            "
+            error-message="Select an approved explorer."
             :label="$t('onchain.mempool_endpoint')"
           >
-          </q-input>
+          </q-select>
 
           <q-input
             filled
@@ -92,7 +109,9 @@
               color="primary"
               :disable="
                 config.explorer_provider === 'mempool' &&
-                !config.mempool_endpoint
+                !config.approved_mempool_endpoints?.includes(
+                  config.mempool_endpoint
+                )
               "
               type="submit"
               :label="$t('onchain.update')"

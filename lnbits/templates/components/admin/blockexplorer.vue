@@ -131,5 +131,23 @@
         ></q-btn>
       </div>
     </div>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Approved onchain wallet explorers</h6>
+    <p>
+      Wallet users can select only these Mempool-compatible HTTP(S) URLs. Adding
+      a local or private URL allows wallets to contact that service. Removing a
+      URL blocks wallets using it until they select another approved explorer.
+    </p>
+    <q-select
+      filled
+      dense
+      multiple
+      use-input
+      use-chips
+      new-value-mode="add-unique"
+      v-model="formData.lnbits_onchain_explorer_urls"
+      label="Approved explorer URLs"
+      hint="Type a URL and press Enter. Custom URLs must include the network path; mempool.space selects it automatically. An empty list disables external explorers."
+    ></q-select>
   </q-card-section>
 </template>
