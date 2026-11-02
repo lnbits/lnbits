@@ -265,7 +265,7 @@ class Connection(Compat):
         if rows or filters.offset:
             # no need for extra query if no pagination is specified
             if filters.offset or filters.limit:
-                if table_name:
+                if table_name and not group_by:
                     count_query = f"SELECT COUNT(*) as count FROM {table_name} {clause}"  # noqa: S608
                 else:
                     count_query = f"""SELECT COUNT(*) as count
