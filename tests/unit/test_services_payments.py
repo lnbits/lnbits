@@ -327,6 +327,7 @@ async def test_reconciliation_and_stream_event_queue_payment_once(
         "lnbits.core.services.payments.send_payment_notification_in_background"
     )
 
+    settled: Payment | None = None
     if stream_first:
         await update_invoice_from_paid_invoices_stream(checking_id)
         settled = await update_pending_payment(payment)
