@@ -1320,7 +1320,7 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
         logger.warning(f"No incoming payment found for '{checking_id}'.")
         return None
     if payment.success:
-        return None
+        return payment
 
     status = await check_payment_status(payment)
 

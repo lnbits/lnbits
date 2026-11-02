@@ -146,7 +146,8 @@ async def test_change_status_success_can_skip_notifications(
         # Neither a late stream event nor an old polling copy may replay the
         # notification that the administrator explicitly suppressed.
         assert (
-            await update_invoice_from_paid_invoices_stream(payment.checking_id) is None
+            await update_invoice_from_paid_invoices_stream(payment.checking_id)
+            == stored_payment
         )
         assert (await update_pending_payment(payment)).success
         queued.assert_not_called()

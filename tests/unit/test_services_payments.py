@@ -404,7 +404,7 @@ async def test_stale_poll_cannot_fail_a_settled_invoice(
     assert updated.success
     assert "expired" not in updated.labels
     assert (await get_payment(checking_id)).success
-    assert await update_invoice_from_paid_invoices_stream(checking_id) is None
+    assert await update_invoice_from_paid_invoices_stream(checking_id) == updated
     queued.assert_called_once_with(updated)
 
 
