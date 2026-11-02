@@ -337,8 +337,7 @@ class CoreLightningNode(Node):
         result = await cache.save_result(
             lambda: self.ln_rpc("listinvoices"), key="node:invoices"
         )
-        invoices = result["invoices"]
-        invoices.reverse()
+        invoices = list(reversed(result["invoices"]))
         count = len(invoices)
         if filters.offset:
             invoices = invoices[filters.offset :]
