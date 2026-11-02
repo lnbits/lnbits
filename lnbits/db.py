@@ -591,8 +591,9 @@ class Filters(BaseModel, Generic[TFilterModel]):
             # Use `COALESCE` to handle `NULL` values and `||`
             # for cross-database compatible string concatenation
             _fields = self.model.__search_fields__
+            prefix = f"{self.table_name}." if self.table_name else ""
             search_expr = " || ".join(
-                f"COALESCE(CAST({field} AS TEXT), '')" for field in _fields
+                f"COALESCE(CAST({prefix}{field} AS TEXT), '')" for field in _fields
             )
             where_stmts.append(f"lower({search_expr}) LIKE :search")
 
