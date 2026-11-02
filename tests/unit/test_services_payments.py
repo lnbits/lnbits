@@ -271,6 +271,7 @@ async def test_update_pending_payment_skips_payment_settled_during_status_check(
     async def check(payment: Payment) -> PaymentStatus:
         if payment.checking_id == settled_id:
             payment.status = PaymentState.SUCCESS.value
+            await update_payment(payment)
         return PaymentSuccessStatus()
 
     mocker.patch("lnbits.core.services.payments.check_payment_status", check)
@@ -296,8 +297,7 @@ async def test_paid_invoice_stream_publishes_only_newly_settled_payments(
     )
     enqueue = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
     notify = mocker.patch(
-        "lnbits.core.services.payments.send_payment_notification",
-        mocker.AsyncMock(),
+        "lnbits.core.services.payments.send_payment_notification_in_background"
     )
 
     pending = await update_invoice_from_paid_invoices_stream(pending_id)
@@ -307,15 +307,13 @@ async def test_paid_invoice_stream_publishes_only_newly_settled_payments(
     assert already_settled is not None and already_settled.success
     enqueue.assert_called_once()
     assert enqueue.call_args.args[0].checking_id == pending_id
-    notify.assert_awaited_once()
-    assert notify.await_args is not None
-    assert notify.await_args.args[1].checking_id == settled_id
-    assert notify.await_args.kwargs == {"websocket_only": True}
+    notify.assert_not_called()
 
 
 @pytest.mark.anyio
-async def test_reconciliation_and_late_stream_event_queue_payment_once(
-    mocker: MockerFixture,
+@pytest.mark.parametrize("stream_first", [True, False])
+async def test_reconciliation_and_stream_event_queue_payment_once(
+    mocker: MockerFixture, stream_first: bool
 ):
     wallet = await _create_wallet()
     checking_id = await _create_payment(wallet)
@@ -326,19 +324,93 @@ async def test_reconciliation_and_late_stream_event_queue_payment_once(
     )
     enqueue = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
     notify = mocker.patch(
-        "lnbits.core.services.payments.send_payment_notification",
-        mocker.AsyncMock(),
+        "lnbits.core.services.payments.send_payment_notification_in_background"
     )
 
-    await update_pending_payment(payment)
-    streamed = await update_invoice_from_paid_invoices_stream(checking_id)
-    assert streamed is not None and streamed.success
+    if stream_first:
+        await update_invoice_from_paid_invoices_stream(checking_id)
+        settled = await update_pending_payment(payment)
+    else:
+        await update_pending_payment(payment)
+        settled = await update_invoice_from_paid_invoices_stream(checking_id)
+    assert settled is not None and settled.success
 
     enqueue.assert_called_once()
-    notify.assert_awaited_once()
-    assert notify.await_args is not None
-    assert notify.await_args.args[1].checking_id == checking_id
-    assert notify.await_args.kwargs == {"websocket_only": True}
+    notify.assert_not_called()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("with_stream", [True, False])
+async def test_concurrent_invoice_checks_queue_payment_once(
+    mocker: MockerFixture, with_stream: bool
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(wallet)
+    payment = await get_payment(checking_id)
+    ready = asyncio.Event()
+    checks = 0
+
+    async def successful_status(payment: Payment) -> PaymentStatus:
+        nonlocal checks
+        checks += 1
+        if checks == 2:
+            ready.set()
+        await asyncio.wait_for(ready.wait(), timeout=2)
+        return PaymentSuccessStatus()
+
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status", successful_status
+    )
+    enqueue = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+
+    results = await asyncio.wait_for(
+        asyncio.gather(
+            update_pending_payment(payment),
+            (
+                update_invoice_from_paid_invoices_stream(checking_id)
+                if with_stream
+                else update_pending_payment(payment.copy(deep=True))
+            ),
+        ),
+        timeout=5,
+    )
+
+    assert all(result is not None and result.success for result in results)
+    enqueue.assert_called_once()
+    assert enqueue.call_args.args[0].checking_id == checking_id
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("with_stream", [True, False])
+@pytest.mark.parametrize("fee_msat", [None, -123])
+async def test_incoming_settlement_preserves_invoice_fee_and_preimage(
+    settings: Settings,
+    mocker: MockerFixture,
+    with_stream: bool,
+    fee_msat: int | None,
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(wallet, fee=-100)
+    payment = await get_payment(checking_id)
+    payment.preimage = "11" * 32
+    await update_payment(payment)
+    settings.lnbits_service_fee_wallet = wallet.id
+    settings.lnbits_service_fee = 10
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        mocker.AsyncMock(return_value=PaymentSuccessStatus(fee_msat=fee_msat)),
+    )
+    enqueue = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+
+    if with_stream:
+        settled = await update_invoice_from_paid_invoices_stream(checking_id)
+    else:
+        settled = await update_pending_payment(payment)
+
+    assert settled is not None and settled.success
+    assert settled.fee == (fee_msat or -100)
+    assert settled.preimage == "11" * 32
+    enqueue.assert_called_once()
 
 
 @pytest.mark.anyio

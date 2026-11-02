@@ -291,9 +291,7 @@ async def dispatch_webhook(payment: Payment):
         logger.warning("Could not send webhook.")
 
 
-async def send_payment_notification(
-    wallet: Wallet, payment: Payment, websocket_only: bool = False
-):
+async def send_payment_notification(wallet: Wallet, payment: Payment):
     try:
         await send_ws_payment_notification(wallet, payment)
         for shared in wallet.extra.shared_with:
@@ -304,8 +302,6 @@ async def send_payment_notification(
                 await send_ws_payment_notification(shared_wallet, payment)
     except Exception as e:
         logger.error(f"Error sending websocket payment notification {e!s}")
-    if websocket_only:
-        return
     try:
         await send_chat_payment_notification(wallet, payment)
     except Exception as e:

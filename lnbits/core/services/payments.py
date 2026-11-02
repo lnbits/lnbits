@@ -57,10 +57,7 @@ from ..models import (
 )
 from .fiat_providers import check_fiat_status
 from .lnurl import execute_withdraw as lnurl_withdraw
-from .notifications import (
-    send_payment_notification,
-    send_payment_notification_in_background,
-)
+from .notifications import send_payment_notification_in_background
 
 payment_lock = asyncio.Lock()
 wallets_payments_lock: dict[str, asyncio.Lock] = {}
@@ -442,10 +439,7 @@ async def update_pending_payment(
         payment.status = PaymentState.FAILED
         payment = await update_payment(payment, conn=conn)
     elif status.success:
-        was_successful = payment.success
         payment = await update_payment_success_status(payment, status, conn=conn)
-        if payment.is_in and not was_successful:
-            task_manager.invoice_queue.put_nowait(payment)
     return payment
 
 
@@ -1040,6 +1034,22 @@ async def update_payment_success_status(
         logger.warning(f"Payment not successful: {payment.checking_id}")
         return payment
 
+    if payment.is_in and send_payment_notifications is None:
+        async with db.reuse_conn(conn) if conn else db.connect() as conn:
+            stored_payment = await get_standalone_payment(
+                payment.checking_id, incoming=True, conn=conn
+            )
+            if not stored_payment or stored_payment.success:
+                return stored_payment or payment
+            payment.fee = status.fee_msat or payment.fee
+            payment.preimage = status.preimage or payment.preimage
+            payment.status = PaymentState.SUCCESS
+            payment = await update_payment(
+                payment, new_checking_id=new_checking_id, conn=conn
+            )
+            task_manager.invoice_queue.put_nowait(payment)
+        return payment
+
     was_successful = payment.success
     service_fee_msat = service_fee(payment.amount, internal=False)
     payment.status = PaymentState.SUCCESS
@@ -1312,9 +1322,6 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
         return None
 
     if payment.success:
-        wallet = await get_wallet(payment.wallet_id)
-        if wallet:
-            await send_payment_notification(wallet, payment, websocket_only=True)
         return payment
 
     status = await check_payment_status(payment)
@@ -1325,14 +1332,7 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
         )
         return None
 
-    payment.fee = status.fee_msat or payment.fee
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
-    payment.status = PaymentState.SUCCESS
-    payment = await update_payment(payment)
-    task_manager.invoice_queue.put_nowait(payment)
-
-    return payment
+    return await update_payment_success_status(payment, status)
 
 
 async def fundingsource_invoice_producer() -> None:

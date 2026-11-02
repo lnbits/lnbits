@@ -59,25 +59,14 @@ window.app.component('lnbits-manage-wallet-list', {
       LNbits.api
         .getAuthenticatedUser()
         .then(({data}) => {
-          const balances = new Map(
-            (data.wallets || []).map(wallet => [wallet.id, wallet.balance_msat])
-          )
-          this.g.user.wallets.forEach(wallet => {
-            const balance = balances.get(wallet.id)
-            if (balance === undefined) return
-            this.applyWalletBalance(wallet, balance)
-          })
+          const walletId = this.g.wallet?.id
+          this.g.user = LNbits.map.user(data)
+          this.g.wallet =
+            this.g.user.wallets.find(wallet => wallet.id === walletId) ||
+            this.g.wallet
           this.g.updatePayments = !this.g.updatePayments
         })
         .catch(err => console.warn('Failed to refresh wallets', err))
-    },
-    applyWalletBalance(wallet, balanceMsat) {
-      wallet.msat = balanceMsat
-      wallet.sat = Math.floor(balanceMsat / 1000)
-      if (this.g.wallet?.id === wallet.id) {
-        this.g.wallet.msat = balanceMsat
-        this.g.wallet.sat = wallet.sat
-      }
     },
     onWebsocketMessage(ev) {
       const data = JSON.parse(ev.data)
@@ -88,10 +77,12 @@ window.app.component('lnbits-manage-wallet-list', {
       // update sidebar wallet balances
       this.g.user.wallets.forEach(w => {
         if (w.id === data.payment.wallet_id) {
-          this.applyWalletBalance(w, data.wallet_balance * 1000)
+          w.sat = data.wallet_balance
         }
       })
+      // if current wallet, update balance and payments
       if (this.g.wallet?.id === data.payment.wallet_id) {
+        this.g.wallet.sat = data.wallet_balance
         // lnbits-payment-list is watching
         this.g.updatePayments = !this.g.updatePayments
         this.g.updatePaymentsHash = !this.g.updatePaymentsHash
