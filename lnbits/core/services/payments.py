@@ -431,14 +431,16 @@ async def update_pending_payments(wallet_id: str):
 async def update_pending_payment(
     payment: Payment, conn: Connection | None = None
 ) -> Payment:
-    if payment.is_in and payment.is_expired:
-        payment.status = PaymentState.FAILED
-        payment.labels.append("expired")
-        await update_payment(payment, conn=conn)
-        logger.info(f"invoice {payment.checking_id} expired, marked as failed")
+    if payment.is_in and payment.success:
         return payment
+    if payment.is_in and payment.is_expired:
+        return await _update_incoming_payment_status(
+            payment, PaymentFailedStatus(), conn=conn, expired=True
+        )
 
     status = await check_payment_status(payment)
+    if payment.is_in and (status.success or status.failed):
+        return await _update_incoming_payment_status(payment, status, conn=conn)
     if status.failed:
         payment.status = PaymentState.FAILED
         payment = await update_payment(payment, conn=conn)
@@ -1317,6 +1319,8 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
     if not payment:
         logger.warning(f"No incoming payment found for '{checking_id}'.")
         return None
+    if payment.success:
+        return payment
 
     status = await check_payment_status(payment)
 
@@ -1326,13 +1330,7 @@ async def update_invoice_from_paid_invoices_stream(checking_id: str) -> Payment 
         )
         return None
 
-    payment.fee = status.fee_msat or payment.fee
-    # only overwrite preimage if status.preimage provides it
-    payment.preimage = status.preimage or payment.preimage
-    payment.status = PaymentState.SUCCESS
-    payment = await update_payment(payment)
-
-    return payment
+    return await _update_incoming_payment_status(payment, status)
 
 
 async def fundingsource_invoice_producer() -> None:
@@ -1347,7 +1345,6 @@ async def fundingsource_invoice_producer() -> None:
         payment = await update_invoice_from_paid_invoices_stream(checking_id)
         if payment:
             logger.success(f"fundingsource invoice {checking_id} settled")
-            task_manager.invoice_queue.put_nowait(payment)
 
 
 def _validate_offer_payment_request(
@@ -1516,4 +1513,38 @@ async def _handle_external_payment_response(
             f"{payment_response.error_message or 'no error message'}"
         )
 
+    return payment
+
+
+async def _update_incoming_payment_status(
+    payment: Payment,
+    status: PaymentStatus,
+    conn: Connection | None = None,
+    expired: bool = False,
+) -> Payment:
+    if not status.success and not status.failed:
+        raise ValueError("Cannot update an incoming payment with a pending status.")
+
+    # Polling and the stream can both hold a pending copy of the same invoice.
+    # Check and settle under the existing DB lock so only one queues the event.
+    async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
+        current = await get_standalone_payment(
+            payment.checking_id, incoming=True, conn=new_conn
+        )
+        if not current or current.success:
+            return current or payment
+
+        if status.success:
+            current.fee = status.fee_msat or current.fee
+            current.preimage = status.preimage or current.preimage
+            current.status = PaymentState.SUCCESS
+        else:
+            current.status = PaymentState.FAILED
+            if expired:
+                if "expired" not in current.labels:
+                    current.labels.append("expired")
+                logger.info(f"invoice {current.checking_id} expired, marked as failed")
+        payment = await update_payment(current, conn=new_conn)
+        if payment.success:
+            task_manager.invoice_queue.put_nowait(payment)
     return payment

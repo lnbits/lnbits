@@ -7,7 +7,12 @@ from lnbits.core.crud import create_wallet, get_wallet
 from lnbits.core.crud.payments import create_payment, get_payment, update_payment
 from lnbits.core.models import CreatePayment, PaymentState
 from lnbits.core.models.wallets import WalletType
+from lnbits.core.services.payments import (
+    update_invoice_from_paid_invoices_stream,
+    update_pending_payment,
+)
 from lnbits.task_manager import task_manager
+from lnbits.wallets.base import PaymentSuccessStatus
 
 
 async def status_payment(
@@ -112,7 +117,7 @@ async def test_change_status_notifies_only_on_success(
 @pytest.mark.parametrize("amount", [-10_000, 10_000])
 @pytest.mark.parametrize("status", [PaymentState.PENDING, PaymentState.FAILED])
 async def test_change_status_success_can_skip_notifications(
-    client, superuser_token, from_user, notification_tasks, amount, status
+    client, superuser_token, from_user, notification_tasks, mocker, amount, status
 ):
     payment, preimage = await status_payment(from_user, status, amount)
     response = await change_status(
@@ -132,6 +137,21 @@ async def test_change_status_success_can_skip_notifications(
     assert stored_payment.preimage == preimage
     assert stored_payment.labels == ["existing", "status-changed"]
     assert stored_payment.webhook_status is None
+    if amount > 0:
+        queued = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+        mocker.patch(
+            "lnbits.core.services.payments.check_payment_status",
+            return_value=PaymentSuccessStatus(),
+        )
+        # Neither a late stream event nor an old polling copy may replay the
+        # notification that the administrator explicitly suppressed.
+        assert (
+            await update_invoice_from_paid_invoices_stream(payment.checking_id)
+            == stored_payment
+        )
+        assert (await update_pending_payment(payment)).success
+        queued.assert_not_called()
+        assert not notification_tasks
 
 
 @pytest.mark.anyio

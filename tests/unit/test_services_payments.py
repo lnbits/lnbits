@@ -33,8 +33,10 @@ from lnbits.core.services.payments import (
     check_wallet_limits,
     create_payment_request,
     create_wallet_invoice,
+    fundingsource_invoice_producer,
     get_payments_daily_stats,
     settle_hold_invoice,
+    update_invoice_from_paid_invoices_stream,
     update_pending_payment,
     update_pending_payments,
     update_wallet_balance,
@@ -42,6 +44,7 @@ from lnbits.core.services.payments import (
 from lnbits.db import Filters, Page
 from lnbits.exceptions import InvoiceError, PaymentError
 from lnbits.settings import Settings
+from lnbits.task_manager import task_manager
 from lnbits.wallets.base import (
     InvoiceResponse,
     PaymentFailedStatus,
@@ -255,6 +258,154 @@ async def test_update_pending_payment_marks_expired_incoming_invoice_failed(
     stored_payment = await get_payment(checking_id)
     assert stored_payment.status == PaymentState.FAILED
     assert stored_payment.labels == ["test", "expired"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("order", ["poll-first", "stream-first", "concurrent"])
+@pytest.mark.parametrize("fee_msat", [None, 0, 123, -123])
+async def test_incoming_poll_and_stream_notify_once(
+    app, settings: Settings, mocker: MockerFixture, order: str, fee_msat: int | None
+):
+    wallet = await _create_wallet()
+    fee_wallet = await _create_wallet()
+    settings.lnbits_service_fee_wallet = fee_wallet.id
+    settings.lnbits_service_fee = 1
+    checking_id = await _create_payment(wallet, fee=-42)
+    payment = await get_payment(checking_id)
+    payment.preimage = "existing-preimage"
+    await update_payment(payment)
+    queued = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+    direct_notification = mocker.patch(
+        "lnbits.core.services.payments.send_payment_notification_in_background"
+    )
+    ready = asyncio.Event()
+    checks = 0
+
+    async def check_status(_):
+        nonlocal checks
+        checks += 1
+        if order == "concurrent" and checks <= 2:
+            if checks == 2:
+                ready.set()
+            await asyncio.wait_for(ready.wait(), timeout=2)
+        return PaymentSuccessStatus(fee_msat=fee_msat)
+
+    async def paid_invoices():
+        yield checking_id
+        yield checking_id
+
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status", side_effect=check_status
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source",
+        return_value=SimpleNamespace(paid_invoices_stream=paid_invoices),
+    )
+    if order == "poll-first":
+        await update_pending_payment(payment.model_copy(deep=True))
+        await fundingsource_invoice_producer()
+    elif order == "stream-first":
+        await fundingsource_invoice_producer()
+        await update_pending_payment(payment.model_copy(deep=True))
+    else:
+        await asyncio.wait_for(
+            asyncio.gather(
+                update_pending_payment(payment.model_copy(deep=True)),
+                fundingsource_invoice_producer(),
+            ),
+            timeout=5,
+        )
+    # A stale polling result must not dispatch another notification either.
+    await update_pending_payment(payment)
+
+    stored = await get_payment(checking_id)
+    assert stored.success
+    assert stored.fee == (fee_msat or -42)
+    assert stored.preimage == "existing-preimage"
+    queued.assert_called_once_with(stored)
+    direct_notification.assert_not_called()
+    assert not await get_payments(wallet_id=fee_wallet.id)
+
+
+@pytest.mark.anyio
+async def test_incoming_poll_reuses_connection_and_dispatches_notification(
+    app, mocker: MockerFixture
+):
+    from lnbits.core.db import db
+    from lnbits.core.services.notifications import dispatch_payment_notification
+
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(wallet)
+    payment = await get_payment(checking_id)
+    queued = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+    mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        return_value=PaymentSuccessStatus(preimage="backend-preimage"),
+    )
+    notify = mocker.patch(
+        "lnbits.core.services.notifications.send_payment_notification"
+    )
+
+    async with db.connect() as conn:
+        updated = await asyncio.wait_for(
+            update_pending_payment(payment, conn=conn), timeout=2
+        )
+    queued.assert_called_once_with(updated)
+    await dispatch_payment_notification(updated)
+    notify.assert_awaited_once()
+    assert notify.await_args
+    notified_wallet, notified_payment = notify.await_args.args
+    assert notified_wallet.balance_msat == payment.amount
+    assert notified_payment.success
+    assert notified_payment.preimage == "backend-preimage"
+
+
+@pytest.mark.anyio
+async def test_poll_does_not_expire_settled_invoice(app, mocker: MockerFixture):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(
+        wallet,
+        status=PaymentState.SUCCESS,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    check_status = mocker.patch("lnbits.core.services.payments.check_payment_status")
+    queued = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+
+    updated = await update_pending_payment(await get_payment(checking_id))
+
+    assert updated.success
+    assert "expired" not in updated.labels
+    assert (await get_payment(checking_id)).success
+    check_status.assert_not_awaited()
+    queued.assert_not_called()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("expired", [True, False])
+async def test_stale_poll_cannot_fail_a_settled_invoice(
+    app, mocker: MockerFixture, expired: bool
+):
+    wallet = await _create_wallet()
+    checking_id = await _create_payment(
+        wallet,
+        expiry=datetime.now(timezone.utc) - timedelta(seconds=1) if expired else None,
+    )
+    stale = await get_payment(checking_id)
+    queued = mocker.patch.object(task_manager.invoice_queue, "put_nowait")
+    check_status = mocker.patch(
+        "lnbits.core.services.payments.check_payment_status",
+        return_value=PaymentSuccessStatus(),
+    )
+    await update_invoice_from_paid_invoices_stream(checking_id)
+    check_status.return_value = PaymentFailedStatus()
+
+    updated = await update_pending_payment(stale)
+
+    assert updated.success
+    assert "expired" not in updated.labels
+    assert (await get_payment(checking_id)).success
+    assert await update_invoice_from_paid_invoices_stream(checking_id) == updated
+    queued.assert_called_once_with(updated)
 
 
 @pytest.mark.anyio

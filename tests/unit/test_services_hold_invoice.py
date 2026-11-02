@@ -150,18 +150,18 @@ async def test_hold_service_accounting(recipient, upstream, settle, monkeypatch)
         assert (await service.settle_hold_invoice(payment, preimage)).ok
         # Exercise the same reconciliation used by the funding-source stream,
         # including a repeated notification and a subsequent polling update.
-        for _ in range(2):
-            notified.clear()
-            await service.fundingsource_invoice_producer()
-            await asyncio.wait_for(notified.wait(), timeout=5)
-            assert messages[-1][0] == 1_000_000
-            assert messages[-1][1].payment_hash == payment_hash
-            assert messages[-1][1].success
-            updated = await get_standalone_payment(payment_hash, incoming=True)
-            assert updated and updated.success
-            assert updated.preimage == preimage
-            assert updated.extra["hold_invoice_settled"] is True
-            await service.update_pending_payment(updated)
+        await service.fundingsource_invoice_producer()
+        await asyncio.wait_for(notified.wait(), timeout=5)
+        assert messages[0][0] == 1_000_000
+        assert messages[0][1].payment_hash == payment_hash
+        assert messages[0][1].success
+        updated = await get_standalone_payment(payment_hash, incoming=True)
+        assert updated and updated.success
+        assert updated.preimage == preimage
+        assert updated.extra["hold_invoice_settled"] is True
+        await service.fundingsource_invoice_producer()
+        await service.update_pending_payment(updated)
+        assert len(messages) == 1
     else:
         assert (await service.cancel_hold_invoice(payment)).ok
         updated = await service.update_pending_payment(payment)
