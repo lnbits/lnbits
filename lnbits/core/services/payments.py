@@ -1522,6 +1522,9 @@ async def _update_incoming_payment_status(
     conn: Connection | None = None,
     expired: bool = False,
 ) -> Payment:
+    if not status.success and not status.failed:
+        raise ValueError("Cannot update an incoming payment with a pending status.")
+
     # Polling and the stream can both hold a pending copy of the same invoice.
     # Check and settle under the existing DB lock so only one queues the event.
     async with db.reuse_conn(conn) if conn else db.connect() as new_conn:
