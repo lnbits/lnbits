@@ -45,6 +45,19 @@ For persistent background jobs, see the [core scheduler](scheduler.md).
 
 ... This document is a work-in-progress. Send pull requests if you get stuck, so others don't.
 
+## Admin-only extensions
+
+Python and WASM extensions can set `"admin_only": true` in `config.json` or in
+their manifest's `repos` or `extensions` entry. Either source can require admin
+access. LNbits saves the restriction on install/update; reinstall existing
+extensions to pick up newly added flags. Local extension discovery also reads the
+flag from `config.json`.
+
+Only admins (including the superuser) can enable these extensions or use routes
+protected by LNbits authentication. Public routes remain public. The existing
+Admin Extensions setting can additionally restrict any extension, but removing
+it from that list does not override an installed `admin_only` flag.
+
 ## Pydantic 2
 
 LNbits uses Pydantic 2. Python extensions must use native Pydantic 2 models when
