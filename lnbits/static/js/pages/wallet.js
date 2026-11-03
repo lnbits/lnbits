@@ -9,6 +9,7 @@ window.PageWallet = {
         lnurlpay: null,
         lnurlauth: null,
         sending: false,
+        externalId: null,
         decoding: false,
         decodeId: 0,
         data: {
@@ -96,6 +97,8 @@ window.PageWallet = {
         return false
       }
       if (this.parse.invoice.isBolt12Offer) {
+        // A retry can retrieve a payment that already reserved the balance.
+        if (this.parse.externalId) return true
         if (this.bolt12AmountMissing) {
           return true
         }
@@ -314,10 +317,12 @@ window.PageWallet = {
       this.parse.data.internalMemo = null
       this.parse.data.memo = ''
       this.parse.sending = false
+      this.parse.externalId = null
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
     closeParseDialog() {
+      this.parse.externalId = null
       this.parse.decodeId++
       this.parse.decoding = false
       setTimeout(() => {
@@ -634,6 +639,10 @@ window.PageWallet = {
         return
       }
 
+      if (this.parse.invoice.isBolt12Offer && !this.parse.externalId) {
+        // Retain this ID after errors: the funding source may have paid already.
+        this.parse.externalId = Quasar.uid()
+      }
       this.parse.sending = true
       const dismissPaymentMsg = Quasar.Notify.create({
         timeout: 0,
@@ -649,7 +658,8 @@ window.PageWallet = {
           this.parse.data.request,
           this.parse.data.internalMemo,
           amount,
-          this.parse.invoice.isBolt12Offer ? this.parse.data.memo : null
+          this.parse.invoice.isBolt12Offer ? this.parse.data.memo : null,
+          this.parse.invoice.isBolt12Offer ? this.parse.externalId : null
         )
         .then(response => {
           this.parse.sending = false
@@ -950,7 +960,10 @@ window.PageWallet = {
       this.receive.show = false
     },
     'g.updatePayments'() {
-      this.parse.show = false
+      // Keep unresolved offer attempts open so retries reuse their ID.
+      const keepOfferOpen =
+        this.parse.invoice?.isBolt12Offer && this.parse.externalId
+      if (!keepOfferOpen) this.parse.show = false
       if (
         this.g.wallet.currency &&
         this.$q.localStorage.getItem(
