@@ -215,6 +215,14 @@ class BlockExplorerWalletSession:
         return await self.client.broadcast(raw)
 
 
+class ExplorerNotAllowedError(ValueError):
+    def __init__(self):
+        super().__init__(
+            "Explorer URL is not approved. Select an approved explorer in wallet "
+            "settings or ask a server administrator to approve this URL."
+        )
+
+
 class MempoolExplorer:
     def __init__(
         self,
@@ -222,6 +230,8 @@ class MempoolExplorer:
         network: str,
         client: httpx.AsyncClient | None = None,
     ):
+        self.endpoint = config.mempool_endpoint.rstrip("/")
+        validate_mempool_endpoint(self.endpoint)
         self.client = client or httpx.AsyncClient(
             base_url=mempool_url(config, network) + "/",
             timeout=15,
@@ -237,13 +247,13 @@ class MempoolExplorer:
         await self.client.__aexit__(*args)
 
     async def checkpoint(self) -> ScanCheckpoint:
-        response = await self.client.get("api/blocks/tip/height")
+        response = await self._request("GET", "api/blocks/tip/height")
         response.raise_for_status()
         height = int(response.text)
         return ScanCheckpoint(height=height, block_hash=await self.block_hash(height))
 
     async def block_hash(self, height: int) -> str:
-        response = await self.client.get(f"api/block-height/{height}")
+        response = await self._request("GET", f"api/block-height/{height}")
         response.raise_for_status()
         block_hash = response.text.strip()
         if not TXID.fullmatch(block_hash):
@@ -264,7 +274,7 @@ class MempoolExplorer:
             and tx["status"]["confirmed"]
             and tx["status"]["block_height"] <= checkpoint.height
         }
-        response = await self.client.get(f"api/address/{address}/txs")
+        response = await self._request("GET", f"api/address/{address}/txs")
         response.raise_for_status()
         page = response.json()
         result: dict[str, dict] = {}
@@ -294,7 +304,9 @@ class MempoolExplorer:
             if last in seen or not TXID.fullmatch(last):
                 raise ValueError("Invalid explorer pagination")
             seen.add(last)
-            response = await self.client.get(f"api/address/{address}/txs/chain/{last}")
+            response = await self._request(
+                "GET", f"api/address/{address}/txs/chain/{last}"
+            )
             response.raise_for_status()
             page = response.json()
         else:
@@ -309,31 +321,40 @@ class MempoolExplorer:
         for tx in previous:
             if tx["txid"] in result:
                 continue
-            response = await self.client.get(f"api/tx/{tx['txid']}/status")
+            response = await self._request("GET", f"api/tx/{tx['txid']}/status")
             if response.status_code == 404:
                 continue
             response.raise_for_status()
             result[tx["txid"]] = {**tx, "status": response.json()}
 
     async def utxos(self, address: str) -> list[dict]:
-        response = await self.client.get(f"api/address/{address}/utxo")
+        response = await self._request("GET", f"api/address/{address}/utxo")
         response.raise_for_status()
         return response.json()
 
     async def fees(self) -> dict:
-        response = await self.client.get("api/v1/fees/recommended")
+        response = await self._request("GET", "api/v1/fees/recommended")
         response.raise_for_status()
         return response.json()
 
     async def raw_transaction(self, txid: str) -> str:
-        response = await self.client.get(f"api/tx/{txid}/hex")
+        response = await self._request("GET", f"api/tx/{txid}/hex")
         response.raise_for_status()
         return response.text.strip()
 
     async def broadcast(self, raw: str) -> str:
-        response = await self.client.post("api/tx", content=raw)
+        response = await self._request("POST", "api/tx", content=raw)
         response.raise_for_status()
         return response.text.strip()
+
+    async def _request(
+        self, method: str, path: str, *, content: str | None = None
+    ) -> httpx.Response:
+        # Recheck long-running scans when an administrator revokes approval.
+        validate_mempool_endpoint(self.endpoint)
+        return await self.client.request(
+            method, path, content=content, follow_redirects=False
+        )
 
 
 class LnbitsExplorer(BlockExplorerWalletSession):
@@ -478,6 +499,12 @@ def explorer_client(config: OnchainConfig, network: str) -> Explorer:
     if provider_name(config, network) == "lnbits":
         return LnbitsExplorer(network)
     return MempoolExplorer(config, network)
+
+
+def validate_mempool_endpoint(endpoint: str) -> None:
+    # Exact base URLs only: approving a host does not approve other ports or paths.
+    if endpoint.rstrip("/") not in settings.lnbits_onchain_explorer_urls:
+        raise ExplorerNotAllowedError()
 
 
 def _client() -> ElectrumClient:

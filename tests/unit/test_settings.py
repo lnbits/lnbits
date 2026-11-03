@@ -8,6 +8,7 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.settings import (
     DEFAULT_WASM_MANIFESTS,
     AssetSettings,
+    BlockExplorerSettings,
     ExchangeRateProvider,
     InstalledExtensionsSettings,
     NotificationsSettings,
@@ -19,6 +20,44 @@ from lnbits.settings import (
     list_parse_fallback,
     set_cli_settings,
 )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc/passwd",
+        "https://",
+        "https://user:password@example.com",
+        "https://example.com?key=value",
+        "https://example.com#fragment",
+        "https://example.com:99999",
+        "https://example.com\n",
+        "https://example.com\\private",
+    ],
+)
+def test_approved_explorer_urls_reject_invalid_endpoints(url):
+    with pytest.raises(ValueError):
+        BlockExplorerSettings(lnbits_onchain_explorer_urls=[url])
+
+
+def test_approved_explorer_urls_are_normalized_and_can_be_empty():
+    approved = BlockExplorerSettings(
+        lnbits_onchain_explorer_urls=[
+            "https://mempool.space/",
+            "https://mempool.space",
+            "http://[::1]:3006/testnet4/",
+        ]
+    )
+    assert approved.lnbits_onchain_explorer_urls == [
+        "https://mempool.space",
+        "http://[::1]:3006/testnet4",
+    ]
+    assert (
+        BlockExplorerSettings(
+            lnbits_onchain_explorer_urls=[]
+        ).lnbits_onchain_explorer_urls
+        == []
+    )
 
 
 @pytest.mark.parametrize("admins", ['["alice", "bob"]', "alice,bob"])

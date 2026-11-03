@@ -33,9 +33,11 @@ from lnbits.core.models.wallets import (
     WalletType,
 )
 from lnbits.core.services.blockexplorer import (
+    ExplorerNotAllowedError,
     explorer_url,
     local_explorer_network,
     provider_name,
+    validate_mempool_endpoint,
 )
 from lnbits.core.services.lightning_address import set_wallet_lightning_address
 from lnbits.core.services.onchain import request_scan
@@ -353,6 +355,11 @@ async def api_update_config(
             HTTPStatus.CONFLICT,
             "Create another LNbits wallet to use a different Bitcoin network",
         )
+    if provider_name(data, network) == "mempool":
+        try:
+            validate_mempool_endpoint(data.mempool_endpoint)
+        except ExplorerNotAllowedError as exc:
+            raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     await update_onchain_wallet_config(data, wallet_id=auth.wallet_id, network=network)
     request_scan(auth.wallet_id)
     response_data = data.model_dump()
@@ -362,6 +369,7 @@ async def api_update_config(
         **response_data,
         lnbits_explorer_network=local_explorer_network(),
         explorer_url=explorer_url(data, network),
+        approved_mempool_endpoints=settings.lnbits_onchain_explorer_urls,
     )
 
 
@@ -381,4 +389,5 @@ async def api_get_config(
         **data,
         lnbits_explorer_network=local_explorer_network(),
         explorer_url=explorer_url(config, network),
+        approved_mempool_endpoints=settings.lnbits_onchain_explorer_urls,
     )

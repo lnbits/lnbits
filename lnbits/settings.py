@@ -11,6 +11,7 @@ from os import path
 from pathlib import Path
 from time import gmtime, strftime, time
 from typing import Any, Literal, get_args, get_origin
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from loguru import logger
@@ -915,6 +916,7 @@ class NodeUISettings(LNbitsSettings):
 
 
 class BlockExplorerSettings(LNbitsSettings):
+    lnbits_onchain_explorer_urls: list[str] = Field(default=["https://mempool.space"])
     lnbits_blockexplorer_enabled: bool = Field(default=True)
     lnbits_blockexplorer_public_api: bool = Field(default=False)
     lnbits_blockexplorer_in_user_menu: bool = Field(default=True)
@@ -923,6 +925,29 @@ class BlockExplorerSettings(LNbitsSettings):
     )
     # one of: main, test, test4, regtest, signet
     lnbits_blockexplorer_network: str = Field(default="main")
+
+    @field_validator("lnbits_onchain_explorer_urls")
+    @classmethod
+    def validate_onchain_explorer_urls(cls, values: list[str]) -> list[str]:
+        for value in values:
+            url = urlsplit(value)
+            if (
+                url.scheme not in ("http", "https")
+                or not url.hostname
+                or url.username is not None
+                or url.password is not None
+                or url.query
+                or url.fragment
+                or any(c.isspace() or ord(c) < 32 for c in value)
+                or "\\" in value
+            ):
+                raise ValueError(
+                    "Enter HTTP(S) explorer URLs without credentials, "
+                    "queries or fragments"
+                )
+            # Accessing port also rejects malformed or out-of-range ports.
+            _ = url.port
+        return list(dict.fromkeys(value.rstrip("/") for value in values))
 
 
 class AuthMethods(Enum):
