@@ -1,11 +1,14 @@
 import asyncio
 import hashlib
+from uuid import uuid4
 
 import pytest
 
-from lnbits.core.crud import get_standalone_payment, get_wallet
+from lnbits.core.crud import get_payments_paginated, get_standalone_payment, get_wallet
 from lnbits.core.models import Payment
 from lnbits.settings import Settings
+from lnbits.wallets import get_funding_source
+from lnbits.wallets.base import PaymentResponse
 
 from .helpers import funding_source, lookup_offer_invoices
 
@@ -140,3 +143,111 @@ async def test_pay_real_offer(
         assert (
             wallet_before.balance_msat - wallet_after.balance_msat == total_debit_msat
         )
+
+
+@pytest.mark.parametrize("real_offer", [100], indirect=True)
+@pytest.mark.parametrize(
+    "lose_response", [False, True], ids=["success", "lost-response"]
+)
+async def test_pay_real_offer_retry_is_idempotent(
+    client,
+    real_offer,
+    lose_response,
+    from_wallet,
+    adminkey_headers_from,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    settings.lnbits_funding_source_pay_offer_wait_seconds = 60
+    wallet_before = await get_wallet(from_wallet.id)
+    assert wallet_before
+    records_before = await get_payments_paginated(
+        wallet_id=from_wallet.id, outgoing=True
+    )
+    backend = get_funding_source()
+    backend_pay_offer = backend.pay_offer
+    settled: list[PaymentResponse] = []
+
+    async def pay_offer(*args, **kwargs):
+        result = await backend_pay_offer(*args, **kwargs)
+        assert result.success, result.error_message
+        settled.append(result)
+        if lose_response and len(settled) == 1:
+            # The real node paid, but LNbits never received the result. Inject the
+            # timeout after settlement so this does not depend on network timing.
+            raise asyncio.TimeoutError("Simulated lost BOLT12 payment response")
+        return result
+
+    monkeypatch.setattr(backend, "pay_offer", pay_offer)
+    request = {
+        "out": True,
+        "payment_request": real_offer["bolt12"],
+        "amount": 100,
+        "unit": "sat",
+        "external_id": uuid4().hex,
+    }
+    response = await client.post(
+        "/api/v1/payments", json=request, headers=adminkey_headers_from
+    )
+    assert response.status_code == 201, response.text
+    first = Payment(**response.json())
+    assert first.pending if lose_response else first.success
+    assert first.amount == -100_000
+    assert first.external_id == request["external_id"]
+    assert len(settled) == 1
+    if lose_response:
+        assert first.checking_id.startswith("temp_offer_")
+
+    wallet_after_first = await get_wallet(from_wallet.id)
+    assert wallet_after_first
+    assert wallet_before.balance_msat - wallet_after_first.balance_msat == (
+        100_000 + abs(first.fee)
+    )
+
+    retry_response = await client.post(
+        "/api/v1/payments", json=request, headers=adminkey_headers_from
+    )
+    assert retry_response.status_code == 201, retry_response.text
+    retry = Payment(**retry_response.json())
+    assert retry.payment_hash == first.payment_hash
+    assert retry.checking_id == first.checking_id
+    assert retry.status == first.status
+    assert len(settled) == 1
+    wallet_after_retry = await get_wallet(from_wallet.id)
+    assert wallet_after_retry
+    assert wallet_after_retry.balance_msat == wallet_after_first.balance_msat
+    records = await get_payments_paginated(wallet_id=from_wallet.id, outgoing=True)
+    assert records.total == records_before.total + 1
+
+    received = await asyncio.to_thread(lookup_offer_invoices, real_offer["offer_id"])
+    paid = [invoice for invoice in received["invoices"] if invoice["status"] == "paid"]
+    assert len(paid) == 1
+    assert paid[0]["payment_hash"] == settled[0].checking_id
+    assert paid[0]["amount_received_msat"] == 100_000
+
+    # A new ID explicitly requests another payment of the reusable offer.
+    new_response = await client.post(
+        "/api/v1/payments",
+        json={**request, "external_id": uuid4().hex},
+        headers=adminkey_headers_from,
+    )
+    assert new_response.status_code == 201, new_response.text
+    second = Payment(**new_response.json())
+    assert second.success
+    assert second.payment_hash != first.payment_hash
+    assert second.checking_id != first.checking_id
+    assert len(settled) == 2
+    wallet_after_second = await get_wallet(from_wallet.id)
+    assert wallet_after_second
+    assert wallet_after_retry.balance_msat - wallet_after_second.balance_msat == (
+        100_000 + abs(second.fee)
+    )
+    records = await get_payments_paginated(wallet_id=from_wallet.id, outgoing=True)
+    assert records.total == records_before.total + 2
+    received = await asyncio.to_thread(lookup_offer_invoices, real_offer["offer_id"])
+    paid = [invoice for invoice in received["invoices"] if invoice["status"] == "paid"]
+    assert len(paid) == 2
+    assert {invoice["payment_hash"] for invoice in paid} == {
+        result.checking_id for result in settled
+    }
+    assert all(invoice["amount_received_msat"] == 100_000 for invoice in paid)
