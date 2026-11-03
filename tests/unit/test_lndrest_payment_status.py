@@ -12,7 +12,7 @@ from lnbits.wallets.lndrest import LndRestWallet
     ("state", "paid"),
     [("IN_FLIGHT", None), ("SUCCEEDED", True), ("FAILED", False)],
 )
-async def test_lndrest_returns_current_payment_status_without_waiting(
+async def test_lndrest_waits_on_in_flight_and_returns_terminal_status(
     state: str, paid: bool | None
 ):
     class StatusStream(httpx.AsyncByteStream):
@@ -44,6 +44,11 @@ async def test_lndrest_returns_current_payment_status_without_waiting(
             lambda request: httpx.Response(200, stream=stream)
         ),
     ) as wallet.client:
+        if state == "IN_FLIGHT":
+            with pytest.raises(httpx.ReadTimeout):
+                await wallet.get_payment_status("01" * 32)
+            assert stream.closed
+            return
         status = await wallet.get_payment_status("01" * 32)
 
     assert status.paid is paid

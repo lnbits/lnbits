@@ -313,7 +313,7 @@ class LndRestWallet(Wallet):
                     return PaymentFailedStatus()
                 elif status == "IN_FLIGHT":
                     logger.info(f"LNDRest Payment in flight: {checking_id}")
-                    return PaymentPendingStatus()
+                    continue
 
         logger.info(f"LNDRest Payment non-existent: {checking_id}")
         return PaymentPendingStatus()
