@@ -433,12 +433,13 @@ async def update_pending_payment(
 ) -> Payment:
     if payment.is_in and payment.success:
         return payment
-    if payment.is_in and payment.is_expired:
+    # An expired invoice may have settled while LNbits was offline.
+    status = await check_payment_status(payment)
+    if payment.is_in and payment.is_expired and not status.success:
         return await _update_incoming_payment_status(
             payment, PaymentFailedStatus(), conn=conn, expired=True
         )
 
-    status = await check_payment_status(payment)
     if payment.is_in and (status.success or status.failed):
         return await _update_incoming_payment_status(payment, status, conn=conn)
     if status.failed:
