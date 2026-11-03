@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
+import httpx
 import pytest
 from lnurl import LnurlSuccessResponse, LnurlWithdrawResponse
 from pytest_mock.plugin import MockerFixture
@@ -470,6 +471,18 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
             id="mixed-statuses",
         ),
         pytest.param(
+            205,
+            (httpx.ReadTimeout("sensitive details"), PaymentState.FAILED),
+            [0, 50, 100, 103],
+            id="read-timeouts",
+        ),
+        pytest.param(
+            205,
+            (RuntimeError("sensitive details"), PaymentState.SUCCESS),
+            [0, 50, 100, 103],
+            id="backend-errors",
+        ),
+        pytest.param(
             1_100, (PaymentState.PENDING,), list(range(0, 1_000, 100)), id="pending-cap"
         ),
         pytest.param(1_100, (PaymentState.FAILED,), [0] * 10, id="resolved-cap"),
@@ -478,7 +491,7 @@ async def test_check_pending_payments_skips_voidwallet_and_updates_recent_items(
 async def test_check_pending_payments_batches_and_progress(
     mocker: MockerFixture,
     payment_count: int,
-    outcomes: tuple[PaymentState, ...],
+    outcomes: tuple[PaymentState | Exception, ...],
     expected_offsets: list[int],
 ):
     payments = {
@@ -518,7 +531,10 @@ async def test_check_pending_payments_batches_and_progress(
     async def update_pending(payment):
         index = int(payment.checking_id.removeprefix("payment-"))
         stored_payment = payments[payment.checking_id]
-        stored_payment.status = outcomes[index % len(outcomes)]
+        outcome = outcomes[index % len(outcomes)]
+        if isinstance(outcome, Exception):
+            raise outcome
+        stored_payment.status = outcome
         return stored_payment
 
     mocker.patch(
@@ -552,8 +568,14 @@ async def test_check_pending_payments_batches_and_progress(
         payments
     )[:checked]
     assert [call.args[0] for call in logger_mock.debug.call_args_list] == [
-        f"payment ({i + 1}/{payment_count}) {outcomes[i % len(outcomes)]} payment-{i}"
+        f"payment ({i + 1}/{payment_count}) "
+        f"{payments[f'payment-{i}'].status} payment-{i}"
         for i in range(checked)
+    ]
+    assert [call.args[0] for call in logger_mock.warning.call_args_list] == [
+        f"Task: error checking pending payment payment-{i}: {type(outcome).__name__}"
+        for i in range(checked)
+        if isinstance(outcome := outcomes[i % len(outcomes)], Exception)
     ]
     logger_mock.info.assert_any_call(
         "Task: checking pending payments of last 15 days..."
@@ -566,6 +588,32 @@ async def test_check_pending_payments_batches_and_progress(
         logger_mock.info.assert_any_call(
             "Task: no pending payments found in the last 15 days"
         )
+
+
+@pytest.mark.anyio
+async def test_check_pending_payments_propagates_cancellation(mocker: MockerFixture):
+    mocker.patch(
+        "lnbits.core.services.payments.get_funding_source", return_value=object()
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.get_payments_paginated",
+        return_value=Page(
+            data=[
+                SimpleNamespace(checking_id=f"payment-{i}", status=PaymentState.PENDING)
+                for i in range(2)
+            ],
+            total=2,
+        ),
+    )
+    update_mock = mocker.patch(
+        "lnbits.core.services.payments.update_pending_payment",
+        side_effect=asyncio.CancelledError,
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await check_pending_payments()
+
+    update_mock.assert_awaited_once()
 
 
 @pytest.mark.anyio

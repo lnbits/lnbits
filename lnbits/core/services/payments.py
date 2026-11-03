@@ -479,10 +479,18 @@ async def check_pending_payments():
         if not page.data:
             break
         for payment in page.data:
-            payment = await update_pending_payment(payment)
-            # Resolved payments leave the results; skip only those still pending.
-            if payment.status == PaymentState.PENDING:
+            try:
+                payment = await update_pending_payment(payment)
+            except Exception as exc:
+                logger.warning(
+                    f"Task: error checking pending payment {payment.checking_id}: "
+                    f"{type(exc).__name__}"
+                )
                 offset += 1
+            else:
+                # Resolved payments leave the results; skip only those still pending.
+                if payment.status == PaymentState.PENDING:
+                    offset += 1
             count += 1
             prefix = f"payment ({count}/{total})"
             logger.debug(f"{prefix} {payment.status} {payment.checking_id}")
