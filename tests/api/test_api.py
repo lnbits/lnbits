@@ -862,6 +862,44 @@ async def test_pay_bolt12_offer(client, adminkey_headers_to, fields):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("pending", [False, True])
+async def test_pay_bolt12_offer_retry_with_external_id(
+    client, adminkey_headers_to, monkeypatch, pending
+):
+    backend = (
+        AsyncMock(return_value=PaymentResponse())
+        if pending
+        else AsyncMock(wraps=FakeWallet().pay_offer)
+    )
+    monkeypatch.setattr(FakeWallet, "pay_offer", backend)
+    data = {
+        "out": True,
+        "payment_request": BOLT12_OFFER,
+        "amount": 21,
+        "external_id": uuid4().hex,
+    }
+    first = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_to
+    )
+    retry = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_to
+    )
+    assert first.status_code == retry.status_code == 201
+    assert retry.json()["payment_hash"] == first.json()["payment_hash"]
+    assert retry.json()["checking_id"] == first.json()["checking_id"]
+    assert retry.json()["status"] == ("pending" if pending else "success")
+
+    conflict = await client.post(
+        "/api/v1/payments",
+        json={**data, "amount": 22},
+        headers=adminkey_headers_to,
+    )
+    assert conflict.status_code == 520
+    assert "External ID already used" in conflict.json()["detail"]
+    backend.assert_awaited_once()
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "memo",
     [None, "", "  Thanks ☕ & = +\n" * 20, pytest.param("x" * 640, id="max-length")],
