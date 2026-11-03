@@ -270,6 +270,10 @@ async def api_all_payments_paginated(
         `payment_request` to supply the BOLT11 invoice or BOLT12 offer (`lno1…`,
         optional `lightning:` URI). Paying a BOLT12 offer requires `amount` in
         `sat`. For offers, `memo` is sent to the recipient as a payer note.
+        Reuse `external_id` when retrying an offer payment in the same wallet:
+        matching offer, amount and memo return the existing payment. Use a new
+        `external_id` for intentional repeat payments or retries after failure.
+        Omitting it treats each request as a separate payment.
         The optional `webhook` field is honoured in both directions: LNbits POSTs
         the payment to that URL once the payment reaches `success`.
     """,

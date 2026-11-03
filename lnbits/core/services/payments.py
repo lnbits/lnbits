@@ -12,7 +12,7 @@ from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
 from lnbits.core.models.payments import CreateInvoice
 from lnbits.core.models.wallets import WalletType
-from lnbits.db import Connection, Filters
+from lnbits.db import Connection, Filter, Filters
 from lnbits.decorators import check_user_extension_access
 from lnbits.exceptions import InvoiceError, PaymentError, UnsupportedError
 from lnbits.fiat import get_fiat_provider
@@ -117,7 +117,9 @@ async def pay_offer(
 ) -> Payment:
     """
     Offers are not invoices: they have no payment hash until the backend
-    fetches and pays one.
+    fetches and pays one. Reuse external_id for retries within the same wallet;
+    use a new external_id for an intentional repeat payment, including after failure.
+    Without external_id, each call is a separate payment.
     """
     if settings.lnbits_only_allow_incoming_payments:
         raise PaymentError("Only incoming payments allowed.", status="failed")
@@ -814,6 +816,12 @@ async def _pay_invoice(
             raise PaymentError(
                 f"Could not fetch wallet '{wallet_id}'.", status="failed"
             )
+
+        if looks_like_bolt12_offer(create_payment_model.bolt11):
+            # Check under the wallet lock before reserving funds or paying again.
+            payment = await _get_existing_offer_payment(create_payment_model, conn)
+            if payment:
+                return payment
 
         payment = await _pay_internal_invoice(wallet, create_payment_model, conn)
         if not payment:
@@ -1547,4 +1555,42 @@ async def _update_incoming_payment_status(
         payment = await update_payment(current, conn=new_conn)
         if payment.success:
             task_manager.invoice_queue.put_nowait(payment)
+    return payment
+
+
+async def _get_existing_offer_payment(
+    data: CreatePayment, conn: Connection | None = None
+) -> Payment | None:
+    if not data.external_id:
+        return None
+
+    payments = await get_payments(
+        wallet_id=data.wallet_id,
+        outgoing=True,
+        filters=Filters(
+            model=PaymentFilters,
+            filters=[
+                Filter.parse_query("external_id", [data.external_id], PaymentFilters)
+            ],
+            limit=1,
+        ),
+        conn=conn,
+    )
+    if not payments:
+        return None
+
+    payment = payments[0]
+    if (
+        payment.extra.get("bolt12_offer", payment.bolt11) != data.bolt11
+        or payment.amount != data.amount_msat
+        or payment.extra.get("payer_note") != (data.extra or {}).get("payer_note")
+    ):
+        raise PaymentError(
+            "External ID already used for a different payment.", status="failed"
+        )
+    if payment.failed:
+        raise PaymentError(
+            "Offer payment already failed. Use a new external_id to retry.",
+            status="failed",
+        )
     return payment

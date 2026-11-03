@@ -44,7 +44,8 @@ window._lnbitsApi = {
     paymentRequest,
     internalMemo = null,
     amount = null,
-    memo = null
+    memo = null,
+    externalId = null
   ) {
     const data = {
       out: true,
@@ -61,6 +62,9 @@ window._lnbitsApi = {
     }
     if (memo) {
       data.memo = memo
+    }
+    if (externalId) {
+      data.external_id = externalId
     }
     return this.request('post', '/api/v1/payments', wallet.adminkey, data)
   },
