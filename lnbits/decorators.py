@@ -15,6 +15,7 @@ from lnbits.core.crud import (
     get_account,
     get_account_by_email,
     get_account_by_username,
+    get_installed_extension,
     get_user_active_extensions_ids,
     get_user_from_account,
     get_wallet_for_key,
@@ -493,7 +494,12 @@ async def check_user_extension_access(
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
     """
-    if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
+    allowed = not settings.is_admin_extension(ext_id) or settings.is_admin_user(user_id)
+    if settings.is_installed_extension_id(ext_id):
+        extension = await get_installed_extension(ext_id, conn=conn)
+        if extension:
+            allowed = extension.is_available_for_user(user_id)
+    if not allowed:
         return SimpleStatus(
             success=False, message=f"User not authorized for extension '{ext_id}'."
         )
