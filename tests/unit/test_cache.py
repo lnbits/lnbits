@@ -126,3 +126,18 @@ async def test_invalidate_forever_logs_and_recovers_from_errors(
 
     assert logger_error.called
     assert calls == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("value", [[], {}, "", 0, False, None])
+async def test_cache_coro_retains_falsy_results(cache, mocker: MockerFixture, value):
+    clock = mocker.patch("lnbits.utils.cache.time", return_value=1000.0)
+    fetch = mocker.AsyncMock(return_value=value)
+
+    assert await cache.save_result(fetch, key="empty", expiry=10) == value
+    assert await cache.save_result(fetch, key="empty", expiry=10) == value
+    fetch.assert_awaited_once_with()
+
+    clock.return_value += 11
+    assert await cache.save_result(fetch, key="empty", expiry=10) == value
+    assert fetch.await_count == 2
