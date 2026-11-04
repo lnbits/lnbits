@@ -594,7 +594,7 @@ class InstallableExtension(BaseModel):
         return bool(release and release.admin_only)
 
     def is_available_for_user(self, user_id: str) -> bool:
-        return not self.is_admin_only or settings.is_admin_user(user_id)
+        return settings.is_admin_user(user_id) or not self.is_admin_only
 
     @property
     def is_wasm(self) -> bool:
@@ -883,9 +883,7 @@ class InstallableExtension(BaseModel):
                     source_repo,
                     config.tile,
                 ),
-                meta=ExtensionMeta(
-                    latest_release=release,
-                ),
+                meta=ExtensionMeta(latest_release=release),
             )
         except Exception as e:
             logger.warning(e)
