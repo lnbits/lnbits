@@ -105,10 +105,27 @@ def disable_background_scheduler():
         yield
 
 
+@pytest.fixture(scope="session")
+def disable_background_notifications():
+    async def process_next_notification():
+        await asyncio.Event().wait()
+
+    # Keep queued app notifications from calling another test's sender mocks.
+    # Tests can still process their own notification queues explicitly.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "lnbits.app.process_next_notification", process_next_notification
+        )
+        yield
+
+
 # use session scope to run once before and once after all tests
 @pytest.fixture(scope="session")
 async def app(
-    settings: Settings, disable_background_wallet_sync, disable_background_scheduler
+    settings: Settings,
+    disable_background_wallet_sync,
+    disable_background_scheduler,
+    disable_background_notifications,
 ):
     app = create_app()
     async with LifespanManager(app, startup_timeout=30) as manager:
