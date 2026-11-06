@@ -9,6 +9,7 @@ from lnbits.core.models.extensions import (
     WasmInvocationStats,
 )
 from lnbits.db import Connection, Database
+from lnbits.settings import settings
 
 
 async def create_installed_extension(
@@ -16,6 +17,7 @@ async def create_installed_extension(
     conn: Connection | None = None,
 ) -> None:
     await (conn or db).insert("installed_extensions", ext)
+    _update_admin_only_extensions(ext)
     await update_installed_extension_wasm_runtime_limits(
         ext_id=ext.id,
         limits=ext.wasm_runtime_limits,
@@ -28,6 +30,7 @@ async def update_installed_extension(
     conn: Connection | None = None,
 ) -> None:
     await (conn or db).update("installed_extensions", ext)
+    _update_admin_only_extensions(ext)
     await update_installed_extension_wasm_runtime_limits(
         ext_id=ext.id,
         limits=ext.wasm_runtime_limits,
@@ -82,6 +85,7 @@ async def delete_installed_extension(
         """,
         {"ext": ext_id},
     )
+    settings.lnbits_admin_only_extensions.discard(ext_id)
 
 
 async def drop_extension_db(ext_id: str, conn: Connection | None = None) -> None:
@@ -341,3 +345,10 @@ async def mark_stale_wasm_invocations(
         """,  # noqa: S608
         {"finished_at": datetime.now(timezone.utc)},
     )
+
+
+def _update_admin_only_extensions(ext: InstallableExtension) -> None:
+    if ext.has_admin_only_release:
+        settings.lnbits_admin_only_extensions.add(ext.id)
+    else:
+        settings.lnbits_admin_only_extensions.discard(ext.id)

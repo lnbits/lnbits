@@ -12,8 +12,10 @@ from pytest_mock import MockerFixture
 from wasmtime import wat2wasm
 
 from lnbits.core.crud.extensions import (
+    create_installed_extension,
     delete_installed_extension,
     get_installed_extension,
+    update_installed_extension,
 )
 from lnbits.core.models import Account
 from lnbits.core.models.extensions import (
@@ -30,6 +32,7 @@ from lnbits.core.wasm_ext.routes.api import register_wasm_extension_api_routes
 from lnbits.core.wasm_ext.wasm.loader import load_wasm_extension
 from lnbits.decorators import (
     check_account_exists,
+    check_user_extension_access,
     require_admin_key,
     require_base_admin_key,
 )
@@ -130,6 +133,9 @@ async def test_admin_only_installation_persists_for_both_runtimes(
             manifest_flag or config_flag
         )
         assert stored.is_admin_only == (manifest_flag or config_flag)
+        assert (ext.id in settings.lnbits_admin_only_extensions) == (
+            manifest_flag or config_flag
+        )
 
         local = (
             InstallableExtension.from_wasm_ext_dir(ext.id)
@@ -139,6 +145,66 @@ async def test_admin_only_installation_persists_for_both_runtimes(
         assert local and local.is_admin_only == config_flag
     finally:
         await delete_installed_extension(ext_id=ext.id)
+    assert ext.id not in settings.lnbits_admin_only_extensions
+
+
+@pytest.mark.anyio
+async def test_admin_only_cache_tracks_updates_and_keeps_settings_separate(
+    app, settings: Settings
+):
+    ext = make_installable_extension(f"ext_{uuid4().hex[:8]}", admin_only=True)
+    settings.lnbits_admin_extensions = [ext.id]
+    try:
+        await create_installed_extension(ext)
+        assert ext.id in settings.lnbits_admin_only_extensions
+
+        assert ext.meta and ext.meta.installed_release
+        for admin_only in (False, True, False):
+            ext.meta.installed_release.admin_only = admin_only
+            await update_installed_extension(ext)
+            assert (ext.id in settings.lnbits_admin_only_extensions) == admin_only
+            assert settings.is_admin_extension(ext.id)
+
+        settings.lnbits_admin_extensions = []
+        assert not settings.is_admin_extension(ext.id)
+
+        ext.meta.installed_release.admin_only = True
+        await update_installed_extension(ext)
+        assert settings.is_admin_extension(ext.id)
+    finally:
+        await delete_installed_extension(ext_id=ext.id)
+    assert not settings.is_admin_extension(ext.id)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("admin", [True, False])
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_cached_admin_extension_access_still_requires_user_enablement(
+    settings: Settings, mocker: MockerFixture, admin: bool, enabled: bool
+):
+    user_id = uuid4().hex
+    settings.lnbits_admin_users = [user_id] if admin else []
+    settings.lnbits_installed_extensions_ids = {"demoext"}
+    settings.lnbits_admin_only_extensions = {"demoext"}
+    enabled_extensions = mocker.patch(
+        "lnbits.decorators.get_user_active_extensions_ids",
+        return_value=["demoext"] if enabled else [],
+    )
+    mocker.patch(
+        "lnbits.core.crud.extensions.db.fetchone",
+        side_effect=AssertionError("Access checks must not load the extension"),
+    )
+
+    status = await check_user_extension_access(user_id, "demoext")
+
+    assert status.success == (admin and enabled)
+    if admin:
+        enabled_extensions.assert_awaited_once_with(user_id, conn=None)
+        if not enabled:
+            assert status.message == "Extension 'demoext' not enabled."
+    else:
+        enabled_extensions.assert_not_awaited()
+        assert status.message == "User not authorized for extension 'demoext'."
 
 
 @pytest.mark.anyio
@@ -160,9 +226,11 @@ async def test_admin_only_authenticated_routes(
     )
     settings.lnbits_installed_extensions_ids = {"demoext"}
     settings.lnbits_admin_extensions = ["demoext"] if restriction == "setting" else []
+    settings.lnbits_admin_only_extensions = (
+        {"demoext"} if restriction == "package" else set()
+    )
     ext = make_installable_extension("demoext", admin_only=restriction == "package")
     mocker.patch("lnbits.decorators.db.connect", return_value=mocker.MagicMock())
-    mocker.patch("lnbits.decorators.get_installed_extension", return_value=ext)
     mocker.patch(
         "lnbits.decorators.get_user_active_extensions_ids", return_value=[ext.id]
     )
