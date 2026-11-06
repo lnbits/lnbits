@@ -6,7 +6,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import Settings
 from lnbits.task_manager import task_manager
-from lnbits.utils.cache import Cache, Cached
+from lnbits.utils.cache import Cache
 
 key = "foo"
 value = "bar"
@@ -67,8 +67,11 @@ async def test_cache_coro(cache):
     assert result == called == 1
 
 
-def test_cached_older_than():
-    cached = Cached(value="value", expiry=time() - 5)
+def test_cached_older_than(cache, mocker: MockerFixture):
+    clock = mocker.patch("lnbits.utils.cache.time", return_value=1000.0)
+    cache.set(key, value, expiry=3600)
+    clock.return_value += 5
+    cached = cache.value(key)
 
     assert cached.older_than(1) is True
     assert cached.older_than(10) is False
