@@ -22,6 +22,7 @@ from lnbits.core.services.nostr import (
     send_nostr_dm,
     send_nostr_dm_nip17,
 )
+from lnbits.utils.nostr import normalize_identifier, validate_identifier
 
 
 class FakeWebSocket:
@@ -133,6 +134,21 @@ async def test_fetch_nip5_details_rejects_invalid_values(mocker: MockerFixture):
     mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
     with pytest.raises(ValueError, match="NIP5 not name found"):
         await fetch_nip5_details("alice@example.com")
+
+
+@pytest.mark.parametrize("local_part", ["alice", "john-doe", "a.b_c-d", "Bob-42"])
+def test_validate_identifier_accepts_nip05_characters(local_part: str):
+    validate_identifier(local_part)
+
+
+@pytest.mark.parametrize("local_part", ["", "bad!", "white space", "a+b", "ü"])
+def test_validate_identifier_rejects_other_characters(local_part: str):
+    with pytest.raises(ValueError):
+        validate_identifier(local_part)
+
+
+def test_normalize_identifier_keeps_hyphens():
+    assert normalize_identifier("John-Doe@example.com") == "john-doe"
 
 
 @pytest.fixture
