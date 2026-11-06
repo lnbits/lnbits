@@ -654,6 +654,7 @@ async def check_wallet_daily_withdraw_limit(
     while settings.lnbits_running:
         payments = await get_payments(
             since=since,
+            complete=True,
             outgoing=True,
             wallet_id=wallet_id,
             limit=page_size,
