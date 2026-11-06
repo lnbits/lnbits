@@ -272,7 +272,7 @@ class CoreLightningRestWallet(Wallet):
             fee_msat, preimage = None, None
             if self.statuses[pay["status"]]:
                 # cut off "msat" and convert to int
-                fee_msat = -int(pay["amount_sent_msat"][:-4]) - int(
+                fee_msat = int(pay["amount_sent_msat"][:-4]) - int(
                     pay["amount_msat"][:-4]
                 )
                 preimage = pay["preimage"]
