@@ -218,6 +218,13 @@ async def test_payment_api_total_breakdown_groups_wallet_tags_and_fiat():
 
 
 @pytest.mark.anyio
+async def test_payment_api_fee_reserve_rejects_invalid_invoice():
+    with pytest.raises(HTTPException, match="Invalid bolt11 invoice.") as exc_info:
+        await api_payments_fee_reserve("not-a-bolt11-invoice")
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.anyio
 async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
     user = await create_user_account(
         Account(
