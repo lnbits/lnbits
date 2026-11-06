@@ -481,7 +481,7 @@ async def api_change_payment_status(data: ChangePaymentStatus) -> Payment:
 async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONResponse:
     try:
         invoice_obj = bolt11.decode(invoice)
-    except Bolt11Exception as exc:
+    except (Bolt11Exception, ValueError, IndexError) as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="Invalid bolt11 invoice.",
