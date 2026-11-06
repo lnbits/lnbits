@@ -218,9 +218,18 @@ async def test_payment_api_total_breakdown_groups_wallet_tags_and_fiat():
 
 
 @pytest.mark.anyio
-async def test_payment_api_fee_reserve_rejects_invalid_invoice():
+@pytest.mark.parametrize(
+    "invoice",
+    [
+        "not-a-bolt11-invoice",
+        # valid bech32 checksum but truncated tagged fields
+        "lnbc1zcrs5gsc8nxm0d44e7xgupj2vhc5x6kgyzn56n5k35q8f555yu37ahc9rgrls04hhe"
+        "na42pfswg8t6rx3xdsy9ydtmphljwvl0muhv7ytn2299",
+    ],
+)
+async def test_payment_api_fee_reserve_rejects_invalid_invoice(invoice: str):
     with pytest.raises(HTTPException, match="Invalid bolt11 invoice.") as exc_info:
-        await api_payments_fee_reserve("not-a-bolt11-invoice")
+        await api_payments_fee_reserve(invoice)
     assert exc_info.value.status_code == 400
 
 
