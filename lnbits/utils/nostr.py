@@ -231,7 +231,7 @@ def validate_pub_key(pubkey: str) -> str:
 
 
 def validate_identifier(local_part: str):
-    regex = re.compile(r"^[a-z0-9_.]+$")
+    regex = re.compile(r"^[a-z0-9_.-]+$")
     if not re.fullmatch(regex, local_part.lower()):
         raise ValueError(
             f"Identifier '{local_part}' not allowed! "
