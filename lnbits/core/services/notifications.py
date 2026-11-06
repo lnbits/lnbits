@@ -392,10 +392,11 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
     if user_notifications and wallet.id not in user_notifications.excluded_wallets:
         out_limit = user_notifications.outgoing_payments_sats
         in_limit = user_notifications.incoming_payments_sats
-        if payment.is_out and (amount_sats >= out_limit):
-            enqueue_user_notification(
-                NotificationType.outgoing_payment, values, user_notifications
-            )
+        if payment.is_out:
+            if amount_sats >= out_limit:
+                enqueue_user_notification(
+                    NotificationType.outgoing_payment, values, user_notifications
+                )
         elif amount_sats >= in_limit:
             enqueue_user_notification(
                 NotificationType.incoming_payment, values, user_notifications

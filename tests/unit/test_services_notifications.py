@@ -849,6 +849,27 @@ async def test_send_ws_payment_notification_and_chat_notifications(
 
 
 @pytest.mark.anyio
+async def test_outgoing_payment_below_user_limit_sends_no_user_notification(
+    mocker: MockerFixture,
+):
+    user_notifications = UserNotifications(
+        telegram_chat_id="chat-id",
+        incoming_payments_sats=1,
+        outgoing_payments_sats=10_000,
+    )
+    wallet = await _create_wallet(user_notifications)
+    payment = await _create_payment(wallet, amount_msat=-2_000)
+    mocker.patch("lnbits.core.services.notifications.enqueue_admin_notification")
+    user_mock = mocker.patch(
+        "lnbits.core.services.notifications.enqueue_user_notification"
+    )
+
+    await send_chat_payment_notification(wallet, payment)
+
+    user_mock.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
     settings: Settings, mocker: MockerFixture
 ):
