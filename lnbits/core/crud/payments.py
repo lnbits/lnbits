@@ -553,7 +553,10 @@ async def delete_wallet_payment(
     checking_id: str, wallet_id: str, conn: Connection | None = None
 ) -> None:
     await (conn or db).execute(
-        "DELETE FROM apipayments WHERE checking_id = :checking_id AND wallet = :wallet",
+        """
+        DELETE FROM apipayments
+        WHERE checking_id = :checking_id AND wallet_id = :wallet
+        """,
         {"checking_id": checking_id, "wallet": wallet_id},
     )
 
