@@ -2,6 +2,7 @@ from hashlib import sha256
 from http import HTTPStatus
 from secrets import token_hex
 
+from bolt11 import Bolt11Exception
 from fastapi import (
     APIRouter,
     Depends,
@@ -478,7 +479,13 @@ async def api_change_payment_status(data: ChangePaymentStatus) -> Payment:
 
 @payment_router.get("/fee-reserve")
 async def api_payments_fee_reserve(invoice: str = Query("invoice")) -> JSONResponse:
-    invoice_obj = bolt11.decode(invoice)
+    try:
+        invoice_obj = bolt11.decode(invoice)
+    except Bolt11Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid bolt11 invoice.",
+        ) from exc
     if invoice_obj.amount_msat:
         response = {
             "fee_reserve": fee_reserve_total(invoice_obj.amount_msat),
