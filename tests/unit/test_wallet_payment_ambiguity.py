@@ -354,6 +354,27 @@ async def test_lnpay_malformed_payment_response_is_pending(mocker: MockerFixture
 
 
 @pytest.mark.anyio
+async def test_lnpay_create_invoice_returns_checking_id(mocker: MockerFixture):
+    wallet = object.__new__(LNPayWallet)
+    wallet.wallet_key = "wallet-key"
+    wallet.pending_invoices = []
+    cast(Any, wallet).client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(
+                201, json={"id": "lntx_abc", "payment_request": "lnbc1"}
+            )
+        )
+    )
+
+    response = await wallet.create_invoice(1_000, memo="test")
+
+    assert response.ok is True
+    assert response.checking_id == "lntx_abc"
+    assert response.payment_request == "lnbc1"
+    assert wallet.pending_invoices == ["lntx_abc"]
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("wallet_class", [LnTipsWallet, OpenNodeWallet, ZBDWallet])
 @pytest.mark.parametrize(
     ("status_code", "expected"),
