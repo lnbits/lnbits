@@ -406,10 +406,11 @@ async def send_chat_payment_notification(wallet: Wallet, payment: Payment):
 async def send_payment_push_notification(wallet: Wallet, payment: Payment):
     subscriptions = await get_webpush_subscriptions_for_user(wallet.user)
 
-    amount = int(payment.amount / 1000)
+    amount = abs(payment.amount) // 1000
+    action = "sent" if payment.is_out else "received"
 
     title = f"LNbits: {wallet.name}"
-    body = f"You just received {amount} sat{'s'[:amount^1]}!"
+    body = f"You just {action} {amount} sat{'s'[:amount^1]}!"
 
     if payment.memo:
         body += f"\r\n{payment.memo}"
