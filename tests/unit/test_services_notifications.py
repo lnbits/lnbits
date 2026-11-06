@@ -870,6 +870,29 @@ async def test_outgoing_payment_below_user_limit_sends_no_user_notification(
 
 
 @pytest.mark.anyio
+async def test_send_payment_push_notification_for_outgoing_payment(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, amount_msat=-2_000, memo="")
+    await create_webpush_subscription(
+        f"https://push.example/{uuid4().hex}",
+        wallet.user,
+        '{"endpoint":"https://push.example"}',
+        "push.example",
+    )
+    send_push_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_push_notification",
+        mocker.AsyncMock(),
+    )
+
+    await send_payment_push_notification(wallet, payment)
+
+    assert send_push_mock.await_args is not None
+    assert send_push_mock.await_args.args[2] == "You just sent 2 sats!"
+
+
+@pytest.mark.anyio
 async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
     settings: Settings, mocker: MockerFixture
 ):
