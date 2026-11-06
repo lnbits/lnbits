@@ -5,6 +5,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.settings import ExchangeRateProvider, Settings
+from lnbits.utils.cache import Cache
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     apply_trimmed_mean_filter,
@@ -296,15 +297,42 @@ async def test_btc_price_handles_empty_single_and_multiple_rates(mocker: MockerF
 
 
 @pytest.mark.anyio
+async def test_exchange_rate_cache_retries_failures_and_expires_successful_prices(
+    settings: Settings, mocker: MockerFixture
+):
+    mocker.patch("lnbits.utils.exchange_rates.cache", Cache())
+    clock = mocker.patch("lnbits.utils.cache.time", return_value=1000.0)
+    mocker.patch.object(settings, "lnbits_price_aggregator_enabled", False)
+    mocker.patch.object(settings, "lnbits_exchange_rate_cache_seconds", 60)
+    fetch_rates = mocker.patch(
+        "lnbits.utils.exchange_rates.btc_rates",
+        AsyncMock(side_effect=[[], [("Provider", 50000.0)], [("Provider", 62500.0)]]),
+    )
+
+    assert await get_fiat_rate_and_price_satoshis("usd") == (0.0, 0.0)
+
+    clock.return_value += 1
+    assert await fiat_amount_as_satoshis(1, "usd") == 2000
+    assert await get_fiat_rate_and_price_satoshis("usd") == (2000.0, 50000.0)
+    assert fetch_rates.await_count == 2
+
+    clock.return_value += 61
+    assert await get_fiat_rate_and_price_satoshis("usd") == (1600.0, 62500.0)
+    assert fetch_rates.await_count == 3
+
+
+@pytest.mark.anyio
 async def test_rate_and_amount_conversion_helpers(mocker: MockerFixture):
-    cache_result = AsyncMock(return_value=50000.0)
-    mocker.patch("lnbits.utils.exchange_rates.cache.save_result", cache_result)
+    mocker.patch("lnbits.utils.exchange_rates.cache", Cache())
+    fetch_price = mocker.patch(
+        "lnbits.utils.exchange_rates.btc_price", AsyncMock(return_value=50000.0)
+    )
 
     rate, price = await get_fiat_rate_and_price_satoshis("usd")
 
     assert price == 50000.0
     assert rate == 2000.0
-    cache_result.assert_awaited_once()
+    fetch_price.assert_awaited_once_with("usd")
 
     mocker.patch(
         "lnbits.utils.exchange_rates.get_fiat_rate_and_price_satoshis",
