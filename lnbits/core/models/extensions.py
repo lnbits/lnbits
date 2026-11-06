@@ -586,8 +586,12 @@ class InstallableExtension(BaseModel):
 
     @property
     def is_admin_only(self) -> bool:
-        if settings.is_admin_extension(self.id):
-            return True
+        return (
+            self.id in settings.lnbits_admin_extensions or self.has_admin_only_release
+        )
+
+    @property
+    def has_admin_only_release(self) -> bool:
         if not self.meta:
             return False
         release = self.meta.installed_release or self.meta.latest_release
