@@ -1338,6 +1338,8 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
     latest_balance_delta_sats: int = Field(default=0)
 
     lnbits_all_extensions_ids: set[str] = Field(default=set())
+    # Installed extensions restricted to admins by their release metadata.
+    lnbits_admin_only_extensions: set[str] = Field(default=set())
 
     server_startup_time: int = Field(default=int(time()))
 
@@ -1421,7 +1423,10 @@ class Settings(  # pyright: ignore[reportIncompatibleVariableOverride]
         return self.is_super_user(user_id) or user_id in self.lnbits_admin_users
 
     def is_admin_extension(self, ext_id: str) -> bool:
-        return ext_id in self.lnbits_admin_extensions
+        return (
+            ext_id in self.lnbits_admin_extensions
+            or ext_id in self.lnbits_admin_only_extensions
+        )
 
     def is_installed_extension_id(self, ext_id: str) -> bool:
         return ext_id in self.lnbits_installed_extensions_ids

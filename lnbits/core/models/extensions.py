@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 
 from lnbits.helpers import (
     download_url,
@@ -52,6 +52,7 @@ class ExplicitRelease(BaseModel):
     paid_features: str | None = None
     pay_link: str | None = None
     extension_type: str | None = None
+    admin_only: StrictBool = False
 
     def is_version_compatible(self):
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -61,6 +62,7 @@ class GitHubRelease(BaseModel):
     id: str
     organisation: str
     repository: str
+    admin_only: StrictBool = False
 
 
 class Manifest(BaseModel):
@@ -116,6 +118,7 @@ class ExtensionConfig(BaseModel):
     max_lnbits_version: str | None = None
     extension_type: str | None = None
     permissions: list[ExtensionPermission] = []
+    admin_only: StrictBool = False
 
     def is_version_compatible(self) -> bool:
         return is_lnbits_version_ok(self.min_lnbits_version, self.max_lnbits_version)
@@ -357,6 +360,7 @@ class ExtensionRelease(BaseModel):
     extension_type: str | None = None
     manifest_type: ExtensionManifestType | None = Field(default=None, exclude=True)
     permissions: list[ExtensionPermission] = []
+    admin_only: StrictBool = False
 
     paid_features: str | None = None
     pay_link: str | None = None
@@ -371,6 +375,7 @@ class ExtensionRelease(BaseModel):
         self.warning = config.warning
         self.extension_type = config.extension_type
         self.permissions = config.permissions
+        self.admin_only = self.admin_only or config.admin_only
 
     @property
     def archive_url(self) -> str:
@@ -436,6 +441,7 @@ class ExtensionRelease(BaseModel):
             html_url=e.html_url,
             details_link=e.details_link,
             extension_type=e.extension_type,
+            admin_only=e.admin_only,
             pay_link=e.pay_link,
             paid_features=e.paid_features,
             repo=e.repo,
@@ -579,6 +585,22 @@ class InstallableExtension(BaseModel):
         return self.meta.pay_to_enable.required is True
 
     @property
+    def is_admin_only(self) -> bool:
+        return (
+            self.id in settings.lnbits_admin_extensions or self.has_admin_only_release
+        )
+
+    @property
+    def has_admin_only_release(self) -> bool:
+        if not self.meta:
+            return False
+        release = self.meta.installed_release or self.meta.latest_release
+        return bool(release and release.admin_only)
+
+    def is_available_for_user(self, user_id: str) -> bool:
+        return settings.is_admin_user(user_id) or not self.is_admin_only
+
+    @property
     def is_wasm(self) -> bool:
         config_path = Path(self.wasm_ext_dir, "config.json")
         if not config_path.is_file():
@@ -639,6 +661,8 @@ class InstallableExtension(BaseModel):
         return config if isinstance(config, dict) else {}
 
     def validate_archive(self, config: Mapping[str, Any]) -> None:
+        if not isinstance(config.get("admin_only", False), bool):
+            raise ExtensionArchiveValidationError("'admin_only' must be a boolean.")
         release = self.meta.installed_release if self.meta else None
         manifest_type = release.manifest_type if release else None
         is_wasm = config.get("extension_type") == "wasm"
@@ -851,6 +875,8 @@ class InstallableExtension(BaseModel):
                 github_release.organisation, github_release.repository
             )
             source_repo = f"{github_release.organisation}/{github_release.repository}"
+            release = ExtensionRelease.from_github_release(source_repo, latest_release)
+            release.admin_only = github_release.admin_only or config.admin_only
             return InstallableExtension(
                 id=github_release.id,
                 name=config.name,
@@ -861,11 +887,7 @@ class InstallableExtension(BaseModel):
                     source_repo,
                     config.tile,
                 ),
-                meta=ExtensionMeta(
-                    latest_release=ExtensionRelease.from_github_release(
-                        source_repo, latest_release
-                    ),
-                ),
+                meta=ExtensionMeta(latest_release=release),
             )
         except Exception as e:
             logger.warning(e)
@@ -911,6 +933,7 @@ class InstallableExtension(BaseModel):
                             source_repo=f"{conf_path}",
                             min_lnbits_version=config_json.get("min_lnbits_version"),
                             max_lnbits_version=config_json.get("max_lnbits_version"),
+                            admin_only=config_json.get("admin_only", False),
                         )
                     ),
                 )
@@ -946,6 +969,7 @@ class InstallableExtension(BaseModel):
                             source_repo=f"{conf_path}",
                             min_lnbits_version=config_json.get("min_lnbits_version"),
                             max_lnbits_version=config_json.get("max_lnbits_version"),
+                            admin_only=config_json.get("admin_only", False),
                         )
                     ),
                 )
@@ -1066,6 +1090,7 @@ class InstallableExtension(BaseModel):
                     )
                     for release in repo_releases:
                         release.manifest_type = manifest_type
+                        release.admin_only = release.admin_only or r.admin_only
                     extension_releases += repo_releases
 
                 for e in manifest.extensions:

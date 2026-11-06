@@ -215,6 +215,11 @@ async def install_extension(
 
     extension_config = ext_info.load_archive_config()
     ext_info.validate_archive(extension_config)
+    if ext_info.meta.installed_release:
+        release = ext_info.meta.installed_release
+        release.admin_only = release.admin_only or extension_config.get(
+            "admin_only", False
+        )
     ext_info.permissions = validate_wasm_extension_permissions(
         ext_info,
         granted_permissions,

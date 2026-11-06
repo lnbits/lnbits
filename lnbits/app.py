@@ -317,6 +317,9 @@ async def build_all_installed_extensions_list(  # noqa: C901
     """
     installed_extensions = await get_installed_extensions()
     settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
+    settings.lnbits_admin_only_extensions = {
+        e.id for e in installed_extensions if e.has_admin_only_release
+    }
 
     settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
     for ext_dir in settings.wasm_extensions_dir.iterdir():

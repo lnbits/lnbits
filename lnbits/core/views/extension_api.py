@@ -336,6 +336,7 @@ async def api_enable_extension(
         raise ValueError(f"Extension '{ext_id}' is not installed.")
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
+    _check_extension_user_access(ext, account_id.id)
 
     user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:
@@ -798,6 +799,8 @@ async def get_pay_to_enable_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Extension '{ext_id}' not found."
         )
 
+    _check_extension_user_access(ext, account_id.id)
+
     if not ext.meta or not ext.meta.pay_to_enable:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
@@ -859,6 +862,7 @@ async def get_extension_release(org: str, repo: str, tag_name: str):
             "is_version_compatible": config.is_version_compatible(),
             "warning": config.warning,
             "extension_type": config.extension_type,
+            "admin_only": config.admin_only,
             "permissions": [dict(permission) for permission in permissions],
         }
     except ValueError as exc:
@@ -988,7 +992,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                     (True for version in db_versions if version.db == ext.id), False
                 ),
                 "isAvailable": ext.id in all_ext_ids,
-                "isAdminOnly": ext.id in settings.lnbits_admin_extensions,
+                "isAdminOnly": ext.is_admin_only,
                 "isActive": ext.id not in inactive_extensions,
                 "latestRelease": (
                     dict(ext.meta.latest_release)
@@ -1077,6 +1081,13 @@ def _load_installed_extension_config(extension: InstallableExtension) -> dict:
     if not isinstance(config, dict):
         raise ValueError(f"Extension '{extension.id}' config file is invalid.")
     return config
+
+
+def _check_extension_user_access(ext: InstallableExtension, user_id: str) -> None:
+    if not ext.is_available_for_user(user_id):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext.id}'."
+        )
 
 
 async def _require_active_wasm_extension(ext_id: str) -> InstallableExtension:

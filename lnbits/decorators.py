@@ -493,7 +493,8 @@ async def check_user_extension_access(
     Check if the user has access to a particular extension.
     Raises HTTP Forbidden if the user is not allowed.
     """
-    if settings.is_admin_extension(ext_id) and not settings.is_admin_user(user_id):
+    allowed = settings.is_admin_user(user_id) or not settings.is_admin_extension(ext_id)
+    if not allowed:
         return SimpleStatus(
             success=False, message=f"User not authorized for extension '{ext_id}'."
         )
