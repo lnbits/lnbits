@@ -30,6 +30,7 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
 )
 from lnbits.core.services.notifications import (
+    _post_webhook,
     dispatch_webhook,
     enqueue_admin_notification,
     enqueue_user_notification,
@@ -749,6 +750,42 @@ async def test_dispatch_webhook_pins_allowed_target(
     assert client.posts[0][1]["headers"]["Host"] == "callback.example:8443"
     assert client.posts[0][1]["extensions"] == {"sni_hostname": "callback.example"}
     client_factory.assert_called_once_with(follow_redirects=False, trust_env=False)
+
+
+@pytest.mark.anyio
+async def test_post_webhook_sends_payment_as_json_object(mocker: MockerFixture):
+    payment = Payment(
+        checking_id="checking_123",
+        payment_hash="hash_123",
+        wallet_id="wallet_123",
+        amount=1000,
+        fee=0,
+        bolt11="invoice",
+        webhook="https://callback.example/paid",
+    )
+    client = MockHTTPClient(
+        post_response=httpx.Response(
+            200,
+            request=httpx.Request("POST", "https://93.184.216.34/paid"),
+        )
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications._resolve_webhook_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient", return_value=client
+    )
+
+    assert await _post_webhook(payment) == 200
+
+    request = httpx.Request(
+        "POST", str(client.posts[0][0]), json=client.posts[0][1]["json"]
+    )
+    posted_body = json.loads(request.content)
+    assert isinstance(posted_body, dict)
+    assert posted_body["payment_hash"] == payment.payment_hash
+    assert isinstance(posted_body["created_at"], str)
 
 
 @pytest.mark.anyio
