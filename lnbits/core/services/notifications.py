@@ -510,7 +510,7 @@ async def _post_webhook(payment: Payment) -> int:
             request_url,
             headers=headers,
             extensions={"sni_hostname": parsed.hostname},
-            json=payment.model_dump_json(),
+            json=payment.model_dump(mode="json"),
             timeout=40,
         )
         response.raise_for_status()
