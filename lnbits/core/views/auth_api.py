@@ -459,6 +459,8 @@ async def logout() -> JSONResponse:
 
 @auth_router.post("/register")
 async def register(data: RegisterUser) -> JSONResponse:
+    if not settings.new_accounts_allowed:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Account creation is disabled.")
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
@@ -487,7 +489,7 @@ async def register(data: RegisterUser) -> JSONResponse:
         username=data.username,
     )
     account.hash_password(data.password)
-    await create_user_account(account)
+    await create_user_account(account, activation_verified=True)
     return await _login_response(account)
 
 

@@ -1189,6 +1189,8 @@ def _validate_payment_request(
 async def _credit_service_fee_wallet(
     payment: Payment, wallet: Wallet | None = None, conn: Connection | None = None
 ):
+    if not payment.success or not payment.is_out:
+        return
     if not wallet:
         wallet = await get_wallet(payment.wallet_id, deleted=None, conn=conn)
     if not wallet:

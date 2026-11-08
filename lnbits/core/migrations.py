@@ -1019,3 +1019,24 @@ async def m055_create_scheduled_job_runs(db: Connection):
         CREATE INDEX idx_scheduled_job_runs_status
         ON scheduled_job_runs (status, started_at)
     """)
+
+
+async def m056_disable_public_registration(db: Connection):
+    # Only initialise this field for existing admin settings. An otherwise empty
+    # settings table must stay empty so first-start superuser setup still runs.
+    await db.execute("""
+        INSERT INTO system_settings (id, value, tag)
+        SELECT 'lnbits_allow_new_accounts', 'false', 'core'
+        WHERE EXISTS (
+            SELECT 1 FROM system_settings WHERE id = 'super_user' AND tag = 'core'
+        )
+        ON CONFLICT (id, tag) DO UPDATE SET value = 'false'
+    """)
+    await db.execute("""
+        UPDATE system_settings SET value = 'false'
+        WHERE id = 'lnbits_allow_new_accounts' AND tag = 'core'
+    """)
+    # Apply the one-time reset before first-start settings are persisted, too.
+    from lnbits.settings import settings
+
+    settings.lnbits_allow_new_accounts = False

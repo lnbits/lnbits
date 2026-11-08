@@ -54,7 +54,7 @@ class LNbitsSettings(BaseModel):
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
-    lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_allow_new_accounts: bool = Field(default=False)
 
     lnbits_ln_address_mode: Literal[
         "core_first", "extension_first", "extension_only"

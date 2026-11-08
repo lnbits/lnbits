@@ -4,7 +4,7 @@ from time import time
 from typing import Any
 
 import pyqrcode
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from lnbits.core.models import (
@@ -20,7 +20,7 @@ from lnbits.decorators import (
     check_api_write_access,
     check_user_exists,
 )
-from lnbits.settings import settings
+from lnbits.settings import AuthMethods, settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     fiat_amount_as_satoshis,
@@ -81,6 +81,16 @@ async def api_wallets(
 
 @api_router.post("/api/v1/account", response_model=None)
 async def api_create_account(data: CreateWallet):
+    if (
+        not settings.new_accounts_allowed
+        or not settings.is_auth_method_allowed(AuthMethods.user_id_only)
+        or settings.lnbits_require_user_activation
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Anonymous account creation is disabled. Contact the administrator "
+            "for an invitation.",
+        )
     user = await create_user_account(wallet_name=data.name)
     if settings.lnbits_two_factor_enabled and settings.lnbits_two_factor_mandatory:
         from lnbits.core.crud.users import get_account

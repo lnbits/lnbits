@@ -2,7 +2,10 @@
 
 Extensions should use this client for arbitrary URLs supplied by users. It
 requires public destinations and applies the administrator callback URL rules.
-Trusted internal integrations have separate connection requirements.
+Trusted internal integrations have separate connection requirements. An explicit
+private_endpoint supplied by trusted administrator configuration permits LAN/ULA
+and loopback destinations only within that origin/path; public self-addresses,
+metadata addresses and redirects remain blocked.
 """
 
 import asyncio
@@ -11,13 +14,27 @@ import socket
 from contextlib import asynccontextmanager
 
 import httpx
+from websockets.asyncio.client import connect
 
 from lnbits.helpers import check_callback_url
+from lnbits.settings import settings
 from lnbits.utils.outbound import check_outbound_addresses, check_outbound_hostname
 
 
 class SafeHttpClient:
-    def __init__(self, *, timeout=10, follow_redirects=False, read_body=True):
+    def __init__(
+        self,
+        *,
+        timeout=10,
+        follow_redirects=False,
+        read_body=True,
+        private_endpoint=None,
+    ):
+        # Only trusted administrator configuration may provide this exception.
+        # It is confined to one origin/path and never permits redirects.
+        if private_endpoint is not None and follow_redirects:
+            raise ValueError("Private endpoint redirects are not allowed.")
+        self.private_endpoint = private_endpoint
         self.follow_redirects = follow_redirects
         self.read_body = read_body
         self.client = httpx.AsyncClient(
@@ -66,7 +83,9 @@ class SafeHttpClient:
     async def stream(self, method, url, **kwargs):
         request = self.client.build_request(method, url, **kwargs)
         for redirect in range(4):
-            addresses = await validate_url(request.url)
+            addresses = await validate_url(
+                request.url, private_endpoint=self.private_endpoint
+            )
             response = await self._send(request, addresses)
             try:
                 if not self.follow_redirects or not response.has_redirect_location:
@@ -112,17 +131,14 @@ class SafeHttpClient:
         raise ValueError("HTTP target could not be resolved.")
 
 
-async def validate_url(value) -> list[str]:
+async def validate_url(value, *, private_endpoint=None) -> list[str]:
     url = httpx.URL(value)
-    if (
-        url.scheme not in {"http", "https"}
-        or not url.host
-        or url.userinfo
-        or "%" in url.host
-    ):
-        raise ValueError("HTTP target is not allowed.")
+    _check_http_url(url)
     check_callback_url(str(url))
-    check_outbound_hostname(url.host)
+    if private_endpoint is None:
+        check_outbound_hostname(url.host)
+    else:
+        _check_endpoint_scope(url, httpx.URL(private_endpoint))
     try:
         infos = await asyncio.wait_for(
             asyncio.get_running_loop().getaddrinfo(
@@ -135,10 +151,92 @@ async def validate_url(value) -> list[str]:
         addresses = list(dict.fromkeys(ipaddress.ip_address(i[4][0]) for i in infos))
     except (OSError, ValueError, asyncio.TimeoutError) as exc:
         raise ValueError("HTTP target could not be resolved.") from exc
+    await _check_addresses(url, addresses, private_endpoint=private_endpoint)
+    return [str(address) for address in addresses]
+
+
+@asynccontextmanager
+async def safe_websocket(url, *, private_endpoint=None):
+    """Connect to a validated, pinned WebSocket target without redirects or proxies."""
+    target = httpx.URL(url)
+    if target.scheme not in {"ws", "wss"}:
+        raise ValueError("WebSocket target is not allowed.")
+    http_url = target.copy_with(scheme="https" if target.scheme == "wss" else "http")
+    addresses = await validate_url(http_url, private_endpoint=private_endpoint)
+    for index, address in enumerate(addresses):
+        connected = False
+        try:
+            async with _NoRedirectConnect(
+                str(target),
+                host=address,
+                port=target.port or (443 if target.scheme == "wss" else 80),
+                proxy=None,
+                open_timeout=5,
+                close_timeout=1,
+                max_size=1048576,
+            ) as websocket:
+                connected = True
+                yield websocket
+                return
+        except (OSError, asyncio.TimeoutError):
+            if connected or index == len(addresses) - 1:
+                raise
+
+
+class _NoRedirectConnect(connect):
+    def process_redirect(self, exc):
+        return exc
+
+
+def _check_http_url(url):
+    if (
+        url.scheme not in {"http", "https"}
+        or not url.host
+        or url.userinfo
+        or "%" in url.host
+    ):
+        raise ValueError("HTTP target is not allowed.")
+
+
+def _check_endpoint_scope(url, endpoint):
+    _check_http_url(endpoint)
+    if (
+        endpoint.query
+        or endpoint.fragment
+        or _origin(url) != _origin(endpoint)
+        or not (
+            url.path == endpoint.path
+            or url.path.startswith(endpoint.path.rstrip("/") + "/")
+        )
+        or b"%" in url.raw_path.split(b"?", 1)[0]
+    ):
+        raise ValueError("Request is outside the configured private endpoint.")
+
+
+async def _check_addresses(url, addresses, *, private_endpoint):
+    if (
+        addresses
+        and private_endpoint is not None
+        and all(_is_private_service_address(address) for address in addresses)
+    ):
+        if _origin(url) == _origin(httpx.URL(settings.lnbits_baseurl)):
+            raise ValueError("Requests to this server are not allowed.")
+        return
     if not addresses or any(not _is_public(address) for address in addresses):
         raise ValueError("HTTP target must resolve only to public addresses.")
+    check_outbound_hostname(url.host)
     await check_outbound_addresses(addresses)
-    return [str(address) for address in addresses]
+
+
+def _is_private_service_address(address):
+    # Explicit private services may use LAN/ULA or loopback addresses, never
+    # cloud metadata/link-local, multicast, unspecified or transition addresses.
+    networks = (
+        ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8")
+        if address.version == 4
+        else ("fc00::/7", "::1/128")
+    )
+    return any(address in ipaddress.ip_network(network) for network in networks)
 
 
 def _origin(url):

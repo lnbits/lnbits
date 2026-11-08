@@ -242,3 +242,142 @@ async def test_dns_failure_and_admin_rules_fail_closed(monkeypatch):
     with pytest.raises(ValueError):
         await safe_http.validate_url("https://public.example/")
     dns.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "address", ["127.0.0.1", "10.2.3.4", "172.20.0.2", "192.168.1.2", "::1", "fd00::1"]
+)
+async def test_private_endpoint_opt_in_is_scoped_and_pinned(monkeypatch, address):
+    resolve(monkeypatch, [address])
+    async with safe_http.SafeHttpClient(
+        private_endpoint="http://mempool.example:3006/testnet"
+    ) as client:
+        requests = []
+
+        def handler(request):
+            requests.append(request)
+            return httpx.Response(200, json=[])
+
+        client.client._transport = httpx.MockTransport(handler)
+        result = await client.get(
+            "http://mempool.example:3006/testnet/api/address/address/txs"
+        )
+        assert result.json() == []
+        assert requests[0].url.host == address
+        assert requests[0].headers["host"] == "mempool.example:3006"
+        for url in [
+            "http://other.example:3006/testnet/api",
+            "http://mempool.example:3007/testnet/api",
+            "http://mempool.example:3006/admin",
+            "http://mempool.example:3006/testnet/%2e%2e/admin",
+        ]:
+            with pytest.raises(ValueError):
+                await client.get(url)
+        assert len(requests) == 1
+    with pytest.raises(ValueError):
+        await safe_http.validate_url("http://mempool.example:3006/testnet/api")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "address",
+    [
+        "169.254.169.254",
+        "169.254.170.2",
+        "0.0.0.0",  # noqa: S104 - rejected destination, not a listening address
+        "224.0.0.1",
+        "::",
+        "fe80::1",
+        "ff02::1",
+        "::ffff:127.0.0.1",
+        "64:ff9b::7f00:1",
+        "100.100.100.200",
+    ],
+)
+async def test_private_opt_in_never_allows_metadata_or_special_addresses(
+    monkeypatch, address
+):
+    resolve(monkeypatch, [address])
+    with pytest.raises(ValueError):
+        await safe_http.validate_url(
+            "http://mempool.example/api", private_endpoint="http://mempool.example"
+        )
+
+
+@pytest.mark.anyio
+async def test_private_opt_in_keeps_public_self_and_mixed_dns_blocked(monkeypatch):
+    monkeypatch.setattr(settings, "lnbits_outbound_host_ips", ["8.8.8.8"])
+    resolve(monkeypatch, ["8.8.8.8"])
+    with pytest.raises(ValueError, match="this server"):
+        await safe_http.validate_url(
+            "https://alias.example/api", private_endpoint="https://alias.example"
+        )
+    resolve(monkeypatch, ["8.8.8.8", "10.0.0.2"])
+    with pytest.raises(ValueError):
+        await safe_http.validate_url(
+            "https://alias.example/api", private_endpoint="https://alias.example"
+        )
+    monkeypatch.setattr(settings, "lnbits_baseurl", "http://mempool.example:3006/")
+    resolve(monkeypatch, ["127.0.0.1"])
+    with pytest.raises(ValueError, match="this server"):
+        await safe_http.validate_url(
+            "http://mempool.example:3006/api",
+            private_endpoint="http://mempool.example:3006",
+        )
+
+
+def test_private_endpoint_cannot_enable_redirects():
+    with pytest.raises(ValueError, match="redirects"):
+        safe_http.SafeHttpClient(
+            private_endpoint="http://mempool.example", follow_redirects=True
+        )
+
+
+@pytest.mark.anyio
+async def test_websocket_pins_ip_preserving_origin_and_disables_proxy(monkeypatch):
+    from unittest.mock import Mock
+
+    resolve(monkeypatch, ["93.184.216.34"])
+    connection = AsyncMock()
+    factory = Mock(return_value=connection)
+    monkeypatch.setattr(safe_http, "_NoRedirectConnect", factory)
+    async with safe_http.safe_websocket("wss://mempool.example/api/v1/ws") as websocket:
+        assert websocket is connection.__aenter__.return_value
+    args, kwargs = factory.call_args
+    assert args == ("wss://mempool.example/api/v1/ws",)
+    assert kwargs["host"] == "93.184.216.34"
+    assert kwargs["port"] == 443 and kwargs["proxy"] is None
+    connection.__aexit__.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_websocket_rejects_private_without_opt_in(monkeypatch):
+    from unittest.mock import Mock
+
+    resolve(monkeypatch, ["127.0.0.1"])
+    factory = Mock(return_value=AsyncMock())
+    monkeypatch.setattr(safe_http, "_NoRedirectConnect", factory)
+    with pytest.raises(ValueError):
+        async with safe_http.safe_websocket("ws://mempool.example:3006/api/v1/ws"):
+            pytest.fail("connected")
+    factory.assert_not_called()
+    async with safe_http.safe_websocket(
+        "ws://mempool.example:3006/api/v1/ws",
+        private_endpoint="http://mempool.example:3006",
+    ):
+        pass
+    assert factory.call_args.kwargs["host"] == "127.0.0.1"
+
+
+def test_websocket_redirect_is_never_followed():
+    from websockets.datastructures import Headers
+    from websockets.exceptions import InvalidStatus
+    from websockets.http11 import Response
+
+    connection = safe_http._NoRedirectConnect(
+        "wss://mempool.example/api/v1/ws", proxy=None
+    )
+    for location in ["/admin", "ws://169.254.169.254/", "wss://other.example/"]:
+        error = InvalidStatus(Response(302, "Found", Headers({"Location": location})))
+        assert connection.process_redirect(error) is error
