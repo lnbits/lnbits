@@ -116,7 +116,11 @@ window.app.component('lnbits-payment-list', {
             name: 'fiat_amount',
             align: 'right',
             label: 'Fiat Amount',
-            field: row => row.extra.wallet_fiat_amount
+            field: row =>
+              this.formatFiatAmount(
+                row.extra.wallet_fiat_amount,
+                row.extra.wallet_fiat_currency
+              )
           },
           {
             name: 'comment',
@@ -451,6 +455,24 @@ window.app.component('lnbits-payment-list', {
       } catch (e) {
         console.error(e)
         return `${amount} ???`
+      }
+    },
+    formatFiatAmount(amount, currency) {
+      // Plain number with the currency's decimals, rounded like the wallet
+      // shows it. Spreadsheets using "." for thousands read 0.472 as 472.
+      if (amount === undefined || amount === null || !currency) return amount
+      try {
+        const {maximumFractionDigits} = new Intl.NumberFormat('en', {
+          style: 'currency',
+          currency
+        }).resolvedOptions()
+        return new Intl.NumberFormat('en', {
+          minimumFractionDigits: maximumFractionDigits,
+          maximumFractionDigits,
+          useGrouping: false
+        }).format(amount)
+      } catch {
+        return amount
       }
     },
     handleFilterChanged() {
