@@ -302,6 +302,44 @@ LNBITS_ADMIN_UI=true AUTH_HTTPS_ONLY=false ./result/bin/lnbits --port 9000 --hos
 <details>
 <summary><strong>Show Docker instructions</strong> (official image, volumes, extensions)</summary>
 
+### Automatic outbound protection in Docker
+
+On Linux, use the launcher below in place of `docker run`. It supplies the host's
+current interface addresses to LNbits, preventing user-controlled requests from
+looping back to services on the Docker host. It does not require privileged mode
+or mounting the Docker socket inside the container.
+
+```sh
+wget https://raw.githubusercontent.com/lnbits/lnbits/main/tools/docker-run.sh -O lnbits-docker-run.sh
+# Review the script before running it.
+bash lnbits-docker-run.sh --detach --publish 5000:5000 --name lnbits \
+  --volume ${PWD}/.env:/app/.env \
+  --volume ${PWD}/data/:/app/data \
+  lnbits/lnbits
+```
+
+Use it when creating or recreating a container; existing containers need to be
+recreated to receive the host addresses. Recreate it after host addresses change.
+The image must contain the outbound protection utility and the
+`LNBITS_OUTBOUND_HOST_IPS` setting.
+
+Native installations detect addresses assigned to the machine automatically.
+Containers detect only their own addresses unless the host supplies its addresses.
+Neither method can reliably discover a public address hidden by cloud NAT or a
+router. For those deployments, set `LNBITS_OUTBOUND_HOST_IPS` in the host shell
+before running the launcher (or in LNbits' `.env` for native installations).
+The launcher preserves these extra addresses as well as adding interface addresses.
+A CDN's shared IP addresses are not automatically blocked; the saved LNbits
+hostname itself is blocked. Keep `LNBITS_BASEURL` set to the canonical instance URL.
+
+The superuser's Security settings show the protection status. This policy applies
+to user-controlled destinations, including redirects; trusted funding-source
+connections retain their existing configuration. Known same-instance LNURL payment
+and withdrawal endpoints run inside LNbits without connecting to the host. Other
+self-directed webhooks and URL downloads are rejected, including alternate ports.
+Custom same-instance LNURL endpoints need explicit support in the internal dispatcher.
+Private-address opt-ins do not override the self-target protection.
+
 **Use latest image**
 
 ```sh

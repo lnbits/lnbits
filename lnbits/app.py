@@ -225,6 +225,7 @@ def create_app() -> FastAPI:
     if settings.profiler:
         add_profiler_middleware(app)
 
+    core_app_extra.local_lnurl_app = app
     return app
 
 
