@@ -3,7 +3,11 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from lnbits.core.crud.wallets import create_wallet, get_wallet
+from lnbits.core.crud.wallets import (
+    create_wallet,
+    get_wallet,
+    get_wallet_id_by_ln_address,
+)
 from lnbits.core.models.users import Account
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.services.users import create_user_account
@@ -306,6 +310,73 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
     assert response.status_code == 400
     assert (
         response.json()["detail"] == "Shared wallet ID is required for shared wallets."
+    )
+
+
+@pytest.mark.anyio
+async def test_wallet_api_update_shared_wallet(http_client: AsyncClient):
+    owner = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"owner_{uuid4().hex[:8]}",
+            email=f"owner_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    invited = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"invited_{uuid4().hex[:8]}",
+            email=f"invited_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    source_wallet = owner.wallets[0]
+    assert source_wallet.lightning_address
+
+    invite = await http_client.put(
+        "/api/v1/wallet/share/invite",
+        headers=_admin_headers(source_wallet.adminkey),
+        json={
+            "username": invited.username,
+            "permissions": ["view-payments"],
+            "status": "invite_sent",
+        },
+    )
+    assert invite.status_code == 200
+
+    create_shared = await http_client.post(
+        f"/api/v1/wallet?usr={invited.id}",
+        json={
+            "wallet_type": "lightning-shared",
+            "shared_wallet_id": source_wallet.id,
+        },
+    )
+    assert create_shared.status_code == 200
+    mirror_wallet = create_shared.json()
+    assert mirror_wallet["lightning_address"] == source_wallet.lightning_address
+
+    pinned = await http_client.patch(
+        "/api/v1/wallet",
+        headers=_admin_headers(mirror_wallet["adminkey"]),
+        json={"pinned": True},
+    )
+    assert pinned.status_code == 200
+    assert pinned.json()["extra"]["pinned"] is True
+    assert pinned.json()["lightning_address"] == source_wallet.lightning_address
+
+    reset = await http_client.put(
+        f"/api/v1/wallet/reset/{mirror_wallet['id']}?usr={invited.id}"
+    )
+    assert reset.status_code == 200
+    assert reset.json()["adminkey"] != mirror_wallet["adminkey"]
+
+    wallet = await get_wallet(mirror_wallet["id"])
+    assert wallet is not None
+    assert wallet.extra.pinned is True
+    assert wallet.adminkey == reset.json()["adminkey"]
+    assert wallet.lightning_address == source_wallet.lightning_address
+    assert (
+        await get_wallet_id_by_ln_address(source_wallet.lightning_address)
+        == source_wallet.id
     )
 
 
