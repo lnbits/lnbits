@@ -20,7 +20,7 @@ from lnbits.decorators import (
     check_api_write_access,
     check_user_exists,
 )
-from lnbits.settings import AuthMethods, settings
+from lnbits.settings import settings
 from lnbits.utils.exchange_rates import (
     allowed_currencies,
     fiat_amount_as_satoshis,
@@ -81,11 +81,7 @@ async def api_wallets(
 
 @api_router.post("/api/v1/account", response_model=None)
 async def api_create_account(data: CreateWallet):
-    if (
-        not settings.new_accounts_allowed
-        or not settings.is_auth_method_allowed(AuthMethods.user_id_only)
-        or settings.lnbits_require_user_activation
-    ):
+    if not settings.anonimous_account_creation_allowed:
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
             "Anonymous account creation is disabled. Contact the administrator "

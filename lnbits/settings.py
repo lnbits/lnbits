@@ -1414,6 +1414,14 @@ class Settings(  # pyright: ignore[reportIncompatibleVariableOverride]
             return list_parse_fallback(value)
         return value
 
+    @property
+    def anonimous_account_creation_allowed(self) -> bool:
+        return (
+            self.new_accounts_allowed
+            and self.is_auth_method_allowed(AuthMethods.user_id_only)
+            and not self.lnbits_require_user_activation
+        )
+
     def is_user_allowed(self, user_id: str) -> bool:
         return (
             len(self.lnbits_allowed_users) == 0
