@@ -16,9 +16,17 @@ normal LNbits database and funding configuration options.
 
 ## Persistence and backup
 
+Clicking **Launch LNbits** remembers the host, port, data folder, HTTPS/admin
+checkboxes, and funding selection for the next GUI launch. These preferences are
+stored in `launcher.json` under the standard application data directory
+(`~/.local/share/lnbits-desktop` on Linux, or `$XDG_DATA_HOME/lnbits-desktop` when set).
+The preferences stay there even when you select a different LNbits data folder.
+Explicit environment variables override the saved host, port, folder and checkbox
+values. Headless launches keep their existing command-line/environment behavior.
+
 The selected provider and port are remembered in `funding/profile.json` within
-the chosen LNbits data folder. Selecting Neither explicitly skips daemon startup
-for that launch. Each provider's identity is generated once:
+the chosen LNbits data folder. Selecting Neither explicitly skips daemon startup.
+Each provider's identity is generated once:
 
 - Spark: 24 words in `funding/spark/seed.dat`.
 - Phoenixd: 12 words in `funding/phoenixd/seed.dat`, alongside its database and

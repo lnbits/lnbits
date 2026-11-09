@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import contextlib
 import importlib.util
+import json
 import multiprocessing as mp
 import os
 import signal
@@ -14,7 +15,17 @@ import traceback
 import webbrowser
 from pathlib import Path
 
-from funding import PROVIDERS, Funding, load_profile, protect_settings
+from funding import PROVIDERS, Funding, load_profile, protect_settings, save_private
+
+LAUNCHER_SETTINGS = (
+    "HOST",
+    "PORT",
+    "LNBITS_DATA_FOLDER",
+    "AUTH_HTTPS_ONLY",
+    "LNBITS_ADMIN_UI",
+    "LNBITS_DESKTOP_FUNDING",
+    "LNBITS_DESKTOP_FUNDING_PORT",
+)
 
 
 def default_folder():
@@ -26,6 +37,27 @@ def default_folder():
         Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
         / "lnbits-desktop"
     )
+
+
+def load_launcher_settings():
+    try:
+        values = json.loads((default_folder() / "launcher.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(values, dict):
+        return {}
+    return {
+        key: values[key]
+        for key in LAUNCHER_SETTINGS
+        if isinstance(values.get(key), str)
+    }
+
+
+def save_launcher_settings(environment):
+    folder = default_folder()
+    folder.mkdir(parents=True, exist_ok=True)
+    values = {key: environment[key] for key in LAUNCHER_SETTINGS}
+    save_private(folder / "launcher.json", json.dumps(values))
 
 
 def configuration(
@@ -256,6 +288,8 @@ def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
+    saved = {} if smoke else load_launcher_settings()
+    defaults_env = {**saved, **os.environ}
     root = tk.Tk()
     root.title("LNbits")
     frame = ttk.Frame(root, padding=24)
@@ -284,7 +318,7 @@ def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
     ]
     for index, (key, label, default, tip) in enumerate(defaults):
         row = index * 2 + 1
-        fields[key] = tk.StringVar(value=os.environ.get(key, default))
+        fields[key] = tk.StringVar(value=defaults_env.get(key, default))
         ttk.Label(frame, text=label).grid(row=row, column=0, sticky="w", padx=(0, 12))
         ttk.Entry(frame, textvariable=fields[key], width=48).grid(
             row=row, column=1, sticky="ew"
@@ -300,10 +334,12 @@ def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
 
     ttk.Button(frame, text="Browse…", command=browse).grid(row=5, column=2, padx=(8, 0))
     https = tk.BooleanVar(
-        value=os.environ.get("AUTH_HTTPS_ONLY", "false").lower() in ("true", "1", "yes")
+        value=defaults_env.get("AUTH_HTTPS_ONLY", "false").lower()
+        in ("true", "1", "yes")
     )
     admin = tk.BooleanVar(
-        value=os.environ.get("LNBITS_ADMIN_UI", "true").lower() in ("true", "1", "yes")
+        value=defaults_env.get("LNBITS_ADMIN_UI", "true").lower()
+        in ("true", "1", "yes")
     )
     ttk.Checkbutton(frame, text="AUTH_HTTPS_ONLY", variable=https).grid(
         row=7, columnspan=3, sticky="w"
@@ -350,7 +386,18 @@ def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
 
     def load_funding(*_):
         try:
-            profile = load_profile(fields["LNBITS_DATA_FOLDER"].get())
+            folder = fields["LNBITS_DATA_FOLDER"].get()
+            profile = load_profile(folder)
+            if (
+                saved.get("LNBITS_DATA_FOLDER")
+                == str(Path(folder).expanduser().resolve())
+                and saved.get("LNBITS_DESKTOP_FUNDING") in funding_choices.values()
+            ):
+                profile = {
+                    **profile,
+                    "provider": saved["LNBITS_DESKTOP_FUNDING"],
+                    "port": saved.get("LNBITS_DESKTOP_FUNDING_PORT", "8765"),
+                }
             label = next(
                 (
                     label
@@ -454,6 +501,14 @@ def gui(smoke=False):  # noqa: C901 - Shared UI callbacks.
                 funding_port.get(),
                 accepted,
             )
+            if not smoke:
+                try:
+                    save_launcher_settings(env)
+                except OSError as exc:
+                    raise ValueError(
+                        "Cannot save launcher settings. Check write permissions for "
+                        f"{default_folder()}."
+                    ) from exc
             server = Server(env)
             server.start()
         except (ValueError, OSError) as exc:
