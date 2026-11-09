@@ -34,7 +34,7 @@ async def test_startup_updates_extensions_before_restoring_and_registering(mocke
     ]
 
 
-def test_hourly_extension_updates_are_registered(mocker):
+def test_scheduled_extension_updates_are_registered(mocker):
     manager = mocker.patch("lnbits.app.task_manager")
     mocker.patch("lnbits.app.initialize_server_websocket_logger")
 
@@ -44,10 +44,14 @@ def test_hourly_extension_updates_are_registered(mocker):
 
 
 @pytest.mark.anyio
-async def test_scheduled_extension_updates_wait_an_hour_between_checks(
-    settings, mocker, monkeypatch
+@pytest.mark.parametrize("interval", [1, 15, 60])
+async def test_scheduled_extension_updates_use_configured_interval(
+    settings, mocker, monkeypatch, interval
 ):
     monkeypatch.setattr(settings, "lnbits_running", True)
+    monkeypatch.setattr(
+        settings, "lnbits_autoupdate_extensions_interval_minutes", interval
+    )
     calls = mocker.Mock()
     sleep = mocker.patch("lnbits.core.tasks.asyncio.sleep")
     update = mocker.patch("lnbits.core.tasks.auto_update_extensions")
@@ -55,6 +59,7 @@ async def test_scheduled_extension_updates_wait_an_hour_between_checks(
     calls.attach_mock(update, "update")
 
     async def stop_after_two_checks(**kwargs):
+        settings.lnbits_autoupdate_extensions_interval_minutes = 5
         if update.await_count == 2:
             settings.lnbits_running = False
 
@@ -65,9 +70,41 @@ async def test_scheduled_extension_updates_wait_an_hour_between_checks(
     await task.task
 
     assert calls.mock_calls == [
-        mocker.call.sleep(3600),
+        mocker.call.sleep(interval * 60),
         mocker.call.update(reload_active=True),
-        mocker.call.sleep(3600),
+        mocker.call.sleep(5 * 60),
+        mocker.call.update(reload_active=True),
+    ]
+
+
+@pytest.mark.anyio
+async def test_scheduled_extension_updates_wait_while_disabled_and_can_be_enabled(
+    settings, mocker, monkeypatch
+):
+    monkeypatch.setattr(settings, "lnbits_running", True)
+    monkeypatch.setattr(settings, "lnbits_autoupdate_extensions_interval_minutes", 0)
+    calls = mocker.Mock()
+    sleep = mocker.patch("lnbits.core.tasks.asyncio.sleep")
+    update = mocker.patch("lnbits.core.tasks.auto_update_extensions")
+    calls.attach_mock(sleep, "sleep")
+    calls.attach_mock(update, "update")
+
+    async def enable_updates(_seconds):
+        settings.lnbits_autoupdate_extensions_interval_minutes = 2
+
+    async def stop_after_update(**kwargs):
+        settings.lnbits_running = False
+
+    sleep.side_effect = enable_updates
+    update.side_effect = stop_after_update
+    manager = TaskManager()
+    monkeypatch.setattr(manager, "tasks", [])
+    task = manager.create_permanent_task(scheduled_extension_updates)
+    await task.task
+
+    assert calls.mock_calls == [
+        mocker.call.sleep(60),
+        mocker.call.sleep(120),
         mocker.call.update(reload_active=True),
     ]
 

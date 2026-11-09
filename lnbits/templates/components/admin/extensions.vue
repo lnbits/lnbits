@@ -117,24 +117,19 @@
           <p>
             <span v-text="$t('miscellanous')"></span>
           </p>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>Automatically update extensions</q-item-label>
-              <q-item-label caption>
-                Update installed extensions, including deactivated ones, to the
-                latest compatible release when the server starts and every hour.
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_autoupdate_extensions"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
+          <q-input
+            dense
+            filled
+            class="q-mb-md"
+            v-model.number="
+              formData.lnbits_autoupdate_extensions_interval_minutes
+            "
+            type="number"
+            min="0"
+            step="1"
+            label="Extension update interval (minutes)"
+            hint="0 disables automatic updates, including startup checks."
+          ></q-input>
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label>

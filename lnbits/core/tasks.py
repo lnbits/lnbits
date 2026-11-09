@@ -37,9 +37,11 @@ async def refresh_extension_cache() -> None:
 
 
 async def scheduled_extension_updates() -> None:
-    # Startup already checks for updates; wait an hour before each subsequent check.
-    await asyncio.sleep(60 * 60)
-    await auto_update_extensions(reload_active=True)
+    interval = settings.lnbits_autoupdate_extensions_interval_minutes
+    # Poll once a minute while disabled so settings can enable updates without restart.
+    await asyncio.sleep(max(1, interval) * 60)
+    if interval > 0:
+        await auto_update_extensions(reload_active=True)
 
 
 async def notify_server_status() -> None:
