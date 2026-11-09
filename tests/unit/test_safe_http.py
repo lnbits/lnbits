@@ -321,6 +321,7 @@ async def test_private_endpoint_opt_in_is_scoped_and_pinned(monkeypatch, address
             "http://mempool.example:3007/testnet/api",
             "http://mempool.example:3006/admin",
             "http://mempool.example:3006/testnet/%2e%2e/admin",
+            r"http://mempool.example:3006/testnet/..\admin",
         ]:
             with pytest.raises(ValueError):
                 await client.get(url)
@@ -335,6 +336,7 @@ async def test_private_endpoint_opt_in_is_scoped_and_pinned(monkeypatch, address
     [
         "169.254.169.254",
         "169.254.170.2",
+        "fd00:ec2::254",
         "0.0.0.0",  # noqa: S104 - rejected destination, not a listening address
         "224.0.0.1",
         "::",
