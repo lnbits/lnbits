@@ -20,6 +20,7 @@ from nostr_sdk import (
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.services.nostr import (
+    _validate_relay_url,
     fetch_nip5_details,
     send_nostr_dm,
     send_nostr_dm_nip17,
@@ -70,7 +71,7 @@ class MockHTTPResponse:
 
 @pytest.mark.anyio
 async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
-    mocker: MockerFixture,
+    mocker: MockerFixture, safe_http_mock
 ):
     event = mocker.Mock()
     event.to_message.return_value = "nostr-message"
@@ -218,7 +219,7 @@ def test_normalize_identifier_keeps_hyphens():
 
 
 @pytest.fixture
-def nip17_sender(mocker: MockerFixture):
+def nip17_sender(mocker: MockerFixture, safe_http_mock):
     sender = Keys.generate()
     receiver = Keys.generate()
     client = mocker.Mock(spec=Client)
@@ -407,6 +408,7 @@ async def test_send_nip17_times_out_and_closes_client(
     mocker.patch(
         "lnbits.core.services.nostr.asyncio.wait_for", side_effect=short_timeout
     )
+    mocker.patch("lnbits.core.services.nostr._validate_relay_url", mocker.AsyncMock())
     client.connect.side_effect = never_connect
 
     with pytest.raises(ValueError, match="NIP-17 notification timed out"):
@@ -416,5 +418,110 @@ async def test_send_nip17_times_out_and_closes_client(
             "hi",
             ["wss://hint"],
         )
+    client.send_event_to.assert_not_awaited()
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("scheme", ["ws", "wss"])
+async def test_relay_validation_allows_public_urls_without_webhook_rules(
+    safe_http_mock, settings, scheme
+):
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    await _validate_relay_url(f"{scheme}://relay.example.com:8443/path")
+    resolver, _ = safe_http_mock
+    assert resolver.call_args.args == ("relay.example.com", 8443)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://relay.example.com",
+        "wss:///missing-host",
+        "wss://user:password@relay.example.com",
+        "wss://self.example.com",
+    ],
+)
+async def test_relay_validation_rejects_invalid_urls_before_dns(
+    safe_http_mock, settings, url
+):
+    settings.lnbits_baseurl = "https://self.example.com"
+    with pytest.raises(ValueError):
+        await _validate_relay_url(url)
+    resolver, _ = safe_http_mock
+    resolver.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "addresses",
+    [
+        ["127.0.0.1"],
+        ["10.0.0.1"],
+        ["169.254.169.254"],
+        ["::1"],
+        ["8.8.8.8"],
+        ["93.184.216.34", "127.0.0.1"],
+    ],
+)
+async def test_relay_validation_rejects_private_self_and_mixed_dns(
+    safe_http_mock, settings, addresses
+):
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_outbound_host_ips = ["8.8.8.8"]
+    resolver, _ = safe_http_mock
+    resolver.return_value = [
+        (
+            socket.AF_INET6 if ":" in ip else socket.AF_INET,
+            socket.SOCK_STREAM,
+            6,
+            "",
+            (ip, 443),
+        )
+        for ip in addresses
+    ]
+    with pytest.raises(ValueError):
+        await _validate_relay_url("wss://relay.example.com")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target", ["nip04", "nip17_discovery", "nip17_inbox"])
+async def test_senders_validate_relays_before_using_them(
+    nip17_sender, safe_http_mock, mocker, target
+):
+    sender, receiver, client = nip17_sender
+    resolver, _ = safe_http_mock
+
+    async def resolve(host, port, **kwargs):
+        ip = "127.0.0.1" if host == "internal.example.com" else "93.184.216.34"
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
+
+    resolver.side_effect = resolve
+    unsafe_relay = "ws://internal.example.com"
+    if target == "nip04":
+        connect = mocker.patch("lnbits.core.services.nostr.create_connection")
+        await send_nostr_dm(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            [unsafe_relay],
+        )
+        connect.assert_not_called()
+        return
+
+    relays = [unsafe_relay]
+    if target == "nip17_inbox":
+        relays = ["wss://discovery.example.com"]
+        client.fetch_events.return_value.to_vec.return_value = [
+            EventBuilder(Kind(10050), "")
+            .tags([Tag.parse(["relay", unsafe_relay])])
+            .sign_with_keys(receiver)
+        ]
+    with pytest.raises(ValueError, match="public addresses"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(), receiver.public_key().to_hex(), "hi", relays
+        )
+    assert client.add_relay.await_count == (1 if target == "nip17_inbox" else 0)
     client.send_event_to.assert_not_awaited()
     client.shutdown.assert_awaited_once()

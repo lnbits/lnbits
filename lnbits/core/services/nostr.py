@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta
 
+import httpx
 from loguru import logger
 from nostr_sdk import (
     Client,
@@ -21,7 +22,7 @@ from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,
 )
-from lnbits.utils.safe_http import SafeHttpClient
+from lnbits.utils.safe_http import SafeHttpClient, validate_url
 
 
 async def send_nostr_dm(
@@ -44,11 +45,12 @@ async def send_nostr_dm(
     ws_connections: list[WebSocket] = []
     for relay in relays:
         try:
+            await _validate_relay_url(relay)
             ws = create_connection(relay, timeout=2)
             ws.send(notification)
             ws_connections.append(ws)
         except Exception as e:
-            logger.warning(f"Error sending notification to relay {relay}: {e}")
+            logger.warning(f"Error sending Nostr notification: {type(e).__name__}")
     await asyncio.sleep(1)
     for ws in ws_connections:
         try:
@@ -115,6 +117,7 @@ async def _send_nip17_message(
 ) -> None:
     timeout = timedelta(seconds=5)
     for relay in relays:
+        await _validate_relay_url(relay)
         await client.add_relay(RelayUrl.parse(relay))
     await client.connect()
     await client.wait_for_connection(timeout)
@@ -140,6 +143,7 @@ async def _send_nip17_message(
         raise ValueError("Recipient's NIP-17 inbox relay list is empty")
 
     for relay_url in inbox_relays:
+        await _validate_relay_url(str(relay_url))
         await client.add_relay(relay_url)
     await client.connect()
     await client.wait_for_connection(timeout)
@@ -150,3 +154,14 @@ async def _send_nip17_message(
     result = await client.send_event_to(inbox_relays, event)
     if not result.success:
         raise ValueError("No NIP-17 inbox relay accepted the notification")
+
+
+async def _validate_relay_url(relay: str) -> None:
+    url = httpx.URL(relay)
+    if url.scheme not in {"ws", "wss"}:
+        raise ValueError("Invalid Nostr relay URL")
+    # Preflight only: the WebSocket clients still resolve DNS when connecting.
+    await validate_url(
+        url.copy_with(scheme="https" if url.scheme == "wss" else "http"),
+        apply_callback_rules=False,
+    )
