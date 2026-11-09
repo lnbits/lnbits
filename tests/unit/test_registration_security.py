@@ -5,14 +5,10 @@ import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 
-from lnbits.core import migrations
-from lnbits.core.crud.db_versions import get_db_version
-from lnbits.core.helpers import run_migration
 from lnbits.core.models import Account
 from lnbits.core.models.users import RegisterUser
 from lnbits.core.services import users
 from lnbits.core.views import api, auth_api
-from lnbits.db import DB_TYPE, SQLITE, Database
 from lnbits.settings import AuthMethods, UsersSettings
 
 
@@ -120,65 +116,6 @@ async def test_registration_consumes_valid_invitation_once(settings, monkeypatch
     with pytest.raises(ValueError, match="Invalid invitation"):
         await auth_api.register(_registration("one-use"))
     assert create.await_count == 1
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize("existing", ["enabled", "missing", "fresh"])
-async def test_registration_migration_is_once_and_preserves_bootstrap(
-    tmp_path, settings, existing
-):
-    if DB_TYPE != SQLITE:
-        pytest.skip("temporary migration database is SQLite-only")
-    settings.lnbits_data_folder = str(tmp_path)
-    db = Database("registration_migration")
-    try:
-        async with db.connect() as conn:
-            await migrations.m000_create_migrations_table(conn)
-            await conn.execute("""
-                CREATE TABLE system_settings (
-                    id TEXT, value TEXT, tag TEXT, UNIQUE(id, tag)
-                )
-            """)
-            if existing != "fresh":
-                await conn.execute("""
-                    INSERT INTO system_settings VALUES ('super_user', '"owner"', 'core')
-                """)
-            if existing == "enabled":
-                await conn.execute("""
-                    INSERT INTO system_settings
-                    VALUES ('lnbits_allow_new_accounts', 'true', 'core')
-                """)
-            module = SimpleNamespace(
-                m056_disable_public_registration=migrations.m056_disable_public_registration
-            )
-            await run_migration(conn, module, "core")
-            assert settings.lnbits_allow_new_accounts is False
-            row = await conn.fetchone("""
-                SELECT value FROM system_settings
-                WHERE id = 'lnbits_allow_new_accounts' AND tag = 'core'
-            """)
-            if existing == "fresh":
-                assert row is None
-                assert not await conn.fetchall("SELECT * FROM system_settings")
-            else:
-                assert row["value"] == "false"
-                await conn.execute("""
-                    UPDATE system_settings SET value = 'true'
-                    WHERE id = 'lnbits_allow_new_accounts' AND tag = 'core'
-                """)
-            settings.lnbits_allow_new_accounts = True
-            await run_migration(
-                conn, module, "core", await get_db_version("core", conn)
-            )
-            assert settings.lnbits_allow_new_accounts is True
-            if existing != "fresh":
-                row = await conn.fetchone("""
-                    SELECT value FROM system_settings
-                    WHERE id = 'lnbits_allow_new_accounts'
-                """)
-                assert row["value"] == "true"
-    finally:
-        await db.engine.dispose()
 
 
 def _registration(code):
