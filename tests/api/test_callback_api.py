@@ -1,9 +1,11 @@
 import json
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
+from lnbits.core.crud.payments import get_payments
 from lnbits.core.models import Account, CreateInvoice, Payment
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
@@ -620,3 +622,94 @@ async def test_square_invoice_payment_updates_existing_subscription_external_id(
     fiat_status_mock.assert_awaited_once_with(payment)
     get_payments_mock.assert_not_awaited()
     create_fiat_invoice_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_callback_api_stripe_invoice_paid_redelivery_reuses_payment(
+    http_client: AsyncClient, mocker, settings: Settings
+):
+    settings.stripe_enabled = True
+    settings.stripe_api_secret_key = "sk_test_1"
+    wallet_id, fiat_status_mock = await _setup_subscription_redelivery(mocker)
+    event = {
+        "id": "evt_invoice_paid",
+        "type": "invoice.paid",
+        "data": {
+            "object": {
+                "id": "invoice_1",
+                "currency": "usd",
+                "amount_paid": 500,
+                "parent": {
+                    "type": "subscription_details",
+                    "subscription_details": {
+                        "metadata": {
+                            "alan_action": "subscription",
+                            "wallet_id": wallet_id,
+                        }
+                    },
+                },
+            }
+        },
+    }
+
+    for _ in range(2):
+        response = await http_client.post(
+            "/api/v1/callback/stripe",
+            headers={"Stripe-Signature": "sig"},
+            json=event,
+        )
+        assert response.status_code == 200
+
+    payments = await get_payments(wallet_id=wallet_id)
+    assert [p.checking_id for p in payments] == ["fiat_stripe_invoice_1"]
+    assert fiat_status_mock.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_callback_api_paypal_sale_completed_redelivery_reuses_payment(
+    http_client: AsyncClient, mocker, settings: Settings
+):
+    settings.paypal_enabled = True
+    settings.paypal_client_id = "paypal-client"
+    settings.paypal_client_secret = "paypal-secret"
+    wallet_id, fiat_status_mock = await _setup_subscription_redelivery(mocker)
+    event = {
+        "id": "evt_sale_completed",
+        "event_type": "PAYMENT.SALE.COMPLETED",
+        "resource": {
+            "id": "sale_1",
+            "billing_agreement_id": "agreement_1",
+            "amount": {"currency": "USD", "total": "5.00"},
+            "custom_id": json.dumps([wallet_id, "vip"]),
+        },
+    }
+
+    for _ in range(2):
+        response = await http_client.post("/api/v1/callback/paypal", json=event)
+        assert response.status_code == 200
+
+    payments = await get_payments(wallet_id=wallet_id)
+    assert [p.checking_id for p in payments] == ["fiat_paypal_subscription_sale_1"]
+    assert fiat_status_mock.await_count == 2
+
+
+async def _setup_subscription_redelivery(mocker) -> tuple[str, AsyncMock]:
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    mocker.patch("lnbits.core.views.callback_api.check_stripe_signature")
+    mocker.patch(
+        "lnbits.core.views.callback_api.verify_paypal_webhook", mocker.AsyncMock()
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.fiat_amount_as_satoshis",
+        mocker.AsyncMock(return_value=5000),
+    )
+    fiat_status_mock = mocker.patch(
+        "lnbits.core.views.callback_api.check_fiat_status", mocker.AsyncMock()
+    )
+    return user.wallets[0].id, fiat_status_mock
