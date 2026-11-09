@@ -1,11 +1,15 @@
 """Restricted HTTP transport for user-controlled destinations.
 
-Extensions should use this client for arbitrary URLs supplied by users. It
-requires public destinations and applies the administrator callback URL rules.
+Core and extensions use this client for arbitrary URLs supplied by users. By
+default it requires public destinations and applies administrator callback rules.
+Non-callback protocols can disable those rules while retaining destination checks.
 Trusted internal integrations have separate connection requirements. An explicit
 private_endpoint supplied by trusted administrator configuration permits LAN/ULA
 and loopback destinations only within that origin/path; public self-addresses,
 metadata addresses and redirects remain blocked.
+
+Core webhooks may explicitly retain the administrator's legacy private-IP opt-in
+with allow_private_ips. This does not bypass callback rules or self-target checks.
 """
 
 import asyncio
@@ -21,22 +25,34 @@ from lnbits.settings import settings
 from lnbits.utils.outbound import check_outbound_addresses, check_outbound_hostname
 
 
+class UnsafeHttpDestinationError(ValueError):
+    """The request destination failed validation before connecting."""
+
+
 class SafeHttpClient:
     def __init__(
         self,
         *,
-        timeout=10,
+        timeout: float | httpx.Timeout | None = 10,
         follow_redirects=False,
         read_body=True,
         private_endpoint=None,
+        apply_callback_rules: bool = True,
+        allow_private_ips: bool = False,
     ):
         # Only trusted administrator configuration may provide this exception.
         # It is confined to one origin/path and never permits redirects.
         if private_endpoint is not None and follow_redirects:
             raise ValueError("Private endpoint redirects are not allowed.")
+        if allow_private_ips and (follow_redirects or private_endpoint is not None):
+            raise ValueError(
+                "Private callback access cannot use redirects or endpoints."
+            )
         self.private_endpoint = private_endpoint
         self.follow_redirects = follow_redirects
         self.read_body = read_body
+        self.apply_callback_rules = apply_callback_rules
+        self.allow_private_ips = allow_private_ips
         self.client = httpx.AsyncClient(
             timeout=timeout, follow_redirects=False, trust_env=False
         )
@@ -83,9 +99,15 @@ class SafeHttpClient:
     async def stream(self, method, url, **kwargs):
         request = self.client.build_request(method, url, **kwargs)
         for redirect in range(4):
-            addresses = await validate_url(
-                request.url, private_endpoint=self.private_endpoint
-            )
+            try:
+                addresses = await validate_url(
+                    request.url,
+                    private_endpoint=self.private_endpoint,
+                    apply_callback_rules=self.apply_callback_rules,
+                    allow_private_ips=self.allow_private_ips,
+                )
+            except (ValueError, httpx.InvalidURL) as exc:
+                raise UnsafeHttpDestinationError(str(exc)) from exc
             response = await self._send(request, addresses)
             try:
                 if not self.follow_redirects or not response.has_redirect_location:
@@ -131,10 +153,14 @@ class SafeHttpClient:
         raise ValueError("HTTP target could not be resolved.")
 
 
-async def validate_url(value, *, private_endpoint=None) -> list[str]:
+async def validate_url(
+    value, *, private_endpoint=None, apply_callback_rules=True, allow_private_ips=False
+) -> list[str]:
     url = httpx.URL(value)
     _check_http_url(url)
-    check_callback_url(str(url))
+    # Other protocols (e.g. WASM HTTP) enforce their own origin permissions.
+    if apply_callback_rules:
+        check_callback_url(str(url))
     if private_endpoint is None:
         check_outbound_hostname(url.host)
     else:
@@ -151,7 +177,12 @@ async def validate_url(value, *, private_endpoint=None) -> list[str]:
         addresses = list(dict.fromkeys(ipaddress.ip_address(i[4][0]) for i in infos))
     except (OSError, ValueError, asyncio.TimeoutError) as exc:
         raise ValueError("HTTP target could not be resolved.") from exc
-    await _check_addresses(url, addresses, private_endpoint=private_endpoint)
+    await _check_addresses(
+        url,
+        addresses,
+        private_endpoint=private_endpoint,
+        allow_private_ips=allow_private_ips,
+    )
     return [str(address) for address in addresses]
 
 
@@ -213,7 +244,9 @@ def _check_endpoint_scope(url, endpoint):
         raise ValueError("Request is outside the configured private endpoint.")
 
 
-async def _check_addresses(url, addresses, *, private_endpoint):
+async def _check_addresses(
+    url, addresses, *, private_endpoint, allow_private_ips=False
+):
     if (
         addresses
         and private_endpoint is not None
@@ -222,7 +255,9 @@ async def _check_addresses(url, addresses, *, private_endpoint):
         if _origin(url) == _origin(httpx.URL(settings.lnbits_baseurl)):
             raise ValueError("Requests to this server are not allowed.")
         return
-    if not addresses or any(not _is_public(address) for address in addresses):
+    if not addresses or (
+        not allow_private_ips and any(not _is_public(address) for address in addresses)
+    ):
         raise ValueError("HTTP target must resolve only to public addresses.")
     check_outbound_hostname(url.host)
     await check_outbound_addresses(addresses)

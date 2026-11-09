@@ -245,6 +245,56 @@ async def test_dns_failure_and_admin_rules_fail_closed(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_noncallback_requests_keep_destination_checks(monkeypatch):
+    dns = resolve(monkeypatch, ["93.184.216.34"])
+    monkeypatch.setattr(
+        settings, "lnbits_callback_url_rules", [r"https://allowed\.example"]
+    )
+    async with safe_http.SafeHttpClient(apply_callback_rules=False) as client:
+        client.client._transport = httpx.MockTransport(
+            lambda request: httpx.Response(200)
+        )
+        assert (await client.get("https://public.example/")).status_code == 200
+        dns.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))
+        ]
+        with pytest.raises(safe_http.UnsafeHttpDestinationError):
+            await client.get("https://public.example/")
+        with pytest.raises(safe_http.UnsafeHttpDestinationError):
+            await client.get("file:///tmp/key")
+
+
+@pytest.mark.parametrize(
+    "options",
+    [{"follow_redirects": True}, {"private_endpoint": "http://mempool.example"}],
+)
+def test_private_callback_opt_in_cannot_enable_redirects_or_endpoint_exceptions(
+    options,
+):
+    with pytest.raises(ValueError, match="Private callback access"):
+        safe_http.SafeHttpClient(allow_private_ips=True, **options)
+
+
+@pytest.mark.anyio
+async def test_pinned_connection_falls_back_without_resolving_again(monkeypatch):
+    dns = resolve(monkeypatch, ["93.184.216.34", "1.1.1.1"])
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        if len(calls) == 1:
+            raise httpx.ConnectError("unreachable")
+        return httpx.Response(200)
+
+    async with safe_http.SafeHttpClient() as client:
+        client.client._transport = httpx.MockTransport(handler)
+        assert (await client.get("https://public.example/")).status_code == 200
+    dns.assert_awaited_once()
+    assert [request.url.host for request in calls] == ["93.184.216.34", "1.1.1.1"]
+    assert all(request.headers["host"] == "public.example" for request in calls)
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "address", ["127.0.0.1", "10.2.3.4", "172.20.0.2", "192.168.1.2", "::1", "fd00::1"]
 )
