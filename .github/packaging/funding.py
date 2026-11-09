@@ -30,7 +30,15 @@ def load_profile(folder):
     if not path.exists():
         return {}
     profile = json.loads(path.read_text())
-    if not isinstance(profile, dict) or profile.get("provider") not in PROVIDERS:
+    if (
+        not isinstance(profile, dict)
+        or profile.get("provider") not in PROVIDERS
+        or not isinstance(profile.get("initialized_providers", []), list)
+        or any(
+            not isinstance(provider, str) or provider not in PROVIDERS
+            for provider in profile.get("initialized_providers", [])
+        )
+    ):
         raise ValueError(
             "The funding profile is invalid. Restore your data folder backup."
         )
@@ -129,15 +137,6 @@ class Funding:
 
                 fcntl.flock(self.lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             profile = load_profile(self.folder.parent)
-            if not profile and (self.folder.parent / "database.sqlite3").exists():
-                raise ValueError(
-                    "Choose a new data folder for bundled funding. Existing balances "
-                    "cannot be moved to a new funding wallet."
-                )
-            if profile and profile.get("provider") != self.provider:
-                raise ValueError(
-                    "Choose a separate data folder to use a different funding wallet."
-                )
             if self.provider == "phoenixd" and not (
                 profile.get("phoenix_terms")
                 or self.environment.get("LNBITS_DESKTOP_PHOENIX_TERMS") == "true"
@@ -151,7 +150,11 @@ class Funding:
             raise
 
     def _start(self, resources, node, profile):
+        initialized = set(profile.get("initialized_providers", []))
+        if profile.get("provider"):
+            initialized.add(profile["provider"])
         data = self.folder / self.provider
+        existing_data = data.exists()
         data.mkdir(mode=0o700, exist_ok=True)
         seed_file = data / "seed.dat"
         if seed_file.exists():
@@ -161,7 +164,7 @@ class Funding:
                     "The saved funding seed is invalid. Restore your backup; "
                     "it will not be replaced."
                 )
-        elif profile:
+        elif self.provider in initialized or existing_data:
             raise ValueError(
                 "The funding seed is missing. Restore your backup; "
                 "a replacement wallet will not be created."
@@ -171,7 +174,12 @@ class Funding:
                 secrets.token_bytes(32 if self.provider == "spark" else 16)
             )
             save_private(seed_file, mnemonic + "\n")
-        profile.update(provider=self.provider, port=self.port)
+        initialized.add(self.provider)
+        profile.update(
+            provider=self.provider,
+            port=self.port,
+            initialized_providers=sorted(initialized),
+        )
         if self.provider == "phoenixd":
             profile["phoenix_terms"] = True
         save_private(self.folder / "profile.json", json.dumps(profile))

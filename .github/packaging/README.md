@@ -7,10 +7,11 @@ an authenticated wallet API response, and configure the existing LNbits backend.
 Python, Node.js and the daemons do not need to be installed by the user.
 An internet connection is needed for either funding service.
 
-Managed funding requires a new local SQLite data folder on first setup. An
-existing LNbits database cannot be attached to a newly generated backing wallet,
-and changing between Spark and Phoenixd requires a separate data folder. These
-guards prevent existing user balances being backed by a different wallet.
+You can switch between Spark and Phoenixd using the same LNbits data folder.
+Stop the app, select the other provider, and launch again. The launcher sets the
+selected funding source's environment variables and keeps the LNbits database.
+Each provider retains its own seed and runtime data, so switching back reuses its
+existing wallet. Switching providers does not transfer funds between them.
 External database URLs are not supported in managed mode. Neither retains the
 normal LNbits database and funding configuration options.
 
