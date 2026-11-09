@@ -48,6 +48,8 @@ args = [
     "--specpath",
     "build",
     "--hidden-import=embit",
+    # Wally's SWIG wrapper imports this top-level native module dynamically.
+    "--hidden-import=_wallycore",
     "--hidden-import=bitstring.bitstore_bitarray",
     "--collect-data=pyinstrument",
     "--collect-data=random_username",
