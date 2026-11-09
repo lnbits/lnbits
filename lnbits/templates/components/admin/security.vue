@@ -482,6 +482,12 @@
             </div>
             <div class="col-12 col-md-6">
               <q-item tag="label" v-ripple>
+                <q-tooltip>
+                  Not recommended. Enabling private-IP callbacks can let users
+                  probe internal services and cloud metadata endpoints (SSRF).
+                  Keep this disabled unless you have restricted callbacks to
+                  trusted destinations.
+                </q-tooltip>
                 <q-item-section>
                   <q-item-label
                     v-text="$t('callback_allow_private_ips')"
