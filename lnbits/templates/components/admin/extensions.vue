@@ -119,6 +119,24 @@
           </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
+              <q-item-label>Automatically update extensions</q-item-label>
+              <q-item-label caption>
+                Update installed extensions, including deactivated ones, to the
+                latest compatible release when the server starts.
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_autoupdate_extensions"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
               <q-item-label>
                 <span v-text="$t('misc_disable_extensions')"></span>
               </q-item-label>

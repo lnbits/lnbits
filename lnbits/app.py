@@ -26,7 +26,11 @@ from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
 from lnbits.core.helpers import migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
+from lnbits.core.services.extensions import (
+    auto_update_extensions,
+    deactivate_extension,
+    get_valid_extensions,
+)
 from lnbits.core.services.funding_source import (
     check_balance_delta_changed,
     check_server_balance_against_node,
@@ -550,6 +554,7 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
+    await auto_update_extensions()
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:

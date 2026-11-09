@@ -1,13 +1,17 @@
 import asyncio
 import importlib
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import RLock
 from typing import Any
 from uuid import uuid4
 
 from loguru import logger
+from packaging.version import InvalidVersion, Version
 
 from lnbits.core import core_app_extra
 from lnbits.core.crud import (
@@ -47,8 +51,10 @@ from lnbits.utils.error import safe_error_message
 
 from ..models.extensions import (
     Extension,
+    ExtensionConfig,
     ExtensionMeta,
     ExtensionPermission,
+    ExtensionRelease,
     InstallableExtension,
     WasmInvocation,
     WasmInvocationStats,
@@ -246,6 +252,22 @@ async def install_extension(
         await stop_extension_background_work(ext_info.id)
 
     return Extension.from_installable_ext(ext_info)
+
+
+async def auto_update_extensions() -> None:
+    if not settings.lnbits_autoupdate_extensions:
+        return
+
+    for ext in await get_installed_extensions():
+        if not settings.lnbits_running:
+            return
+        try:
+            release = await _latest_extension_update(ext)
+            if release:
+                await _update_extension_at_startup(ext, release)
+                logger.info(f"Updated extension {ext.id} to {release.version}.")
+        except Exception:
+            logger.warning(f"Could not automatically update extension '{ext.id}'.")
 
 
 async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
@@ -775,3 +797,99 @@ async def _ensure_wasm_extension_schedules(ext):
         await scheduler.stop_namespace(f"extension:{ext.code}")
         raise
     return
+
+
+async def _latest_extension_update(
+    ext: InstallableExtension,
+) -> ExtensionRelease | None:
+    installed = ext.meta.installed_release if ext.meta else None
+    if not installed or not installed.source_repo:
+        return None
+    latest = None
+    latest_version = Version(installed.version)
+    for release in await InstallableExtension.get_extension_releases(ext.id):
+        if (
+            release.source_repo != installed.source_repo
+            or not release.is_version_compatible
+        ):
+            continue
+        try:
+            version = Version(release.version)
+        except InvalidVersion:
+            continue
+        if not version.is_prerelease and version > latest_version:
+            latest, latest_version = release, version
+    return latest
+
+
+async def _update_extension_at_startup(
+    ext: InstallableExtension, release: ExtensionRelease
+) -> None:
+    updated = ext.model_copy(deep=True)
+    assert updated.meta
+    release = release.model_copy(deep=True)
+    if release.pay_link:
+        payment = ext.find_existing_payment(release.pay_link)
+        if payment:
+            release.payment_hash = payment.payment_hash
+        elif (
+            updated.meta.installed_release
+            and updated.meta.installed_release.pay_link == release.pay_link
+        ):
+            release.payment_hash = updated.meta.installed_release.payment_hash
+    updated.version = release.version
+    updated.meta.installed_release = release
+
+    # Downloads replace the cached zip, which may be the only copy after a restart.
+    zip_path = updated.zip_path
+    with TemporaryDirectory(dir=zip_path.parent) as backup_dir:
+        backup = Path(backup_dir, zip_path.name)
+        if zip_path.is_file():
+            zip_path.replace(backup)
+        installing = False
+        try:
+            await updated.download_archive()
+            permissions = _validate_extension_update(updated)
+            if not settings.lnbits_running:
+                raise ValueError("Server stopped before extension update completed.")
+            # Startup migrations may already have imported the installed version.
+            module_name = updated.module_name
+            stale = [
+                name
+                for name in sys.modules
+                if name == module_name or name.startswith(f"{module_name}.")
+            ]
+            for name in stale:
+                del sys.modules[name]
+            importlib.invalidate_caches()
+            installing = True
+            await install_extension(
+                updated, skip_download=True, granted_permissions=permissions
+            )
+        except Exception:
+            zip_path.unlink(missing_ok=True)
+            if backup.is_file():
+                backup.replace(zip_path)
+            if installing:
+                settings.deactivate_extension_paths(ext.id)
+                await update_installed_extension_state(ext_id=ext.id, active=False)
+            raise
+
+
+def _validate_extension_update(ext: InstallableExtension) -> list[ExtensionPermission]:
+    config = ext.load_archive_config()
+    if not ExtensionConfig.model_validate(config).is_version_compatible():
+        raise ValueError("Incompatible extension version")
+    ext.validate_archive(config)
+    if config.get("extension_type") != "wasm":
+        return []
+
+    requested = ExtensionPermission.list_from_config(config)
+    granted = {permission.id: permission.policies for permission in ext.permissions}
+    if any(
+        permission.id not in granted or permission.policies != granted[permission.id]
+        for permission in requested
+    ):
+        logger.info(f"Skipping extension '{ext.id}': permission approval required.")
+        raise ValueError("Extension update requires permission approval.")
+    return validate_wasm_extension_permissions(ext, requested, config)

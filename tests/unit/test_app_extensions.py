@@ -4,8 +4,31 @@ from pathlib import Path
 import pytest
 from pytest_mock.plugin import MockerFixture
 
-from lnbits.app import build_all_installed_extensions_list
+from lnbits.app import (
+    build_all_installed_extensions_list,
+    check_and_register_extensions,
+)
 from lnbits.settings import Settings
+
+
+@pytest.mark.anyio
+async def test_startup_updates_extensions_before_restoring_and_registering(mocker):
+    calls = mocker.Mock()
+    for name in (
+        "auto_update_extensions",
+        "check_installed_extensions",
+        "get_valid_extensions",
+    ):
+        calls.attach_mock(mocker.patch(f"lnbits.app.{name}", return_value=[]), name)
+    app = mocker.Mock()
+
+    await check_and_register_extensions(app)
+
+    assert calls.mock_calls == [
+        mocker.call.auto_update_extensions(),
+        mocker.call.check_installed_extensions(app),
+        mocker.call.get_valid_extensions(False),
+    ]
 
 
 @pytest.mark.anyio
