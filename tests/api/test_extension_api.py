@@ -929,3 +929,63 @@ def _wasm_config(ext_id: str, permissions: list[dict] | None = None) -> dict:
             }
         ],
     }
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("installed", [True, False], ids=["upgrade", "new-install"])
+@pytest.mark.parametrize("is_wasm", [False, True], ids=["python", "wasm"])
+async def test_failed_extension_install_preserves_existing_files(
+    app, tmp_path, settings, mocker, monkeypatch, installed, is_wasm
+):
+    monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path / "data"))
+    monkeypatch.setattr(settings, "lnbits_extensions_path", str(tmp_path / "code"))
+    monkeypatch.setattr(settings, "lnbits_wasm_extensions_path", str(tmp_path / "wasm"))
+    ext_id = f"ext_{uuid4().hex[:8]}"
+    previous = make_installable_extension(ext_id)
+    upgrade = make_installable_extension(ext_id, version="2.0.0")
+    release = make_extension_release(ext_id, version="2.0.0")
+    mocker.patch.object(
+        InstallableExtension,
+        "get_extension_release",
+        mocker.AsyncMock(return_value=release),
+    )
+    mocker.patch(
+        "lnbits.core.views.extension_api.install_extension",
+        mocker.AsyncMock(
+            side_effect=AssertionError("Cannot fetch extension archive file")
+        ),
+    )
+    directory = previous.wasm_ext_dir if is_wasm else previous.ext_dir
+    directory.mkdir(parents=True)
+    sentinel = directory / "installed-version.txt"
+    sentinel.write_text("working version")
+    config = {"extension_type": "wasm"} if is_wasm else {}
+    with zipfile.ZipFile(upgrade.zip_path, "w") as archive:
+        archive.writestr("extension/config.json", json.dumps(config))
+    if not is_wasm:
+        upgrade.ext_upgrade_dir.mkdir(parents=True)
+        (upgrade.ext_upgrade_dir / "partial.txt").write_text("partial upgrade")
+    if installed:
+        await create_installed_extension(previous)
+    before = await get_installed_extension(ext_id)
+    try:
+        with pytest.raises(HTTPException) as exc:
+            await api_install_extension(
+                CreateExtension(
+                    ext_id=ext_id,
+                    archive=release.archive,
+                    source_repo=release.source_repo,
+                    version=release.version,
+                )
+            )
+        assert exc.value.status_code == 400
+        assert exc.value.detail == "Cannot fetch extension archive file"
+        if installed:
+            assert sentinel.read_text() == "working version"
+        else:
+            assert not directory.exists()
+        assert not upgrade.zip_path.exists()
+        assert not upgrade.ext_upgrade_dir.exists()
+        assert await get_installed_extension(ext_id) == before
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
