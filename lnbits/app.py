@@ -52,6 +52,7 @@ from lnbits.core.tasks import (
     notify_server_status,
     process_next_audit_entry,
     refresh_extension_cache,
+    scheduled_extension_updates,
 )
 from lnbits.core.wasm_ext.routes.register import (
     register_wasm_extension,
@@ -601,6 +602,7 @@ def register_async_tasks() -> None:
         interval=60 * 60 * settings.lnbits_notification_server_status_hours,
     )
     task_manager.create_permanent_task(refresh_extension_cache, interval=60)
+    task_manager.create_permanent_task(scheduled_extension_updates)
 
     # permanent tasks run in a loop, will be restarted if they fail
     task_manager.create_permanent_task(fundingsource_invoice_producer)

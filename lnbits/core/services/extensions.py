@@ -198,6 +198,7 @@ async def install_extension(
     skip_download: bool | None = False,
     granted_permissions: list[ExtensionPermission] | None = None,
     allow_admin_policy_overrides: bool = False,
+    stop_background_work: bool = True,
 ) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
@@ -248,14 +249,17 @@ async def install_extension(
     else:
         await update_installed_extension(ext_info)
 
-    if installed_ext:
+    if installed_ext and stop_background_work:
         await stop_extension_background_work(ext_info.id)
 
     return Extension.from_installable_ext(ext_info)
 
 
-async def auto_update_extensions() -> None:
-    if not settings.lnbits_autoupdate_extensions:
+async def auto_update_extensions(*, reload_active: bool = False) -> None:
+    if (
+        not settings.lnbits_autoupdate_extensions
+        or settings.lnbits_extensions_deactivate_all
+    ):
         return
 
     for ext in await get_installed_extensions():
@@ -264,7 +268,15 @@ async def auto_update_extensions() -> None:
         try:
             release = await _latest_extension_update(ext)
             if release:
-                await _update_extension_at_startup(ext, release)
+                extension = await _auto_update_extension(
+                    ext, release, reload_active=reload_active
+                )
+                if reload_active and ext.active:
+                    try:
+                        await activate_extension(extension)
+                    except (Exception, asyncio.CancelledError):
+                        await deactivate_extension(ext.id)
+                        raise
                 logger.info(f"Updated extension {ext.id} to {release.version}.")
         except Exception:
             logger.warning(f"Could not automatically update extension '{ext.id}'.")
@@ -822,9 +834,9 @@ async def _latest_extension_update(
     return latest
 
 
-async def _update_extension_at_startup(
-    ext: InstallableExtension, release: ExtensionRelease
-) -> None:
+async def _auto_update_extension(
+    ext: InstallableExtension, release: ExtensionRelease, *, reload_active: bool
+) -> Extension:
     updated = ext.model_copy(deep=True)
     assert updated.meta
     release = release.model_copy(deep=True)
@@ -840,39 +852,38 @@ async def _update_extension_at_startup(
     updated.version = release.version
     updated.meta.installed_release = release
 
-    # Downloads replace the cached zip, which may be the only copy after a restart.
+    # Stage downloads so cancellation cannot discard the installed release's archive.
     zip_path = updated.zip_path
     with TemporaryDirectory(dir=zip_path.parent) as backup_dir:
-        backup = Path(backup_dir, zip_path.name)
+        downloaded = Path(backup_dir, "update.zip")
+        await updated.download_archive(archive_path=downloaded)
+        backup = Path(backup_dir, "installed.zip")
         if zip_path.is_file():
             zip_path.replace(backup)
         installing = False
         try:
-            await updated.download_archive()
+            downloaded.replace(zip_path)
+            current = await get_installed_extension(ext.id)
+            if not current or current.meta != ext.meta:
+                raise ValueError("Installed extension changed during update.")
+            # Downloads can outlast an admin changing activation or permission grants.
+            updated.active = ext.active = current.active
+            updated.permissions = current.permissions
             permissions = _validate_extension_update(updated)
-            if not settings.lnbits_running:
-                raise ValueError("Server stopped before extension update completed.")
-            # Startup migrations may already have imported the installed version.
-            module_name = updated.module_name
-            stale = [
-                name
-                for name in sys.modules
-                if name == module_name or name.startswith(f"{module_name}.")
-            ]
-            for name in stale:
-                del sys.modules[name]
-            importlib.invalidate_caches()
+            if (
+                not settings.lnbits_running
+                or not settings.lnbits_autoupdate_extensions
+                or settings.lnbits_extensions_deactivate_all
+            ):
+                raise ValueError("Extension auto-update stopped before installation.")
             installing = True
-            await install_extension(
-                updated, skip_download=True, granted_permissions=permissions
-            )
-        except Exception:
+            return await _install_extension_update(updated, permissions, reload_active)
+        except (Exception, asyncio.CancelledError):
             zip_path.unlink(missing_ok=True)
             if backup.is_file():
                 backup.replace(zip_path)
             if installing:
-                settings.deactivate_extension_paths(ext.id)
-                await update_installed_extension_state(ext_id=ext.id, active=False)
+                await deactivate_extension(ext.id)
             raise
 
 
@@ -893,3 +904,28 @@ def _validate_extension_update(ext: InstallableExtension) -> list[ExtensionPermi
         logger.info(f"Skipping extension '{ext.id}': permission approval required.")
         raise ValueError("Extension update requires permission approval.")
     return validate_wasm_extension_permissions(ext, requested, config)
+
+
+async def _install_extension_update(
+    updated: InstallableExtension,
+    permissions: list[ExtensionPermission],
+    reload_active: bool,
+) -> Extension:
+    if reload_active and updated.active:
+        # Stop the running version before clearing its modules or replacing its files.
+        await deactivate_extension(updated.id)
+    module_name = updated.module_name
+    stale = [
+        name
+        for name in sys.modules
+        if name == module_name or name.startswith(f"{module_name}.")
+    ]
+    for name in stale:
+        del sys.modules[name]
+    importlib.invalidate_caches()
+    return await install_extension(
+        updated,
+        skip_download=True,
+        granted_permissions=permissions,
+        stop_background_work=not reload_active,
+    )

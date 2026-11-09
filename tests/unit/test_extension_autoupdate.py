@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import json
 import sys
@@ -5,7 +6,10 @@ import zipfile
 from types import SimpleNamespace
 
 import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
+from lnbits.app import register_new_ext_routes
 from lnbits.core.models.extensions import (
     ExtensionPermission,
     InstallableExtension,
@@ -22,6 +26,7 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
     monkeypatch.setattr(settings, "lnbits_extensions_path", str(tmp_path / "code"))
     monkeypatch.setattr(settings, "lnbits_wasm_extensions_path", str(tmp_path / "wasm"))
     monkeypatch.setattr(settings, "lnbits_autoupdate_extensions", True)
+    monkeypatch.setattr(settings, "lnbits_extensions_deactivate_all", False)
     monkeypatch.setattr(settings, "lnbits_running", True)
     monkeypatch.setattr(settings, "lnbits_deactivated_extensions", set())
     monkeypatch.syspath_prepend(str(tmp_path / "code" / "extensions"))
@@ -44,7 +49,15 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
             if config.get("extension_type") == "wasm":
                 archive.writestr(f"{ext.id}/extension.wasm", b"module")
             else:
-                archive.writestr(f"{ext.id}/__init__.py", "VERSION = '2.0.0'\n")
+                archive.writestr(
+                    f"{ext.id}/__init__.py",
+                    "from fastapi import APIRouter\n"
+                    "VERSION = '2.0.0'\n"
+                    f"{ext.id}_ext = APIRouter(prefix='/{ext.id}')\n"
+                    f"@{ext.id}_ext.get('/version')\n"
+                    "async def version():\n"
+                    "    return VERSION\n",
+                )
 
     download_mock = mocker.patch(
         "lnbits.core.models.extensions.download_url", side_effect=download
@@ -58,7 +71,7 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
     migrate = mocker.patch.object(services, "migrate_extension_database")
     save = mocker.patch.object(services, "update_installed_extension")
     deactivate = mocker.patch.object(services, "update_installed_extension_state")
-    mocker.patch.object(services, "stop_extension_background_work")
+    stop = mocker.patch.object(services, "stop_extension_background_work")
     mocker.patch.object(services, "load_wasm_extension")
     mocker.patch.object(services, "warm_wasm_extension")
     yield SimpleNamespace(
@@ -70,6 +83,7 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
         migrate=migrate,
         save=save,
         deactivate=deactivate,
+        stop=stop,
     )
     sys.modules.pop(ext.module_name, None)
 
@@ -84,8 +98,12 @@ def test_autoupdate_setting_defaults_on_and_can_be_disabled(monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_autoupdate_disabled_does_not_fetch(update_context, settings):
-    settings.lnbits_autoupdate_extensions = False
+@pytest.mark.parametrize("disable_all", [True, False])
+async def test_autoupdate_disabled_does_not_fetch(
+    update_context, settings, disable_all
+):
+    settings.lnbits_autoupdate_extensions = disable_all
+    settings.lnbits_extensions_deactivate_all = disable_all
     await services.auto_update_extensions()
     update_context.releases.assert_not_awaited()
     update_context.download.assert_not_called()
@@ -233,3 +251,162 @@ async def test_autoupdate_shutdown_during_download_does_not_install(
     ctx.save.assert_not_awaited()
     ctx.deactivate.assert_not_awaited()
     assert ctx.ext.zip_path.read_bytes() == b"cached installed release"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("active", [True, False])
+async def test_periodic_autoupdate_reloads_only_active_python_extensions(
+    update_context, settings, mocker, monkeypatch, active
+):
+    ctx = update_context
+    ctx.ext.active = active
+    if not active:
+        settings.lnbits_deactivated_extensions.add(ctx.ext.id)
+    app = FastAPI()
+
+    @app.get(f"/{ctx.ext.id}/version")
+    async def old_version():
+        return "1.0.0"
+
+    monkeypatch.setitem(
+        sys.modules, ctx.ext.module_name, SimpleNamespace(VERSION="1.0.0")
+    )
+
+    async def stop(ext_id):
+        assert ext_id == ctx.ext.id
+        assert sys.modules[ctx.ext.module_name].VERSION == "1.0.0"
+        assert ctx.ext.id in settings.lnbits_deactivated_extensions
+
+    ctx.stop.side_effect = stop
+    mocker.patch.object(
+        services.core_app_extra,
+        "register_new_ext_routes",
+        side_effect=register_new_ext_routes(app),
+    )
+    start = mocker.patch.object(services, "start_extension_background_work")
+
+    await services.auto_update_extensions(reload_active=True)
+
+    assert ctx.save.await_args.args[0].active is active
+    if active:
+        ctx.stop.assert_awaited_once_with(ctx.ext.id)
+        start.assert_awaited_once_with(ctx.ext.id)
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(f"/{ctx.ext.id}/version")
+        assert response.json() == "2.0.0"
+        assert ctx.ext.id not in settings.lnbits_deactivated_extensions
+    else:
+        ctx.stop.assert_not_awaited()
+        start.assert_not_awaited()
+        assert ctx.ext.id in settings.lnbits_deactivated_extensions
+
+
+@pytest.mark.anyio
+async def test_periodic_autoupdate_reloads_wasm_routes_and_schedules(
+    update_context, mocker
+):
+    ctx = update_context
+    ctx.config.update(extension_type="wasm", wasm={"module": "extension.wasm"})
+    register = mocker.patch.object(
+        services.core_app_extra, "register_new_wasm_ext_routes"
+    )
+    schedules = mocker.patch.object(services, "ensure_wasm_extension_schedules")
+
+    await services.auto_update_extensions(reload_active=True)
+
+    register.assert_called_once_with(ctx.ext.id)
+    schedules.assert_awaited_once_with(ctx.ext.id)
+    ctx.stop.assert_awaited_once_with(ctx.ext.id)
+
+
+@pytest.mark.anyio
+async def test_periodic_autoupdate_activation_failure_leaves_extension_disabled(
+    update_context, settings, mocker
+):
+    ctx = update_context
+    mocker.patch.object(
+        services, "activate_extension", side_effect=ValueError("Cannot load routes")
+    )
+
+    await services.auto_update_extensions(reload_active=True)
+
+    ctx.save.assert_awaited_once()
+    assert ctx.deactivate.await_args.kwargs == {"ext_id": ctx.ext.id, "active": False}
+    assert ctx.ext.id in settings.lnbits_deactivated_extensions
+    # Installation committed the new version before activation failed.
+    assert ctx.ext.load_archive_config()["version"] == ctx.release.version
+
+
+@pytest.mark.anyio
+async def test_periodic_autoupdate_preserves_deactivation_during_download(
+    update_context, settings, mocker
+):
+    ctx = update_context
+    download = ctx.download.side_effect
+
+    def deactivate_during_download(url, path):
+        download(url, path)
+        ctx.ext.active = False
+        settings.lnbits_deactivated_extensions.add(ctx.ext.id)
+
+    ctx.download.side_effect = deactivate_during_download
+    activate = mocker.patch.object(services, "activate_extension")
+
+    await services.auto_update_extensions(reload_active=True)
+
+    assert ctx.save.await_args.args[0].active is False
+    activate.assert_not_awaited()
+    assert ctx.ext.id in settings.lnbits_deactivated_extensions
+
+
+@pytest.mark.anyio
+async def test_periodic_autoupdate_preserves_permissions_revoked_during_download(
+    update_context,
+):
+    ctx = update_context
+    permission = ExtensionPermission(id="wallet.read")
+    ctx.ext.permissions = [permission]
+    ctx.config.update(
+        extension_type="wasm",
+        wasm={"module": "extension.wasm"},
+        permissions=[permission.model_dump()],
+    )
+    download = ctx.download.side_effect
+
+    def revoke_during_download(url, path):
+        download(url, path)
+        ctx.ext.permissions = []
+
+    ctx.download.side_effect = revoke_during_download
+
+    await services.auto_update_extensions(reload_active=True)
+
+    ctx.save.assert_not_awaited()
+    ctx.stop.assert_not_awaited()
+    assert ctx.ext.zip_path.read_bytes() == b"cached installed release"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("phase", ["download", "migration"])
+async def test_autoupdate_cancellation_preserves_cached_archive(
+    update_context, settings, mocker, phase
+):
+    ctx = update_context
+    if phase == "download":
+        mocker.patch.object(
+            InstallableExtension, "download_archive", side_effect=asyncio.CancelledError
+        )
+    else:
+        ctx.migrate.side_effect = asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        await services.auto_update_extensions(reload_active=True)
+
+    assert ctx.ext.zip_path.read_bytes() == b"cached installed release"
+    ctx.save.assert_not_awaited()
+    if phase == "migration":
+        assert ctx.ext.id in settings.lnbits_deactivated_extensions
+    else:
+        ctx.deactivate.assert_not_awaited()

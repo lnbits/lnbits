@@ -122,7 +122,7 @@
               <q-item-label>Automatically update extensions</q-item-label>
               <q-item-label caption>
                 Update installed extensions, including deactivated ones, to the
-                latest compatible release when the server starts.
+                latest compatible release when the server starts and every hour.
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>

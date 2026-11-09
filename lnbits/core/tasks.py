@@ -9,6 +9,7 @@ from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
+from lnbits.core.services.extensions import auto_update_extensions
 from lnbits.core.services.funding_source import get_balance_delta
 from lnbits.core.services.notifications import (
     enqueue_admin_notification,
@@ -33,6 +34,12 @@ async def process_next_audit_entry() -> None:
 async def refresh_extension_cache() -> None:
     # only refreshes every 10 minutes
     await InstallableExtension.get_installable_extensions()
+
+
+async def scheduled_extension_updates() -> None:
+    # Startup already checks for updates; wait an hour before each subsequent check.
+    await asyncio.sleep(60 * 60)
+    await auto_update_extensions(reload_active=True)
 
 
 async def notify_server_status() -> None:

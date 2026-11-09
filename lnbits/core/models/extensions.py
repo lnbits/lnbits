@@ -590,9 +590,9 @@ class InstallableExtension(BaseModel):
             return False
         return config_json.get("extension_type") == "wasm"
 
-    async def download_archive(self):
+    async def download_archive(self, archive_path: Path | None = None):
         logger.info(f"Downloading extension {self.name} ({self.installed_version}).")
-        ext_zip_file = self.zip_path
+        ext_zip_file = archive_path or self.zip_path
         if ext_zip_file.is_file():
             os.remove(ext_zip_file)
         try:
