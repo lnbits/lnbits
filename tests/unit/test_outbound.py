@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, Mock
 import httpx
 import pytest
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from lnurl import LnurlResponseException
 from pydantic import ValidationError
 
@@ -144,6 +145,44 @@ async def test_local_payment_metadata_and_callback_use_no_network(monkeypatch):
     )
     send.assert_not_awaited()
     resolver.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("phase", ["response", "body"])
+async def test_local_lnurl_timeout_cancels_stalled_request(monkeypatch, phase):
+    app = FastAPI()
+    started = asyncio.Event()
+    cancelled = asyncio.Event()
+
+    async def stall():
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    @app.get("/.well-known/lnurlp/alice")
+    async def metadata():
+        if phase == "response":
+            await stall()
+            return {}
+
+        async def body():
+            yield b"{"
+            await stall()
+
+        return StreamingResponse(body(), media_type="application/json")
+
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
+    with pytest.raises(
+        LnurlResponseException, match="Local LNURL request failed"
+    ) as exc:
+        await lnurl.request_lnurl_json(
+            "https://instance.example/.well-known/lnurlp/alice", timeout=1
+        )
+    assert started.is_set()
+    assert cancelled.is_set()
+    assert isinstance(exc.value.__cause__, asyncio.TimeoutError)
 
 
 @pytest.mark.parametrize(

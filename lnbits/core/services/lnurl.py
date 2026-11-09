@@ -579,17 +579,20 @@ async def _send_local_lnurl_request(
     app = core_app_extra.local_lnurl_app
     if app is None:
         raise LnurlResponseException("Local LNURL service is unavailable.")
+
+    async def request() -> tuple[int, dict[str, str], bytes]:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            follow_redirects=False,
+            trust_env=False,
+        ) as client:
+            async with client.stream("GET", url) as response:
+                body = await _read_limited_lnurl_response(response)
+                return response.status_code, dict(response.headers), body
+
     try:
-        async with asyncio.timeout(timeout or 5):
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=app),
-                follow_redirects=False,
-                trust_env=False,
-            ) as client:
-                async with client.stream("GET", url) as response:
-                    body = await _read_limited_lnurl_response(response)
-                    return response.status_code, dict(response.headers), body
-    except (TimeoutError, httpx.RequestError) as exc:
+        return await asyncio.wait_for(request(), timeout=timeout or 5)
+    except (asyncio.TimeoutError, httpx.RequestError) as exc:
         raise LnurlResponseException("Local LNURL request failed.") from exc
 
 
