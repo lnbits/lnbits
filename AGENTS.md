@@ -6,6 +6,7 @@ This file guides AI coding agents working on LNbits. Keep changes small, verifie
 
 - Think before coding. State material assumptions. Ask when ambiguity affects correctness, security, payments, wallets, or data migrations.
 - Prefer the simplest implementation that solves the request.
+- Use `assert` only in tests. In application code, use explicit checks and raise appropriate exceptions; Python can remove assertions when run with `-O` or `-OO`.
 - Make surgical changes. Every changed line should trace back to the task.
 - Do not refactor, reformat, rename, or clean adjacent code unless required.
 - Remove only dead code or imports created by your own changes.

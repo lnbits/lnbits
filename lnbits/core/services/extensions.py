@@ -11,7 +11,6 @@ from typing import Any
 from uuid import uuid4
 
 from loguru import logger
-from packaging.version import InvalidVersion, Version
 
 from lnbits.core import core_app_extra
 from lnbits.core.crud import (
@@ -266,7 +265,7 @@ async def auto_update_extensions(*, reload_active: bool = False) -> None:
         if not settings.lnbits_running:
             return
         try:
-            release = await _latest_extension_update(ext)
+            release = await ext.find_latest_compatible_release()
             if release:
                 extension = await _auto_update_extension(
                     ext, release, reload_active=reload_active
@@ -811,44 +810,22 @@ async def _ensure_wasm_extension_schedules(ext):
     return
 
 
-async def _latest_extension_update(
-    ext: InstallableExtension,
-) -> ExtensionRelease | None:
-    installed = ext.meta.installed_release if ext.meta else None
-    if not installed or not installed.source_repo:
-        return None
-    latest = None
-    latest_version = Version(installed.version)
-    for release in await InstallableExtension.get_extension_releases(ext.id):
-        if (
-            release.source_repo != installed.source_repo
-            or not release.is_version_compatible
-        ):
-            continue
-        try:
-            version = Version(release.version)
-        except InvalidVersion:
-            continue
-        if not version.is_prerelease and version > latest_version:
-            latest, latest_version = release, version
-    return latest
-
-
 async def _auto_update_extension(
     ext: InstallableExtension, release: ExtensionRelease, *, reload_active: bool
 ) -> Extension:
     updated = ext.model_copy(deep=True)
-    assert updated.meta
+    if updated.meta is None:
+        raise ValueError("Installed extension metadata is missing.")
     release = release.model_copy(deep=True)
-    if release.pay_link:
-        payment = ext.find_existing_payment(release.pay_link)
-        if payment:
-            release.payment_hash = payment.payment_hash
-        elif (
-            updated.meta.installed_release
-            and updated.meta.installed_release.pay_link == release.pay_link
-        ):
-            release.payment_hash = updated.meta.installed_release.payment_hash
+    payment = ext.find_existing_payment(release.pay_link)
+    if payment:
+        release.payment_hash = payment.payment_hash
+    elif (
+        release.pay_link
+        and updated.meta.installed_release
+        and updated.meta.installed_release.pay_link == release.pay_link
+    ):
+        release.payment_hash = updated.meta.installed_release.payment_hash
     updated.version = release.version
     updated.meta.installed_release = release
 

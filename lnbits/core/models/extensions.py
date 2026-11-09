@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import httpx
 from loguru import logger
+from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from lnbits.helpers import (
@@ -783,6 +784,26 @@ class InstallableExtension(BaseModel):
             (p for p in self.meta.payments if p.pay_link == pay_link),
             None,
         )
+
+    async def find_latest_compatible_release(self) -> ExtensionRelease | None:
+        installed = self.meta.installed_release if self.meta else None
+        if not installed or not installed.source_repo:
+            return None
+        latest = None
+        latest_version = Version(installed.version)
+        for release in await self.get_extension_releases(self.id):
+            if (
+                release.source_repo != installed.source_repo
+                or not release.is_version_compatible
+            ):
+                continue
+            try:
+                version = Version(release.version)
+            except InvalidVersion:
+                continue
+            if not version.is_prerelease and version > latest_version:
+                latest, latest_version = release, version
+        return latest
 
     def _check_latest_version(self, release: ExtensionRelease | None):
         if not release:
