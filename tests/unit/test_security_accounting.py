@@ -71,13 +71,17 @@ async def test_failed_withdrawal_releases_reserve_and_never_credits_service_fee(
     security_db, settings, monkeypatch, later_failure
 ):
     wallet, fee_wallet, payment = await _funded_withdrawal(settings)
-    assert (await get_wallet(wallet.id)).balance_msat == 880000
+    wallet = await get_wallet(wallet.id)
+    assert wallet is not None
+    assert wallet.balance_msat == 880000
     if later_failure:
         pending = await payments._handle_external_payment_response(
             payment, PaymentResponse(ok=None)
         )
         assert pending.pending
-        assert (await get_wallet(fee_wallet.id)).balance_msat == 0
+        fee_wallet = await get_wallet(fee_wallet.id)
+        assert fee_wallet is not None
+        assert fee_wallet.balance_msat == 0
         monkeypatch.setattr(
             payments,
             "check_payment_status",
@@ -90,8 +94,12 @@ async def test_failed_withdrawal_releases_reserve_and_never_credits_service_fee(
                 payment, PaymentResponse(ok=False)
             )
     assert (await get_payment(payment.checking_id)).failed
-    assert (await get_wallet(wallet.id)).balance_msat == 1000000
-    assert (await get_wallet(fee_wallet.id)).balance_msat == 0
+    wallet = await get_wallet(wallet.id)
+    fee_wallet = await get_wallet(fee_wallet.id)
+    assert wallet is not None
+    assert fee_wallet is not None
+    assert wallet.balance_msat == 1000000
+    assert fee_wallet.balance_msat == 0
     assert await get_standalone_payment(f"service_fee_{payment.payment_hash}") is None
 
 
@@ -103,7 +111,9 @@ async def test_service_fee_helper_rejects_unconfirmed_payment(
     _, fee_wallet, payment = await _funded_withdrawal(settings)
     payment.status = state
     await payments._credit_service_fee_wallet(payment)
-    assert (await get_wallet(fee_wallet.id)).balance_msat == 0
+    fee_wallet = await get_wallet(fee_wallet.id)
+    assert fee_wallet is not None
+    assert fee_wallet.balance_msat == 0
     assert await get_standalone_payment(f"service_fee_{payment.payment_hash}") is None
 
 
@@ -119,9 +129,14 @@ async def test_confirmed_withdrawal_credits_service_fee_only_once(
         await payments.update_payment_success_status(
             payment, PaymentSuccessStatus(fee_msat=2000)
         )
-    assert (await get_wallet(fee_wallet.id)).balance_msat == 1000
-    assert (await get_wallet(wallet.id)).balance_msat == 897000
+    fee_wallet = await get_wallet(fee_wallet.id)
+    wallet = await get_wallet(wallet.id)
+    assert fee_wallet is not None
+    assert wallet is not None
+    assert fee_wallet.balance_msat == 1000
+    assert wallet.balance_msat == 897000
     fee_payment = await get_standalone_payment(f"service_fee_{payment.payment_hash}")
+    assert fee_payment is not None
     assert fee_payment.success
     assert fee_payment.amount == 1000
 

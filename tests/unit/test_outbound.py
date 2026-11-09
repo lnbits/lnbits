@@ -4,9 +4,9 @@ import ipaddress
 import os
 import socket
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -16,6 +16,7 @@ from lnurl import LnurlResponseException
 from pydantic import ValidationError
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.models import User
 from lnbits.core.services import lnurl
 from lnbits.settings import Settings, settings
 from lnbits.utils import outbound, safe_http
@@ -205,12 +206,16 @@ async def test_internal_redirect_is_checked_and_missing_app_fails_closed(monkeyp
 
 def test_environment_addresses_are_validated_and_readonly():
     configured = Settings(
-        _env_file=None, lnbits_outbound_host_ips="8.8.8.8,2001:4860:4860::8888,8.8.8.8"
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        lnbits_outbound_host_ips="8.8.8.8,2001:4860:4860::8888,8.8.8.8",
     )
     assert configured.lnbits_outbound_host_ips == ["8.8.8.8", "2001:4860:4860::8888"]
     assert "lnbits_outbound_host_ips" in Settings.readonly_fields()
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, lnbits_outbound_host_ips=["attacker.example"])
+        Settings(
+            _env_file=None,  # pyright: ignore[reportCallIssue]
+            lnbits_outbound_host_ips=["attacker.example"],
+        )
 
 
 def test_bind_detection_sends_no_packets_and_fails_closed(monkeypatch):
@@ -300,7 +305,8 @@ async def test_security_status_only_rendered_for_superuser(monkeypatch, super_us
 
     renderer = Mock()
     monkeypatch.setattr(generic, "template_renderer", lambda: renderer)
-    user = SimpleNamespace(super_user=super_user, model_dump_json=lambda: "{}")
+    now = datetime.now(timezone.utc)
+    user = User(id="a" * 32, created_at=now, updated_at=now, super_user=super_user)
     await generic.index(Request({"type": "http"}), user=user)
     context = renderer.TemplateResponse.call_args.args[2]
     assert bool(context["outbound_protection"]) is super_user
