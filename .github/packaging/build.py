@@ -51,6 +51,8 @@ args = [
     "--hidden-import=bitstring.bitstore_bitarray",
     "--collect-data=pyinstrument",
     "--collect-data=random_username",
+    # Nostr SDK loads its native library by package-relative path via ctypes.
+    "--collect-binaries=nostr_sdk",
 ]
 # Keep external executables as binaries so macOS signs them with the app.
 sidecars = Path("build/sidecars").resolve()
