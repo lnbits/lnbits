@@ -602,7 +602,7 @@ def register_async_tasks() -> None:
         interval=60 * 60 * settings.lnbits_notification_server_status_hours,
     )
     task_manager.create_permanent_task(refresh_extension_cache, interval=60)
-    task_manager.create_permanent_task(scheduled_extension_updates)
+    task_manager.create_permanent_task(scheduled_extension_updates, interval=60)
 
     # permanent tasks run in a loop, will be restarted if they fail
     task_manager.create_permanent_task(fundingsource_invoice_producer)

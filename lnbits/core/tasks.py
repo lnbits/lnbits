@@ -1,4 +1,5 @@
 import asyncio
+from time import monotonic
 
 from loguru import logger
 
@@ -20,6 +21,7 @@ from lnbits.utils.cache import cache
 from lnbits.utils.exchange_rates import btc_price_from_aggregator, btc_rates
 
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
+_last_extension_update_check: float | None = None
 
 
 async def process_next_audit_entry() -> None:
@@ -37,11 +39,19 @@ async def refresh_extension_cache() -> None:
 
 
 async def scheduled_extension_updates() -> None:
+    global _last_extension_update_check
+
+    now = monotonic()
+    if _last_extension_update_check is None:
+        # Startup already checked for updates.
+        _last_extension_update_check = now
+
     interval = settings.lnbits_autoupdate_extensions_interval_minutes
-    # Poll once a minute while disabled so settings can enable updates without restart.
-    await asyncio.sleep(max(1, interval) * 60)
-    if interval > 0:
-        await auto_update_extensions(reload_active=True)
+    if interval == 0 or now - _last_extension_update_check < interval * 60:
+        return
+
+    _last_extension_update_check = monotonic()
+    await auto_update_extensions(reload_active=True)
 
 
 async def notify_server_status() -> None:

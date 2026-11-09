@@ -11,7 +11,14 @@ from lnbits.app import (
 )
 from lnbits.core.tasks import scheduled_extension_updates
 from lnbits.settings import Settings
-from lnbits.task_manager import TaskManager
+
+
+@pytest.fixture
+def extension_update_schedule(mocker, monkeypatch):
+    monkeypatch.setattr("lnbits.core.tasks._last_extension_update_check", None)
+    clock = mocker.patch("lnbits.core.tasks.monotonic", return_value=0)
+    update = mocker.patch("lnbits.core.tasks.auto_update_extensions")
+    return clock, update
 
 
 @pytest.mark.anyio
@@ -40,73 +47,139 @@ def test_scheduled_extension_updates_are_registered(mocker):
 
     register_async_tasks()
 
-    manager.create_permanent_task.assert_any_call(scheduled_extension_updates)
+    manager.create_permanent_task.assert_any_call(
+        scheduled_extension_updates, interval=60
+    )
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("interval", [1, 15, 60])
 async def test_scheduled_extension_updates_use_configured_interval(
-    settings, mocker, monkeypatch, interval
+    settings, extension_update_schedule, interval
 ):
-    monkeypatch.setattr(settings, "lnbits_running", True)
-    monkeypatch.setattr(
-        settings, "lnbits_autoupdate_extensions_interval_minutes", interval
-    )
-    calls = mocker.Mock()
-    sleep = mocker.patch("lnbits.core.tasks.asyncio.sleep")
-    update = mocker.patch("lnbits.core.tasks.auto_update_extensions")
-    calls.attach_mock(sleep, "sleep")
-    calls.attach_mock(update, "update")
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = interval
+    await scheduled_extension_updates()
 
-    async def stop_after_two_checks(**kwargs):
-        settings.lnbits_autoupdate_extensions_interval_minutes = 5
-        if update.await_count == 2:
-            settings.lnbits_running = False
+    clock.return_value = interval * 60 - 1
+    await scheduled_extension_updates()
+    update.assert_not_awaited()
 
-    update.side_effect = stop_after_two_checks
-    manager = TaskManager()
-    monkeypatch.setattr(manager, "tasks", [])
-    task = manager.create_permanent_task(scheduled_extension_updates)
-    await task.task
+    clock.return_value = interval * 60
+    await scheduled_extension_updates()
+    update.assert_awaited_once_with(reload_active=True)
 
-    assert calls.mock_calls == [
-        mocker.call.sleep(interval * 60),
-        mocker.call.update(reload_active=True),
-        mocker.call.sleep(5 * 60),
-        mocker.call.update(reload_active=True),
-    ]
+    clock.return_value = interval * 120 - 1
+    await scheduled_extension_updates()
+    update.assert_awaited_once()
+
+    clock.return_value = interval * 120
+    await scheduled_extension_updates()
+    assert update.await_count == 2
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("initial_interval", [0, 1])
 async def test_scheduled_extension_updates_wait_while_disabled_and_can_be_enabled(
-    settings, mocker, monkeypatch
+    settings, extension_update_schedule, initial_interval
 ):
-    monkeypatch.setattr(settings, "lnbits_running", True)
-    monkeypatch.setattr(settings, "lnbits_autoupdate_extensions_interval_minutes", 0)
-    calls = mocker.Mock()
-    sleep = mocker.patch("lnbits.core.tasks.asyncio.sleep")
-    update = mocker.patch("lnbits.core.tasks.auto_update_extensions")
-    calls.attach_mock(sleep, "sleep")
-    calls.attach_mock(update, "update")
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = initial_interval
+    await scheduled_extension_updates()
 
-    async def enable_updates(_seconds):
-        settings.lnbits_autoupdate_extensions_interval_minutes = 2
+    settings.lnbits_autoupdate_extensions_interval_minutes = 0
+    clock.return_value = 3600
+    await scheduled_extension_updates()
+    update.assert_not_awaited()
 
-    async def stop_after_update(**kwargs):
-        settings.lnbits_running = False
+    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    clock.return_value = 3660
+    await scheduled_extension_updates()
+    update.assert_awaited_once_with(reload_active=True)
 
-    sleep.side_effect = enable_updates
-    update.side_effect = stop_after_update
-    manager = TaskManager()
-    monkeypatch.setattr(manager, "tasks", [])
-    task = manager.create_permanent_task(scheduled_extension_updates)
-    await task.task
 
-    assert calls.mock_calls == [
-        mocker.call.sleep(60),
-        mocker.call.sleep(120),
-        mocker.call.update(reload_active=True),
-    ]
+@pytest.mark.anyio
+async def test_shorter_extension_update_interval_applies_on_next_tick(
+    settings, extension_update_schedule
+):
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = 60
+    await scheduled_extension_updates()
+
+    clock.return_value = 600
+    await scheduled_extension_updates()
+    update.assert_not_awaited()
+
+    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    clock.return_value = 660
+    await scheduled_extension_updates()
+    update.assert_awaited_once_with(reload_active=True)
+
+
+@pytest.mark.anyio
+async def test_longer_extension_update_interval_delays_next_check(
+    settings, extension_update_schedule
+):
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    await scheduled_extension_updates()
+
+    settings.lnbits_autoupdate_extensions_interval_minutes = 60
+    clock.return_value = 60
+    await scheduled_extension_updates()
+    update.assert_not_awaited()
+
+    clock.return_value = 3600
+    await scheduled_extension_updates()
+    update.assert_awaited_once_with(reload_active=True)
+
+
+@pytest.mark.anyio
+async def test_extension_update_interval_starts_when_check_begins(
+    settings, extension_update_schedule
+):
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    await scheduled_extension_updates()
+
+    async def finish_update(**kwargs):
+        clock.return_value += 30
+
+    update.side_effect = finish_update
+    clock.return_value = 60
+    await scheduled_extension_updates()
+    update.assert_awaited_once()
+
+    clock.return_value = 119
+    await scheduled_extension_updates()
+    update.assert_awaited_once()
+
+    clock.return_value = 120
+    await scheduled_extension_updates()
+    assert update.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_failed_extension_update_waits_for_configured_interval(
+    settings, extension_update_schedule
+):
+    clock, update = extension_update_schedule
+    settings.lnbits_autoupdate_extensions_interval_minutes = 2
+    await scheduled_extension_updates()
+    update.side_effect = ValueError("Update check failed")
+
+    clock.return_value = 120
+    with pytest.raises(ValueError, match="Update check failed"):
+        await scheduled_extension_updates()
+
+    clock.return_value = 180
+    await scheduled_extension_updates()
+    update.assert_awaited_once()
+
+    clock.return_value = 240
+    with pytest.raises(ValueError, match="Update check failed"):
+        await scheduled_extension_updates()
+    assert update.await_count == 2
 
 
 @pytest.mark.anyio
