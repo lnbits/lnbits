@@ -79,22 +79,26 @@ async def test_lnurl_requests_reject_private_ips_by_default(
         )
 
     settings.lnbits_lnurl_allow_private_ips = True
-    addresses, proxy = await lnurl_service._validate_lnurl_request_url(
-        target_url, tor_socks=None
-    )
-    assert addresses == [ipaddress.ip_address(target_ip)]
-    assert proxy is None
+    if target_ip == "64:ff9b::127.0.0.1":
+        with pytest.raises(LnurlResponseException, match="this server"):
+            await lnurl_service._validate_lnurl_request_url(target_url, tor_socks=None)
+    else:
+        addresses, proxy = await lnurl_service._validate_lnurl_request_url(
+            target_url, tor_socks=None
+        )
+        assert addresses == [ipaddress.ip_address(target_ip)]
+        assert proxy is None
 
     with pytest.raises(LnurlResponseException, match="not allowed over HTTP"):
         await lnurl_service._validate_lnurl_request_url(
             httpx.URL("http://93.184.216.34/lnurl"), tor_socks=None
         )
 
-    addresses, proxy = await lnurl_service._validate_lnurl_request_url(
-        httpx.URL("http://127.0.0.1:8080/lnurl"), tor_socks=None
-    )
-    assert addresses == [ipaddress.ip_address("127.0.0.1")]
-    assert proxy is None
+    # Private destination opt-in cannot allow arbitrary requests back to this server.
+    with pytest.raises(LnurlResponseException, match="this server"):
+        await lnurl_service._validate_lnurl_request_url(
+            httpx.URL("http://127.0.0.1:8080/lnurl"), tor_socks=None
+        )
 
 
 @pytest.mark.anyio
@@ -447,3 +451,21 @@ class _FakeStreamResponse:
     async def aiter_bytes(self):
         for chunk in self._chunks:
             yield chunk
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target_ip", ["224.0.0.1", "ff02::1", "64:ff9b::224.0.0.1"])
+async def test_lnurl_requests_reject_multicast_targets(settings, mocker, target_ip):
+    settings.lnbits_lnurl_allow_private_ips = False
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address(target_ip)]),
+    )
+    send = mocker.patch("lnbits.core.services.lnurl._send_lnurl_request")
+    for url in (
+        httpx.URL("https://multicast.example/"),
+        httpx.URL("https://multicast.example/").copy_with(host=target_ip),
+    ):
+        with pytest.raises(LnurlResponseException, match="non-global IP address"):
+            await lnurl_service.request_lnurl_json(str(url))
+    send.assert_not_called()

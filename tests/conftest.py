@@ -122,6 +122,8 @@ async def app(
             )
         )
 
+        # Apply the test policy after migrations, before session user fixtures run.
+        _settings_cleanup(settings)
         yield manager.app
 
 

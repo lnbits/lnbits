@@ -1,6 +1,6 @@
 import asyncio
-import ipaddress
 import json
+import socket
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -30,7 +30,6 @@ from lnbits.core.models.wallets import (
     WalletShareStatus,
 )
 from lnbits.core.services.notifications import (
-    _post_webhook,
     dispatch_webhook,
     enqueue_admin_notification,
     enqueue_user_notification,
@@ -582,18 +581,13 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
         side_effect=ValueError("blocked"),
     )
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=invalid_client,
     )
 
     await dispatch_webhook(invalid_payment)
     assert (await get_payment(invalid_payment.checking_id)).webhook_status == "-1"
     assert invalid_client.posts == []
-
-    mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
-    )
 
     error_payment = await _create_payment(wallet, webhook="https://error.example")
     assert error_payment.webhook is not None
@@ -602,7 +596,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
         return_value=None,
     )
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=MockHTTPClient(
             post_response=httpx.Response(
                 500,
@@ -617,7 +611,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     request_payment = await _create_payment(wallet, webhook="https://request.example")
     assert request_payment.webhook is not None
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=MockHTTPClient(
             post_exception=httpx.RequestError(
                 "boom",
@@ -663,129 +657,130 @@ async def test_dispatch_webhook_status_is_scoped_to_payment(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "target_ip", ["169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"]
+    "target_ip",
+    ["10.0.0.2", "169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"],
 )
 async def test_dispatch_webhook_blocks_private_targets(
-    settings: Settings, mocker: MockerFixture, target_ip: str
+    settings: Settings, safe_http_mock, target_ip: str
 ):
+    resolver, handler = safe_http_mock
     settings.lnbits_callback_url_rules = []
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (target_ip, 80))
+    ]
     target_url = httpx.URL("http://metadata.internal/metadata").copy_with(
         host=target_ip
     )
     wallet = await _create_wallet()
-    response = httpx.Response(
-        200,
-        request=httpx.Request("POST", "http://169.254.169.254/metadata"),
-    )
-    client = MockHTTPClient(post_response=response)
-    mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
-        return_value=client,
-    )
-
     direct_payment = await _create_payment(wallet, webhook=str(target_url))
     await dispatch_webhook(direct_payment)
-
     assert (await get_payment(direct_payment.checking_id)).webhook_status == "-1"
-    assert client.posts == []
+    handler.assert_not_called()
 
-    resolver = mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(
-            return_value=[
-                ipaddress.ip_address("93.184.216.34"),
-                ipaddress.ip_address(target_ip),
-            ]
-        ),
+    resolver.return_value.insert(
+        0, (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
     )
     dns_payment = await _create_payment(
         wallet, webhook="https://attacker.example/internal"
     )
     await dispatch_webhook(dns_payment)
-
     assert (await get_payment(dns_payment.checking_id)).webhook_status == "-1"
-    assert client.posts == []
+    handler.assert_not_called()
 
     settings.lnbits_callback_allow_private_ips = True
-    resolver.return_value = [ipaddress.ip_address(target_ip)]
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (target_ip, 443))
+    ]
     allowed_payment = await _create_payment(
         wallet, webhook="https://attacker.example/internal"
     )
     await dispatch_webhook(allowed_payment)
-
-    assert (await get_payment(allowed_payment.checking_id)).webhook_status == "200"
-    assert client.posts[0][0] == httpx.URL(
-        "https://attacker.example/internal"
-    ).copy_with(host=str(ipaddress.ip_address(target_ip)))
+    # The administrator's opt-in retains private access, but never self-targets.
+    expected = "-1" if target_ip == "64:ff9b::127.0.0.1" else "200"
+    assert (await get_payment(allowed_payment.checking_id)).webhook_status == expected
+    if expected == "200":
+        assert handler.call_args.args[0].url == httpx.URL(
+            "https://attacker.example/internal"
+        ).copy_with(host=target_ip)
+    else:
+        handler.assert_not_called()
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("status_code", [200, 302])
 async def test_dispatch_webhook_pins_allowed_target(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, safe_http_mock, status_code
 ):
+    resolver, handler = safe_http_mock
     settings.lnbits_callback_url_rules = []
     wallet = await _create_wallet()
     payment = await _create_payment(
         wallet, webhook="https://callback.example:8443/paid"
     )
-    client = MockHTTPClient(
-        post_response=httpx.Response(
-            200,
-            request=httpx.Request("POST", "https://93.184.216.34:8443/paid"),
-        )
-    )
-    mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
-    )
-    client_factory = mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
-        return_value=client,
-    )
+    expected_body = payment.model_dump(mode="json")
 
+    class UnreadableBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            raise AssertionError("Webhook response body must not be read")
+            yield b""
+
+    handler.side_effect = lambda request: httpx.Response(
+        status_code, headers={"location": "http://127.0.0.1/"}, stream=UnreadableBody()
+    )
     await dispatch_webhook(payment)
 
-    assert (await get_payment(payment.checking_id)).webhook_status == "200"
-    assert str(client.posts[0][0]) == "https://93.184.216.34:8443/paid"
-    assert client.posts[0][1]["headers"]["Host"] == "callback.example:8443"
-    assert client.posts[0][1]["extensions"] == {"sni_hostname": "callback.example"}
-    client_factory.assert_called_once_with(follow_redirects=False, trust_env=False)
+    assert (await get_payment(payment.checking_id)).webhook_status == str(status_code)
+    resolver.assert_awaited_once()
+    handler.assert_called_once()
+    request = handler.call_args.args[0]
+    assert str(request.url) == "https://93.184.216.34:8443/paid"
+    assert request.headers["host"] == "callback.example:8443"
+    assert request.headers["user-agent"] == settings.user_agent
+    assert request.extensions["sni_hostname"] == "callback.example"
+    assert request.extensions["timeout"]["read"] == 40
+    assert request.method == "POST"
+    assert json.loads(request.content) == expected_body
 
 
 @pytest.mark.anyio
-async def test_post_webhook_sends_payment_as_json_object(mocker: MockerFixture):
-    payment = Payment(
-        checking_id="checking_123",
-        payment_hash="hash_123",
-        wallet_id="wallet_123",
-        amount=1000,
-        fee=0,
-        bolt11="invoice",
-        webhook="https://callback.example/paid",
-    )
-    client = MockHTTPClient(
-        post_response=httpx.Response(
-            200,
-            request=httpx.Request("POST", "https://93.184.216.34/paid"),
+@pytest.mark.parametrize("allow_private", [False, True])
+@pytest.mark.parametrize("kind", ["hostname", "supplied", "assigned"])
+async def test_dispatch_webhook_blocks_self_targets(
+    settings: Settings, safe_http_mock, monkeypatch, allow_private, kind
+):
+    from lnbits.utils import outbound
+
+    _, handler = safe_http_mock
+    settings.lnbits_callback_url_rules = []
+    settings.lnbits_callback_allow_private_ips = allow_private
+    settings.lnbits_baseurl = "https://instance.example/"
+    if kind == "supplied":
+        settings.lnbits_outbound_host_ips = ["93.184.216.34"]
+    elif kind == "assigned":
+        monkeypatch.setattr(
+            outbound, "_is_assigned", lambda address: str(address) == "93.184.216.34"
         )
-    )
-    mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
-    )
-    mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient", return_value=client
-    )
+    target = "instance.example" if kind == "hostname" else "alias.example"
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, webhook=f"https://{target}:8443/paid")
+    await dispatch_webhook(payment)
+    assert (await get_payment(payment.checking_id)).webhook_status == "-1"
+    handler.assert_not_called()
 
-    assert await _post_webhook(payment) == 200
 
-    request = httpx.Request(
-        "POST", str(client.posts[0][0]), json=client.posts[0][1]["json"]
-    )
-    posted_body = json.loads(request.content)
-    assert isinstance(posted_body, dict)
-    assert posted_body["payment_hash"] == payment.payment_hash
-    assert isinstance(posted_body["created_at"], str)
+@pytest.mark.anyio
+async def test_dispatch_webhook_keeps_callback_rules_with_private_opt_in(
+    settings: Settings, safe_http_mock
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_callback_url_rules = [r"https://allowed\.example"]
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, webhook="https://blocked.example/paid")
+    await dispatch_webhook(payment)
+    assert (await get_payment(payment.checking_id)).webhook_status == "-1"
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
 
 
 @pytest.mark.anyio

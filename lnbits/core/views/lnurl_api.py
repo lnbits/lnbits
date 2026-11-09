@@ -45,6 +45,7 @@ lnurl_router = APIRouter(tags=["LNURL"])
 @lnurl_router.get(
     "/.well-known/lnurlp/{username}",
     name="lnurl.api_wallet_lightning_address_response",
+    openapi_extra={"x-lnbits-local-lnurl": True},
 )
 async def api_wallet_lightning_address_response(
     username: str, request: Request
@@ -68,6 +69,7 @@ async def api_wallet_lightning_address_response(
 @lnurl_router.get(
     "/api/v1/lnurl/wallet/{username}/cb",
     name="lnurl.api_wallet_lightning_address_callback",
+    openapi_extra={"x-lnbits-local-lnurl": True},
 )
 async def api_wallet_lightning_address_callback(
     username: str, request: Request, amount: int = Query(...)

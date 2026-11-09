@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import ipaddress
 import json
 import os
 import re
@@ -53,7 +54,7 @@ class LNbitsSettings(BaseModel):
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
-    lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_allow_new_accounts: bool = Field(default=False)
 
     lnbits_ln_address_mode: Literal[
         "core_first", "extension_first", "extension_only"
@@ -1197,6 +1198,8 @@ class EnvSettings(LNbitsSettings):
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
     forwarded_allow_ips: str = Field(default="*")
+    # Deployment-supplied addresses hidden by container networking or NAT.
+    lnbits_outbound_host_ips: list[str] = Field(default=[])
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
     lnbits_extensions_path: str = Field(default="lnbits")
@@ -1216,6 +1219,11 @@ class EnvSettings(LNbitsSettings):
     lnbits_max_extensions: int = Field(default=0, ge=0)
     task_heart_beat_verbose: bool = Field(default=False)
     task_heart_beat_interval: int = Field(default=30)
+
+    @field_validator("lnbits_outbound_host_ips")
+    @classmethod
+    def validate_outbound_host_ips(cls, values: list[str]) -> list[str]:
+        return list(dict.fromkeys(str(ipaddress.ip_address(value)) for value in values))
 
     @property
     def has_default_extension_path(self) -> bool:
@@ -1405,6 +1413,14 @@ class Settings(  # pyright: ignore[reportIncompatibleVariableOverride]
         ):
             return list_parse_fallback(value)
         return value
+
+    @property
+    def anonimous_account_creation_allowed(self) -> bool:
+        return (
+            self.new_accounts_allowed
+            and self.is_auth_method_allowed(AuthMethods.user_id_only)
+            and not self.lnbits_require_user_activation
+        )
 
     def is_user_allowed(self, user_id: str) -> bool:
         return (

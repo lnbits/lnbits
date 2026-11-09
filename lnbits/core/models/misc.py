@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
+from starlette.types import ASGIApp
 
 
 def _do_nothing(*_):
@@ -12,6 +13,7 @@ def _do_nothing(*_):
 
 
 class CoreAppExtra:
+    local_lnurl_app: ASGIApp | None = None
     register_new_ext_routes: Callable = _do_nothing
     register_new_wasm_ext_routes: Callable = _do_nothing
     unregister_wasm_ext_routes: Callable = _do_nothing

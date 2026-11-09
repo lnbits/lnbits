@@ -1,13 +1,10 @@
 import asyncio
-import ipaddress
 import json
 import smtplib
-import socket
 from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
-from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -36,8 +33,8 @@ from lnbits.core.services.nostr import (
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
-from lnbits.utils.network import is_global_address
 from lnbits.utils.nostr import normalize_private_key
+from lnbits.utils.safe_http import SafeHttpClient
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
 
@@ -486,62 +483,18 @@ async def _post_webhook(payment: Payment) -> int:
     if not payment.webhook:
         raise ValueError("Webhook URL is missing.")
 
-    url = httpx.URL(payment.webhook)
-    parsed = urlparse(str(url))
-    if not parsed.hostname:
-        raise ValueError("Webhook URL host is missing.")
-
-    addresses = await _resolve_webhook_host(parsed.hostname, parsed.port)
-    if not settings.lnbits_callback_allow_private_ips and any(
-        not is_global_address(address) for address in addresses
-    ):
-        raise ValueError("Webhook target IP address is not allowed.")
-
-    request_url = url.copy_with(host=str(addresses[0]))
-    headers = {
-        "Host": parsed.netloc,
-        "User-Agent": settings.user_agent,
-    }
-    async with httpx.AsyncClient(
-        follow_redirects=False,
-        trust_env=False,
+    async with SafeHttpClient(
+        timeout=40,
+        read_body=False,
+        allow_private_ips=settings.lnbits_callback_allow_private_ips,
     ) as client:
         response = await client.post(
-            request_url,
-            headers=headers,
-            extensions={"sni_hostname": parsed.hostname},
+            payment.webhook,
+            headers={"User-Agent": settings.user_agent},
             json=payment.model_dump(mode="json"),
-            timeout=40,
         )
         response.raise_for_status()
         return response.status_code
-
-
-async def _resolve_webhook_host(
-    host: str, port: int | None
-) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-    try:
-        return [ipaddress.ip_address(host)]
-    except ValueError:
-        pass
-
-    def resolve() -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-        try:
-            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-        except socket.gaierror as exc:
-            raise ValueError("Webhook target could not be resolved.") from exc
-
-        addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
-        for info in infos:
-            address = ipaddress.ip_address(info[4][0])
-            if address not in addresses:
-                addresses.append(address)
-        return addresses
-
-    addresses = await asyncio.to_thread(resolve)
-    if not addresses:
-        raise ValueError("Webhook target could not be resolved.")
-    return addresses
 
 
 def _telegram_error_message(error: Exception) -> str:

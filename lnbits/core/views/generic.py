@@ -1,7 +1,6 @@
 from hashlib import sha256
 from http import HTTPStatus
 from pathlib import Path
-from urllib.parse import urlparse
 
 from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
@@ -24,8 +23,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
-
-from ..crud import get_user
+from lnbits.utils.outbound import outbound_protection_status
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -97,87 +95,6 @@ async def service_worker(request: Request):
     )
 
 
-@generic_router.get("/manifest/{usr}.webmanifest")
-async def manifest(request: Request, usr: str):
-    host = urlparse(str(request.url)).netloc
-    user = await get_user(usr)
-    if not user:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-    return {
-        "short_name": settings.lnbits_site_title,
-        "name": settings.lnbits_site_title + " Wallet",
-        "icons": [
-            {
-                "src": (
-                    settings.lnbits_custom_logo
-                    if settings.lnbits_custom_logo
-                    else "images/logos/lnbits.png"
-                ),
-                "sizes": "512x512",
-                "type": "image/png",
-            },
-            {"src": "/static/favicon.ico", "sizes": "32x32", "type": "image/x-icon"},
-            {
-                "src": "/static/images/maskable_icon_x192.png",
-                "type": "image/png",
-                "sizes": "192x192",
-                "purpose": "maskable",
-            },
-            {
-                "src": "/static/images/maskable_icon_x512.png",
-                "type": "image/png",
-                "sizes": "512x512",
-                "purpose": "maskable",
-            },
-            {
-                "src": "/static/images/maskable_icon.png",
-                "type": "image/png",
-                "sizes": "1024x1024",
-                "purpose": "maskable",
-            },
-        ],
-        "screenshots": [
-            {
-                "src": "/static/images/screenshot_desktop.png",
-                "sizes": "2394x1314",
-                "type": "image/png",
-                "form_factor": "wide",
-                "label": "LNbits - Desktop screenshot",
-            },
-            {
-                "src": "/static/images/screenshot_phone.png",
-                "sizes": "1080x1739",
-                "type": "image/png",
-                "form_factor": "narrow",
-                "label": "LNbits - Phone screenshot",
-            },
-        ],
-        "start_url": f"/wallet?usr={usr}&wal={user.wallets[0].id}",
-        "background_color": "#1F2234",
-        "description": "Bitcoin Lightning Wallet",
-        "display": "standalone",
-        "scope": "/",
-        "theme_color": "#1F2234",
-        "shortcuts": [
-            {
-                "name": wallet.name,
-                "short_name": wallet.name,
-                "description": wallet.name,
-                "url": f"/wallet?usr={usr}&wal={wallet.id}",
-                "icons": [
-                    {
-                        "src": "/static/images/maskable_icon_x96.png",
-                        "sizes": "96x96",
-                        "type": "image/png",
-                    }
-                ],
-            }
-            for wallet in user.wallets
-        ],
-        "url_handlers": [{"origin": f"https://{host}"}],
-    }
-
-
 admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 
 
@@ -212,6 +129,9 @@ async def index(
         "base.html",
         {
             "user": user.model_dump_json(),
+            "outbound_protection": (
+                outbound_protection_status() if user.super_user else None
+            ),
         },
     )
 

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import ipaddress
-import socket
 from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
-from lnbits.utils.network import is_global_address
+from lnbits.utils.safe_http import SafeHttpClient, UnsafeHttpDestinationError
 
 from ..api.models import HttpRequest, HttpResponse
 
@@ -45,17 +43,15 @@ async def send_extension_http_request(
             f"Extension '{extension_id}' is not allowed to request '{origin}'."
         )
 
-    await _reject_internal_host(request.url)
     headers = _request_headers(request.headers)
     body = request.body.encode() if request.body is not None else b""
     if len(body) > 65_536:
         raise ValueError("HTTP request body is too large.")
 
     try:
-        async with httpx.AsyncClient(
-            follow_redirects=False,
+        async with SafeHttpClient(
             timeout=_timeout_seconds(timeout_ms, HTTP_REQUEST_TIMEOUT_SECONDS),
-            trust_env=False,
+            apply_callback_rules=False,
         ) as client:
             async with client.stream(
                 request.method,
@@ -72,6 +68,8 @@ async def send_extension_http_request(
                     headers=_response_headers(dict(response.headers)),
                     body=response_body.decode(response.encoding or "utf-8", "replace"),
                 )
+    except (UnsafeHttpDestinationError, httpx.InvalidURL) as exc:
+        raise PermissionError("HTTP request target is not allowed.") from exc
     except httpx.RequestError as exc:
         raise ValueError("HTTP request failed.") from exc
 
@@ -112,52 +110,6 @@ def _url_port(parsed: Any) -> int | None:
         return parsed.port
     except ValueError as exc:
         raise PermissionError("HTTP request URL has an invalid port.") from exc
-
-
-async def _reject_internal_host(url: str) -> None:
-    parsed = urlparse(url)
-    hostname = parsed.hostname
-    if not hostname:
-        raise PermissionError("HTTP requests require a hostname.")
-    if hostname == "localhost" or hostname.endswith(".localhost"):
-        raise PermissionError("HTTP requests cannot target localhost.")
-
-    try:
-        address = ipaddress.ip_address(hostname)
-        _reject_internal_address(address)
-        return
-    except ValueError:
-        pass
-
-    for address in await _resolve_host(hostname):
-        _reject_internal_address(address)
-
-
-async def _resolve_host(
-    hostname: str,
-) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-    import asyncio
-
-    def resolve() -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-        try:
-            infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
-        except socket.gaierror as exc:
-            raise PermissionError("HTTP request host could not be resolved.") from exc
-
-        addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
-        for info in infos:
-            sockaddr = info[4]
-            addresses.append(ipaddress.ip_address(sockaddr[0]))
-        return addresses
-
-    return await asyncio.to_thread(resolve)
-
-
-def _reject_internal_address(
-    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
-) -> None:
-    if not is_global_address(address):
-        raise PermissionError("HTTP requests cannot target internal network addresses.")
 
 
 def _request_headers(headers: dict[str, str]) -> dict[str, str]:

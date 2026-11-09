@@ -12,6 +12,8 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bolt11 import Bolt11Exception, MilliSatoshi
 from bolt11 import decode as bolt11_decode
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from lnurl import (
     InvalidLnurl,
     LnAddress,
@@ -32,14 +34,17 @@ from lnurl.models import LnurlResponseModel
 from lnurl.types import CallbackUrl
 from loguru import logger
 from pydantic import TypeAdapter, ValidationError
+from starlette.routing import Match
 
 from lnbits.core.crud import update_wallet
+from lnbits.core.db import core_app_extra
 from lnbits.core.models import CreateLnurlPayment, Wallet
 from lnbits.core.models.lnurl import StoredPayLink
 from lnbits.helpers import check_callback_url
 from lnbits.settings import settings
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from lnbits.utils.network import is_global_address
+from lnbits.utils.outbound import check_outbound_addresses, check_outbound_hostname
 
 LNURL_MAX_REDIRECTS = 3
 LNURL_MAX_RESPONSE_BYTES = 262_144
@@ -237,6 +242,19 @@ async def fetch_lnurl_pay_request(
     return data.res, res2
 
 
+async def request_lnurl_json(
+    url: str, *, params: dict[str, str | int] | None = None, timeout: int = 5
+) -> dict[str, Any]:
+    """Fetch LNURL JSON with the core destination and redirect policy."""
+    return await _request_lnurl_json(
+        url,
+        params=params,
+        timeout=timeout,
+        user_agent=settings.user_agent,
+        tor_socks=None,
+    )
+
+
 async def _get(
     url: str,
     *,
@@ -384,15 +402,8 @@ async def _request_lnurl_json(
         raise LnurlResponseException("Invalid LNURL request URL.") from exc
 
     for redirect_count in range(LNURL_MAX_REDIRECTS + 1):
-        addresses, proxy = await _validate_lnurl_request_url(
-            current_url, tor_socks=tor_socks
-        )
-        status_code, headers, body = await _send_lnurl_request(
-            current_url,
-            addresses=addresses,
-            proxy=proxy,
-            user_agent=user_agent,
-            timeout=timeout,
+        status_code, headers, body = await _fetch_lnurl_response(
+            current_url, tor_socks=tor_socks, user_agent=user_agent, timeout=timeout
         )
 
         if status_code in {301, 302, 303, 307, 308}:
@@ -437,6 +448,7 @@ async def _validate_lnurl_request_url(
     is_onion = host.endswith(".onion")
     if parsed.scheme not in {"http", "https"}:
         raise LnurlResponseException("LNURL request URL scheme must be HTTP or HTTPS.")
+    await _check_lnurl_self_target(host, [])
     if is_onion:
         return [], tor_socks or LNURL_TOR_SOCKS
 
@@ -458,6 +470,7 @@ async def _validate_lnurl_request_url(
         raise LnurlResponseException(
             "LNURL request target resolves to a private or non-global IP address."
         )
+    await _check_lnurl_self_target(host, addresses)
     return addresses, None
 
 
@@ -536,3 +549,78 @@ def _check_lnurl_redirect_rule(url: httpx.URL) -> None:
         except re.error:
             logger.warning(f"Invalid LNURL redirect URL rule: '{rule}'.")
     raise LnurlResponseException("LNURL redirect was not allowed.")
+
+
+def _is_local_lnurl_url(url: httpx.URL) -> bool:
+    base = httpx.URL(settings.lnbits_baseurl)
+    if (
+        url.userinfo
+        or base.userinfo
+        or url.scheme not in {"http", "https"}
+        or (url.scheme, url.host, url.port) != (base.scheme, base.host, base.port)
+        or b"%" in url.raw_path.split(b"?", 1)[0]
+    ):
+        return False
+    app = core_app_extra.local_lnurl_app
+    if not isinstance(app, FastAPI):
+        return False
+    scope = {"type": "http", "method": "GET", "path": url.path, "root_path": ""}
+    # The actual first matching route must opt in. Extension-owned metadata
+    # survives include_router(), upgrades and route removal without a core list.
+    for route in app.routes:
+        match, _ = route.matches(scope)
+        if match == Match.FULL:
+            return (
+                isinstance(route, APIRoute)
+                and (route.openapi_extra or {}).get("x-lnbits-local-lnurl") is True
+            )
+    return False
+
+
+async def _send_local_lnurl_request(
+    url: httpx.URL, *, timeout: int | None
+) -> tuple[int, dict[str, str], bytes]:
+    app = core_app_extra.local_lnurl_app
+    if app is None:
+        raise LnurlResponseException("Local LNURL service is unavailable.")
+
+    async def request() -> tuple[int, dict[str, str], bytes]:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            follow_redirects=False,
+            trust_env=False,
+        ) as client:
+            async with client.stream("GET", url) as response:
+                body = await _read_limited_lnurl_response(response)
+                return response.status_code, dict(response.headers), body
+
+    try:
+        return await asyncio.wait_for(request(), timeout=timeout or 5)
+    except (asyncio.TimeoutError, httpx.RequestError) as exc:
+        raise LnurlResponseException("Local LNURL request failed.") from exc
+
+
+async def _check_lnurl_self_target(
+    host: str, addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address]
+) -> None:
+    try:
+        check_outbound_hostname(host)
+        if addresses:
+            await check_outbound_addresses(addresses)
+    except ValueError as exc:
+        raise LnurlResponseException(str(exc)) from exc
+
+
+async def _fetch_lnurl_response(
+    url: httpx.URL,
+    *,
+    tor_socks: str | None,
+    user_agent: str | None,
+    timeout: int | None,
+) -> tuple[int, dict[str, str], bytes]:
+    if _is_local_lnurl_url(url):
+        return await _send_local_lnurl_request(url, timeout=timeout)
+    addresses, proxy = await _validate_lnurl_request_url(url, tor_socks=tor_socks)
+    return await _send_lnurl_request(
+        url, addresses=addresses, proxy=proxy, user_agent=user_agent, timeout=timeout
+    )

@@ -1,7 +1,9 @@
 import asyncio
 import json
+import socket
 import time
 
+import httpx
 import pytest
 from nostr_sdk import (
     Client,
@@ -109,7 +111,7 @@ async def test_fetch_nip5_details_returns_pubkey_and_relays(mocker: MockerFixtur
     mocker.patch("lnbits.core.services.nostr.is_valid_url", return_value=True)
     validate_identifier = mocker.patch("lnbits.core.services.nostr.validate_identifier")
     validate_pub_key = mocker.patch("lnbits.core.services.nostr.validate_pub_key")
-    mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
+    mocker.patch("lnbits.core.services.nostr.SafeHttpClient", return_value=client)
 
     pubkey, relays = await fetch_nip5_details("alice@example.com")
 
@@ -131,8 +133,72 @@ async def test_fetch_nip5_details_rejects_invalid_values(mocker: MockerFixture):
 
     mocker.patch("lnbits.core.services.nostr.is_valid_url", return_value=True)
     client = MockHTTPClient(MockHTTPResponse({"names": {}}))
-    mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
+    mocker.patch("lnbits.core.services.nostr.SafeHttpClient", return_value=client)
     with pytest.raises(ValueError, match="NIP5 not name found"):
+        await fetch_nip5_details("alice@example.com")
+
+
+@pytest.mark.anyio
+async def test_nip05_pins_public_host_without_applying_webhook_rules(
+    safe_http_mock, settings
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    pubkey = Keys.generate().public_key().to_hex()
+    handler.side_effect = lambda request: httpx.Response(
+        200, json={"names": {"alice": pubkey}}
+    )
+
+    assert await fetch_nip5_details("alice@example.com") == (pubkey, [])
+
+    resolver.assert_awaited_once()
+    request = handler.call_args.args[0]
+    assert str(request.url) == "https://93.184.216.34/.well-known/nostr.json?name=alice"
+    assert request.headers["host"] == "example.com"
+    assert request.extensions["sni_hostname"] == "example.com"
+    assert request.extensions["timeout"]["read"] == 5
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "address",
+    ["127.0.0.1", "10.0.0.2", "169.254.169.254", "64:ff9b::7f00:1", "8.8.8.8"],
+)
+async def test_nip05_rejects_private_and_self_addresses(
+    safe_http_mock, settings, address
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_outbound_host_ips = ["8.8.8.8"]
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 443))
+    ]
+    with pytest.raises(ValueError):
+        await fetch_nip5_details("alice@example.com")
+    handler.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nip05_rejects_instance_hostname_before_dns(safe_http_mock, settings):
+    resolver, handler = safe_http_mock
+    settings.lnbits_baseurl = "https://example.com"
+    with pytest.raises(ValueError, match="this server"):
+        await fetch_nip5_details("alice@example.com")
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nip05_bounds_response_and_does_not_follow_redirects(safe_http_mock):
+    _, handler = safe_http_mock
+    handler.side_effect = lambda request: httpx.Response(
+        302, headers={"location": "http://127.0.0.1/"}
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await fetch_nip5_details("alice@example.com")
+    handler.assert_called_once()
+    handler.side_effect = lambda request: httpx.Response(200, content=b"x" * 1048577)
+    with pytest.raises(ValueError, match="too large"):
         await fetch_nip5_details("alice@example.com")
 
 
