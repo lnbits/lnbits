@@ -11,6 +11,7 @@
           </p>
           <ul>
             <li
+              v-if="isSuperUser"
               v-text="
                 $t('funding_source', {
                   wallet_class: settings.lnbits_backend_wallet_class
@@ -180,7 +181,7 @@
           >
           </q-input>
         </div>
-        <div class="col-12 col-md-6">
+        <div v-if="isSuperUser" class="col-12 col-md-6">
           <p>
             <span v-text="$t('payment_wait_time') + ' (BOLT11)'"></span>
             <sup>
@@ -202,7 +203,7 @@
             min="0"
           ></q-input>
         </div>
-        <div class="col-12 col-md-6">
+        <div v-if="isSuperUser" class="col-12 col-md-6">
           <p>
             <span v-text="$t('payment_wait_time') + ' (BOLT12)'"></span>
           </p>
@@ -220,7 +221,7 @@
             min="0"
           ></q-input>
         </div>
-        <div class="col-12 col-md-6">
+        <div v-if="isSuperUser" class="col-12 col-md-6">
           <p>
             <span v-text="$t('payment_pending_interval')"></span>
             <sup>

@@ -7,18 +7,27 @@ an authenticated wallet API response, and configure the existing LNbits backend.
 Python, Node.js and the daemons do not need to be installed by the user.
 An internet connection is needed for either funding service.
 
-Managed funding requires a new local SQLite data folder on first setup. An
-existing LNbits database cannot be attached to a newly generated backing wallet,
-and changing between Spark and Phoenixd requires a separate data folder. These
-guards prevent existing user balances being backed by a different wallet.
+You can switch between Spark and Phoenixd using the same LNbits data folder.
+Stop the app, select the other provider, and launch again. The launcher sets the
+selected funding source's environment variables and keeps the LNbits database.
+Each provider retains its own seed and runtime data, so switching back reuses its
+existing wallet. Switching providers does not transfer funds between them.
 External database URLs are not supported in managed mode. Neither retains the
 normal LNbits database and funding configuration options.
 
 ## Persistence and backup
 
+Clicking **Launch LNbits** remembers the host, port, data folder, HTTPS/admin
+checkboxes, and funding selection for the next GUI launch. These preferences are
+stored in `launcher.json` under the standard application data directory
+(`~/.local/share/lnbits-desktop` on Linux, or `$XDG_DATA_HOME/lnbits-desktop` when set).
+The preferences stay there even when you select a different LNbits data folder.
+Explicit environment variables override the saved host, port, folder and checkbox
+values. Headless launches keep their existing command-line/environment behavior.
+
 The selected provider and port are remembered in `funding/profile.json` within
-the chosen LNbits data folder. Selecting Neither explicitly skips daemon startup
-for that launch. Each provider's identity is generated once:
+the chosen LNbits data folder. Selecting Neither explicitly skips daemon startup.
+Each provider's identity is generated once:
 
 - Spark: 24 words in `funding/spark/seed.dat`.
 - Phoenixd: 12 words in `funding/phoenixd/seed.dat`, alongside its database and
@@ -35,6 +44,12 @@ The daemon binds to `127.0.0.1` and requires a random API password/key generated
 for each launch. Connection settings are authoritative for the managed LNbits
 worker, so stale saved backend settings cannot override the selected daemon.
 Change the managed port/provider in the launcher, rather than LNbits admin.
+After database initialization, the launcher saves the selected provider's connection
+settings and existing seed for the superuser's Funding page. A changed seed requires
+backup confirmation again; an unchanged seed retains its confirmation. The inactive
+provider's settings are preserved. A synchronization failure stops startup before
+requests are accepted. This desktop-only step does not run for Neither, Docker, or
+normal server startup, and never generates or rewrites a seed file.
 
 Closing the launcher stops LNbits first, then the daemon. LNbits' own restart
 keeps the daemon running. A daemon failure stops LNbits and reports an error;

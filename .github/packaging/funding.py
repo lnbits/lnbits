@@ -12,6 +12,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
@@ -30,7 +31,15 @@ def load_profile(folder):
     if not path.exists():
         return {}
     profile = json.loads(path.read_text())
-    if not isinstance(profile, dict) or profile.get("provider") not in PROVIDERS:
+    if (
+        not isinstance(profile, dict)
+        or profile.get("provider") not in PROVIDERS
+        or not isinstance(profile.get("initialized_providers", []), list)
+        or any(
+            not isinstance(provider, str) or provider not in PROVIDERS
+            for provider in profile.get("initialized_providers", [])
+        )
+    ):
         raise ValueError(
             "The funding profile is invalid. Restore your data folder backup."
         )
@@ -84,6 +93,86 @@ def protect_settings(environment):
                 readonly_variables.append(name)
 
 
+def configure_app(app, environment):
+    """Sync managed funding after core startup, before accepting requests."""
+    if environment.get("LNBITS_DESKTOP_FUNDING") not in PROVIDERS:
+        return
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def lifespan(application):
+        error = None
+        async with original_lifespan(application) as state:
+            try:
+                await sync_settings(environment)
+            except Exception as exc:
+                # Let core finish its normal shutdown before failing startup.
+                error = exc
+            else:
+                yield state
+        if error is not None:
+            raise error
+
+    app.router.lifespan_context = lifespan
+
+
+async def sync_settings(environment):
+    """Persist only this launcher's configuration; never generate or write seeds."""
+    provider = environment.get("LNBITS_DESKTOP_FUNDING")
+    if provider not in PROVIDERS:
+        return
+
+    from lnbits.core.crud.settings import get_settings_field, set_settings_field
+    from lnbits.settings import FundingSourcesSettings, settings
+
+    if not settings.lnbits_admin_ui:
+        return
+    prefix = "SPARK_L2_" if provider == "spark" else "PHOENIXD_"
+    values = {
+        key.lower(): value
+        for key, value in environment.items()
+        if key.startswith(prefix) and key.lower() in FundingSourcesSettings.model_fields
+    }
+    seed_field = prefix.lower() + "mnemonic"
+    seed = values.get(seed_field)
+    seed_file = (
+        Path(environment["LNBITS_DATA_FOLDER"]) / "funding" / provider / "seed.dat"
+    )
+    try:
+        saved_seed = seed_file.read_text().strip()
+    except OSError:
+        raise ValueError(
+            "Cannot read the bundled funding seed. Restore your backup."
+        ) from None
+    if (
+        not seed
+        or not mnemonic_is_valid(seed)
+        or seed != saved_seed
+        or environment.get("LNBITS_BACKEND_WALLET_CLASS") != PROVIDERS[provider]
+    ):
+        raise ValueError(
+            "Bundled funding configuration does not match its saved wallet."
+        )
+
+    try:
+        previous = await get_settings_field(seed_field)
+        if previous is None or previous.value != seed:
+            # Clear acknowledgement before changing the saved seed, so even an
+            # interrupted save cannot confirm a different wallet's backup.
+            confirmed_field = seed_field + "_backup_confirmed"
+            await set_settings_field(confirmed_field, False)
+            setattr(settings, confirmed_field, False)
+        for field, value in values.items():
+            await set_settings_field(field, value)
+        # Select the backend only after all its connection settings are saved.
+        await set_settings_field("lnbits_backend_wallet_class", PROVIDERS[provider])
+    except Exception:
+        # Database exceptions can contain bound credentials; do not log them.
+        raise RuntimeError(
+            "Cannot save bundled funding settings. Startup stopped."
+        ) from None
+
+
 class Funding:
     def __init__(self, environment):
         self.environment = environment
@@ -129,15 +218,6 @@ class Funding:
 
                 fcntl.flock(self.lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             profile = load_profile(self.folder.parent)
-            if not profile and (self.folder.parent / "database.sqlite3").exists():
-                raise ValueError(
-                    "Choose a new data folder for bundled funding. Existing balances "
-                    "cannot be moved to a new funding wallet."
-                )
-            if profile and profile.get("provider") != self.provider:
-                raise ValueError(
-                    "Choose a separate data folder to use a different funding wallet."
-                )
             if self.provider == "phoenixd" and not (
                 profile.get("phoenix_terms")
                 or self.environment.get("LNBITS_DESKTOP_PHOENIX_TERMS") == "true"
@@ -151,7 +231,11 @@ class Funding:
             raise
 
     def _start(self, resources, node, profile):
+        initialized = set(profile.get("initialized_providers", []))
+        if profile.get("provider"):
+            initialized.add(profile["provider"])
         data = self.folder / self.provider
+        existing_data = data.exists()
         data.mkdir(mode=0o700, exist_ok=True)
         seed_file = data / "seed.dat"
         if seed_file.exists():
@@ -161,7 +245,7 @@ class Funding:
                     "The saved funding seed is invalid. Restore your backup; "
                     "it will not be replaced."
                 )
-        elif profile:
+        elif self.provider in initialized or existing_data:
             raise ValueError(
                 "The funding seed is missing. Restore your backup; "
                 "a replacement wallet will not be created."
@@ -171,7 +255,12 @@ class Funding:
                 secrets.token_bytes(32 if self.provider == "spark" else 16)
             )
             save_private(seed_file, mnemonic + "\n")
-        profile.update(provider=self.provider, port=self.port)
+        initialized.add(self.provider)
+        profile.update(
+            provider=self.provider,
+            port=self.port,
+            initialized_providers=sorted(initialized),
+        )
         if self.provider == "phoenixd":
             profile["phoenix_terms"] = True
         save_private(self.folder / "profile.json", json.dumps(profile))

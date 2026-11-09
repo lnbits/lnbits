@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import time
+from collections.abc import Iterable
 from http import HTTPStatus
 from pathlib import Path
 from shutil import make_archive
@@ -38,12 +39,19 @@ from lnbits.core.services.two_factor import (
 )
 from lnbits.decorators import access_token_payload, check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
+from lnbits.settings import (
+    AdminSettings,
+    FundingSourcesSettings,
+    Settings,
+    UpdateSettings,
+    settings,
+)
 from lnbits.task_manager import PublicTask, task_manager
 
 from .. import core_app_extra
 from ..crud import (
     get_admin_settings,
+    get_super_settings,
     get_total_balance,
     reset_core_settings,
     update_admin_settings,
@@ -93,12 +101,13 @@ async def api_test_email():
     )
 
 
-@admin_router.get("/api/v1/settings")
+@admin_router.get("/api/v1/settings", response_model_exclude_unset=True)
 async def api_get_settings(
+    response: Response,
     account: Account = Depends(check_admin),
 ) -> AdminSettings | None:
-    admin_settings = await get_admin_settings(account.is_super_user)
-    return admin_settings
+    response.headers["Cache-Control"] = "no-store"
+    return await get_admin_settings(account.is_super_user)
 
 
 @admin_router.put(
@@ -110,6 +119,7 @@ async def api_update_settings(
     account: Account = Depends(check_admin),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ):
+    _check_funding_settings_access(data.model_fields_set, account)
     policy_changed = await validate_two_factor_policy(data, account.id, payload)
     if "lnbits_allow_onchain_payments" in data.model_fields_set:
         enabled = data.lnbits_allow_onchain_payments
@@ -132,10 +142,13 @@ async def api_update_settings(
         NotificationType.settings_update, {"username": account.username}
     )
     await update_admin_settings(data)
-    admin_settings = await get_admin_settings(account.is_super_user)
-    if not admin_settings:
+    # Reload the complete stored configuration, not the caller's filtered view.
+    stored_settings = await get_super_settings()
+    if not stored_settings:
         raise ValueError("Updated admin settings not found.")
-    update_cached_settings(admin_settings.model_dump())
+    update_cached_settings(
+        stored_settings.model_dump(exclude={"super_user", "auth_all_methods"})
+    )
     core_app_extra.register_new_ratelimiter()
     if policy_changed:
         from lnbits.core.views.auth_api import _auth_success_response
@@ -231,16 +244,29 @@ async def api_update_settings_partial(
     account: Account = Depends(check_admin),
     payload: AccessTokenPayload = Depends(access_token_payload),
 ):
-    updatable_settings = dict_to_settings({**settings.model_dump(), **data})
+    _check_funding_settings_access(data, account)
+    current_settings = settings.model_dump(
+        exclude=(
+            set(FundingSourcesSettings.model_fields)
+            if not account.is_super_user
+            else set()
+        )
+    )
+    updatable_settings = dict_to_settings({**current_settings, **data})
     return await api_update_settings(updatable_settings, account, payload)
 
 
 @admin_router.get(
     "/api/v1/settings/default",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_admin)],
 )
-async def api_reset_settings(field_name: str):
+async def api_reset_settings(
+    field_name: str,
+    response: Response,
+    account: Account = Depends(check_admin),
+):
+    _check_funding_settings_access({field_name}, account)
+    response.headers["Cache-Control"] = "no-store"
     if field_name not in UpdateSettings.model_fields:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Only editable settings have public defaults."
@@ -352,3 +378,13 @@ def _build_pg_dump_env(database_url: str) -> dict[str, str]:
         if value is not None:
             env[variable] = ",".join(value) if isinstance(value, tuple) else str(value)
     return env
+
+
+def _check_funding_settings_access(fields: Iterable[str], account: Account) -> None:
+    if not account.is_super_user and set(fields).intersection(
+        FundingSourcesSettings.model_fields
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Only the super user can access funding source settings.",
+        )

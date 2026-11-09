@@ -33,6 +33,7 @@ async def get_super_settings() -> SuperSettings | None:
 
 
 async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | None:
+    """Build role-filtered settings; serialize with exclude_unset=True."""
     sets = await get_super_settings()
     if not sets:
         return None
@@ -40,11 +41,15 @@ async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | Non
     row_dict.pop("super_user")
     row_dict.pop("auth_all_methods")
 
-    admin_settings = AdminSettings(
-        is_super_user=is_super_user,
-        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
-        **row_dict,
-    )
+    if is_super_user:
+        row_dict["lnbits_allowed_funding_sources"] = (
+            settings.lnbits_allowed_funding_sources
+        )
+    else:
+        for field in FundingSourcesSettings.model_fields:
+            row_dict.pop(field, None)
+
+    admin_settings = AdminSettings(is_super_user=is_super_user, **row_dict)
     return admin_settings
 
 
