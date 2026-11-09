@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -38,7 +37,7 @@ from lnbits.core.crud.extensions import (
     get_wasm_invocations as get_wasm_invocations_crud,
 )
 from lnbits.core.crud.scheduler import delete_namespace_schedules
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import clear_extension_module_cache, migrate_extension_database
 from lnbits.core.services.scheduler import scheduler
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
@@ -889,17 +888,9 @@ async def _install_extension_update(
     reload_active: bool,
 ) -> Extension:
     if reload_active and updated.active:
-        # Stop the running version before clearing its modules or replacing its files.
         await deactivate_extension(updated.id)
-    module_name = updated.module_name
-    stale = [
-        name
-        for name in sys.modules
-        if name == module_name or name.startswith(f"{module_name}.")
-    ]
-    for name in stale:
-        del sys.modules[name]
-    importlib.invalidate_caches()
+    # Migrations must import the updated code before activation reloads routes.
+    clear_extension_module_cache(updated.module_name)
     return await install_extension(
         updated,
         skip_download=True,

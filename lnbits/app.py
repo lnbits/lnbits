@@ -24,7 +24,7 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import clear_extension_module_cache, migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.services.extensions import (
     auto_update_extensions,
@@ -507,14 +507,7 @@ def register_ext_tasks(ext: Extension) -> None:
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     module_name = ext.module_name
-    # Clear all cached sub-modules so a fresh import picks up new files from ext_dir.
-    # A simple reload() would reuse cached sub-modules (e.g. views_api) and serve
-    # stale code even after the extension files have been replaced on disk.
-    stale = [
-        k for k in sys.modules if k == module_name or k.startswith(f"{module_name}.")
-    ]
-    for k in stale:
-        del sys.modules[k]
+    clear_extension_module_cache(module_name)
     ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
