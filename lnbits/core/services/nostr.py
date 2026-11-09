@@ -1,7 +1,6 @@
 import asyncio
 from datetime import timedelta
 
-import httpx
 from loguru import logger
 from nostr_sdk import (
     Client,
@@ -22,6 +21,7 @@ from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,
 )
+from lnbits.utils.safe_http import SafeHttpClient
 
 
 async def send_nostr_dm(
@@ -92,7 +92,7 @@ async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
     validate_identifier(identifier)
 
     url = f"https://{domain}/.well-known/nostr.json?name={identifier}"
-    async with httpx.AsyncClient() as client:
+    async with SafeHttpClient(timeout=5, apply_callback_rules=False) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         data = resp.json()

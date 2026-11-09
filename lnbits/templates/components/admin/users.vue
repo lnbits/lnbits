@@ -69,6 +69,12 @@
               caption
               v-text="$t('allow_creation_user_desc')"
             ></q-item-label>
+            <q-item-label caption>
+              Public registration is disabled by default. Prefer the superuser
+              creating users on the Users page and explicitly inviting them
+              individually. If you enable public registration, require
+              activation with one-time invitation codes.
+            </q-item-label>
           </q-item-section>
           <q-item-section avatar>
             <q-toggle

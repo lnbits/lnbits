@@ -24,6 +24,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
+from lnbits.utils.outbound import outbound_protection_status
 
 from ..crud import get_user
 
@@ -212,6 +213,9 @@ async def index(
         "base.html",
         {
             "user": user.model_dump_json(),
+            "outbound_protection": (
+                outbound_protection_status() if user.super_user else None
+            ),
         },
     )
 
