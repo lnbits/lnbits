@@ -240,6 +240,8 @@ def _check_endpoint_scope(url, endpoint):
             or url.path.startswith(endpoint.path.rstrip("/") + "/")
         )
         or b"%" in url.raw_path.split(b"?", 1)[0]
+        or "\\" in url.path
+        or "\\" in endpoint.path
     ):
         raise ValueError("Request is outside the configured private endpoint.")
 
@@ -266,6 +268,9 @@ async def _check_addresses(
 def _is_private_service_address(address):
     # Explicit private services may use LAN/ULA or loopback addresses, never
     # cloud metadata/link-local, multicast, unspecified or transition addresses.
+    # EC2's IPv6 metadata endpoint is ULA rather than link-local.
+    if address == ipaddress.ip_address("fd00:ec2::254"):
+        return False
     networks = (
         ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8")
         if address.version == 4

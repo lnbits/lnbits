@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import StreamingResponse
 from lnurl import LnurlResponseException
 from pydantic import ValidationError
@@ -25,6 +25,7 @@ from lnbits.utils import outbound, safe_http
 
 @pytest.fixture(autouse=True)
 def policy(monkeypatch):
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", None)
     monkeypatch.setattr(settings, "lnbits_baseurl", "https://instance.example/")
     monkeypatch.setattr(settings, "lnbits_outbound_host_ips", [])
     monkeypatch.setattr(settings, "lnbits_callback_url_rules", [])
@@ -121,12 +122,14 @@ async def test_local_payment_metadata_and_callback_use_no_network(monkeypatch):
     app = FastAPI()
     calls = []
 
-    @app.get("/.well-known/lnurlp/alice")
+    @app.get("/.well-known/lnurlp/alice", openapi_extra={"x-lnbits-local-lnurl": True})
     async def metadata(request: Request):
         calls.append(request)
         return {"callback": "https://instance.example/api/v1/lnurl/wallet/alice/cb"}
 
-    @app.get("/api/v1/lnurl/wallet/alice/cb")
+    @app.get(
+        "/api/v1/lnurl/wallet/alice/cb", openapi_extra={"x-lnbits-local-lnurl": True}
+    )
     async def callback(request: Request, amount: int):
         calls.append(request)
         return {"pr": "test-invoice", "amount": amount}
@@ -161,7 +164,7 @@ async def test_local_lnurl_timeout_cancels_stalled_request(monkeypatch, phase):
         finally:
             cancelled.set()
 
-    @app.get("/.well-known/lnurlp/alice")
+    @app.get("/.well-known/lnurlp/alice", openapi_extra={"x-lnbits-local-lnurl": True})
     async def metadata():
         if phase == "response":
             await stall()
@@ -185,20 +188,64 @@ async def test_local_lnurl_timeout_cancels_stalled_request(monkeypatch, phase):
     assert isinstance(exc.value.__cause__, asyncio.TimeoutError)
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/lnurlp/abc",
-        "/lnurlp/api/v1/lnurl/abc",
-        "/lnurlp/api/v1/lnurl/cb/abc",
-        "/lnurlp/api/v1/well-known/alice",
-        "/withdraw/api/v1/lnurl/abc",
-        "/withdraw/api/v1/lnurl/cb/abc",
-        "/withdraw/api/v1/lnurl/abc/unique",
-    ],
-)
-def test_known_extension_lnurls_have_an_internal_path(path):
-    assert lnurl._is_local_lnurl_url(httpx.URL("https://instance.example" + path))
+def test_local_lnurl_requires_registered_opted_in_get_route(monkeypatch):
+    app = FastAPI()
+    router = APIRouter(prefix="/example_ext")
+
+    @router.get("/pay/{link_id}", openapi_extra={"x-lnbits-local-lnurl": True})
+    async def metadata(link_id: str):
+        return {"id": link_id}
+
+    @router.get("/admin")
+    async def admin():
+        return {}
+
+    @router.post("/post", openapi_extra={"x-lnbits-local-lnurl": True})
+    async def post_only():
+        return {}
+
+    app.include_router(router)
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
+    url = httpx.URL("https://instance.example/example_ext/pay/abc")
+    assert lnurl._is_local_lnurl_url(url)
+    for path in ("/example_ext/admin", "/example_ext/post", "/other_ext/pay/abc"):
+        assert not lnurl._is_local_lnurl_url(url.copy_with(path=path))
+    # Removed or upgraded routes must not retain stale permission.
+    app.router.routes = []
+    assert not lnurl._is_local_lnurl_url(url)
+
+
+def test_shadowed_or_mounted_route_cannot_borrow_lnurl_permission(monkeypatch):
+    app = FastAPI()
+
+    @app.get("/example_ext/pay/{link_id}")
+    async def unmarked(link_id: str):
+        return {}
+
+    @app.get("/example_ext/pay/{link_id}", openapi_extra={"x-lnbits-local-lnurl": True})
+    async def marked(link_id: str):
+        return {}
+
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
+    url = httpx.URL("https://instance.example/example_ext/pay/abc")
+    assert not lnurl._is_local_lnurl_url(url)
+    mounted = FastAPI()
+    mounted.mount("/", app)
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", mounted)
+    assert not lnurl._is_local_lnurl_url(url)
+
+
+def test_core_public_lnurl_routes_explicitly_opt_in(monkeypatch):
+    from lnbits.core.views.lnurl_api import lnurl_router
+
+    app = FastAPI()
+    app.include_router(lnurl_router)
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
+    for path in ("/.well-known/lnurlp/alice", "/api/v1/lnurl/wallet/alice/cb"):
+        assert lnurl._is_local_lnurl_url(httpx.URL("https://instance.example" + path))
+    assert not lnurl._is_local_lnurl_url(
+        httpx.URL("https://instance.example/api/v1/lnurlscan/test")
+    )
 
 
 @pytest.mark.anyio
@@ -206,6 +253,9 @@ def test_known_extension_lnurls_have_an_internal_path(path):
     "url",
     [
         "https://instance.example/admin/api/v1/settings",
+        "https://instance.example/example_ext/admin",
+        "https://instance.example/example_ext/auth?wipe=true",
+        "https://instance.example/unknown/api/v1/lnurl/cb/charge",
         "https://instance.example:8443/.well-known/lnurlp/alice",
         "http://instance.example/.well-known/lnurlp/alice",
         "https://user:secret@instance.example/.well-known/lnurlp/alice",
@@ -227,11 +277,11 @@ async def test_internal_dispatch_does_not_allow_arbitrary_self_requests(
 @pytest.mark.anyio
 async def test_internal_redirect_is_checked_and_missing_app_fails_closed(monkeypatch):
     monkeypatch.setattr(core_app_extra, "local_lnurl_app", None)
-    with pytest.raises(LnurlResponseException, match="unavailable"):
-        await lnurl.request_lnurl_json("https://instance.example/lnurlp/abc")
+    with pytest.raises(LnurlResponseException, match="this server"):
+        await lnurl.request_lnurl_json("https://instance.example/example_ext/pay/abc")
     app = FastAPI()
 
-    @app.get("/lnurlp/abc")
+    @app.get("/example_ext/pay/abc", openapi_extra={"x-lnbits-local-lnurl": True})
     async def redirect():
         from fastapi.responses import RedirectResponse
 
@@ -240,7 +290,7 @@ async def test_internal_redirect_is_checked_and_missing_app_fails_closed(monkeyp
     monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
     monkeypatch.setattr(settings, "lnbits_lnurl_redirect_url_rules", [".*"])
     with pytest.raises(LnurlResponseException, match="this server"):
-        await lnurl.request_lnurl_json("https://instance.example/lnurlp/abc")
+        await lnurl.request_lnurl_json("https://instance.example/example_ext/pay/abc")
 
 
 def test_environment_addresses_are_validated_and_readonly():
@@ -363,3 +413,43 @@ def test_hostname_guard_normalizes_international_names(monkeypatch, target):
     monkeypatch.setattr(settings, "lnbits_baseurl", "https://bücher.example/")
     with pytest.raises(ValueError, match="this server"):
         outbound.check_outbound_hostname(target)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "metadata_path,callback_path",
+    [
+        ("/example_ext/pay/item", "/example_ext/pay/cb/item"),
+        ("/example_ext/v2/withdraw/device", "/example_ext/v2/withdraw/cb/cGF5bG9hZA=="),
+        ("/example_ext/custom/route/21", "/example_ext/callback"),
+    ],
+)
+async def test_same_instance_extension_lnurl_flow_stays_inside_app(
+    monkeypatch, metadata_path, callback_path
+):
+    app = FastAPI()
+    seen = []
+
+    @app.get(metadata_path, openapi_extra={"x-lnbits-local-lnurl": True})
+    async def metadata():
+        return {"callback": "https://instance.example" + callback_path}
+
+    @app.get(callback_path, openapi_extra={"x-lnbits-local-lnurl": True})
+    async def callback(request: Request, k1: str, pr: str):
+        seen.append(request)
+        return {"status": "OK", "k1": k1, "pr": pr}
+
+    monkeypatch.setattr(core_app_extra, "local_lnurl_app", app)
+    send = AsyncMock(side_effect=AssertionError("Must not connect to the host"))
+    monkeypatch.setattr(lnurl, "_send_lnurl_request", send)
+    resolver = dns(monkeypatch, [])
+    data = await lnurl.request_lnurl_json("https://instance.example" + metadata_path)
+    response = await lnurl.request_lnurl_json(
+        data["callback"], params={"k1": "charge", "pr": "test-invoice"}
+    )
+    assert response == {"status": "OK", "k1": "charge", "pr": "test-invoice"}
+    assert len(seen) == 1
+    assert "authorization" not in seen[0].headers
+    assert "cookie" not in seen[0].headers
+    resolver.assert_not_awaited()
+    send.assert_not_awaited()

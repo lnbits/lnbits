@@ -451,3 +451,21 @@ class _FakeStreamResponse:
     async def aiter_bytes(self):
         for chunk in self._chunks:
             yield chunk
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target_ip", ["224.0.0.1", "ff02::1", "64:ff9b::224.0.0.1"])
+async def test_lnurl_requests_reject_multicast_targets(settings, mocker, target_ip):
+    settings.lnbits_lnurl_allow_private_ips = False
+    mocker.patch(
+        "lnbits.core.services.lnurl._resolve_lnurl_host",
+        mocker.AsyncMock(return_value=[ipaddress.ip_address(target_ip)]),
+    )
+    send = mocker.patch("lnbits.core.services.lnurl._send_lnurl_request")
+    for url in (
+        httpx.URL("https://multicast.example/"),
+        httpx.URL("https://multicast.example/").copy_with(host=target_ip),
+    ):
+        with pytest.raises(LnurlResponseException, match="non-global IP address"):
+            await lnurl_service.request_lnurl_json(str(url))
+    send.assert_not_called()

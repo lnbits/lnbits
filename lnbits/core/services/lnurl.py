@@ -12,6 +12,8 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bolt11 import Bolt11Exception, MilliSatoshi
 from bolt11 import decode as bolt11_decode
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from lnurl import (
     InvalidLnurl,
     LnAddress,
@@ -32,6 +34,7 @@ from lnurl.models import LnurlResponseModel
 from lnurl.types import CallbackUrl
 from loguru import logger
 from pydantic import TypeAdapter, ValidationError
+from starlette.routing import Match
 
 from lnbits.core.crud import update_wallet
 from lnbits.core.db import core_app_extra
@@ -558,19 +561,20 @@ def _is_local_lnurl_url(url: httpx.URL) -> bool:
         or b"%" in url.raw_path.split(b"?", 1)[0]
     ):
         return False
-    # Only these public LNURL endpoints may run in-process. No arbitrary path,
-    # credentials, alternative port or network connection is permitted.
-    return any(
-        re.fullmatch(pattern, url.path)
-        for pattern in (
-            r"/\.well-known/lnurlp/[A-Za-z0-9_.-]+",
-            r"/api/v1/lnurl/wallet/[A-Za-z0-9_.-]+/cb",
-            r"/lnurlp/[A-Za-z0-9_-]+",
-            r"/lnurlp/api/v1/lnurl/(?:cb/)?[A-Za-z0-9_-]+",
-            r"/lnurlp/api/v1/well-known/[A-Za-z0-9_.-]+",
-            r"/withdraw/api/v1/lnurl/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)?",
-        )
-    )
+    app = core_app_extra.local_lnurl_app
+    if not isinstance(app, FastAPI):
+        return False
+    scope = {"type": "http", "method": "GET", "path": url.path, "root_path": ""}
+    # The actual first matching route must opt in. Extension-owned metadata
+    # survives include_router(), upgrades and route removal without a core list.
+    for route in app.routes:
+        match, _ = route.matches(scope)
+        if match == Match.FULL:
+            return (
+                isinstance(route, APIRoute)
+                and (route.openapi_extra or {}).get("x-lnbits-local-lnurl") is True
+            )
+    return False
 
 
 async def _send_local_lnurl_request(
