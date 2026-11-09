@@ -64,6 +64,7 @@ from lnbits.core.views.extension_api import (
     get_pay_to_enable_invoice,
     get_pay_to_install_invoice,
 )
+from lnbits.settings import Settings
 from tests.helpers import make_extension_release, make_installable_extension
 
 
@@ -721,6 +722,60 @@ async def test_extension_api_pay_to_enable_and_catalog_views(mocker, admin_user)
     catalog = await extensions(AccountId(id=regular_user.id))
     catalog_item = next(item for item in catalog if item["id"] == ext_id)
     assert catalog_item["payToEnable"]["wallet"] is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("restriction", ["package", "setting"])
+async def test_admin_only_extension_enable_rejects_users_before_side_effects(
+    app, mocker, settings: Settings, admin_user, restriction: str
+):
+    ext_id = f"admin_{uuid4().hex[:8]}"
+    user_id = uuid4().hex
+    ext = make_installable_extension(ext_id, admin_only=restriction == "package")
+    settings.lnbits_admin_extensions = [ext_id] if restriction == "setting" else []
+    await create_installed_extension(ext)
+    create_invoice = mocker.patch("lnbits.core.views.extension_api.create_invoice")
+    try:
+        with pytest.raises(HTTPException) as enable_error:
+            await api_enable_extension(ext_id, AccountId(id=user_id))
+        assert enable_error.value.status_code == 403
+        with pytest.raises(HTTPException) as invoice_error:
+            await get_pay_to_enable_invoice(
+                ext_id, PayToEnableInfo(amount=21), AccountId(id=user_id)
+            )
+        assert invoice_error.value.status_code == 403
+        create_invoice.assert_not_awaited()
+        assert await get_user_extension(user_id, ext_id) is None
+
+        result = await api_enable_extension(ext_id, AccountId(id=admin_user.id))
+        assert result.success
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("installed_admin_only", [True, False])
+async def test_extension_catalog_uses_installed_admin_only_policy(
+    app, mocker, installed_admin_only: bool
+):
+    ext_id = f"admin_{uuid4().hex[:8]}"
+    ext = make_installable_extension(ext_id, admin_only=installed_admin_only)
+    await create_installed_extension(ext)
+    catalog_ext = make_installable_extension(
+        ext_id, admin_only=not installed_admin_only
+    )
+    assert catalog_ext.meta
+    catalog_ext.meta.latest_release = catalog_ext.meta.installed_release
+    catalog_ext.meta.installed_release = None
+    mocker.patch.object(
+        InstallableExtension, "get_installable_extensions", return_value=[catalog_ext]
+    )
+    try:
+        catalog = await extensions(AccountId(id=uuid4().hex))
+        entry = next(item for item in catalog if item["id"] == ext_id)
+        assert entry["isAdminOnly"] == installed_admin_only
+    finally:
+        await delete_installed_extension(ext_id=ext_id)
 
 
 @pytest.mark.anyio

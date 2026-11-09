@@ -309,7 +309,8 @@
                 v-if="
                   g.user.extensions.includes(extension.id) &&
                   extension.isActive &&
-                  extension.isInstalled
+                  extension.isInstalled &&
+                  (!extension.isAdminOnly || g.user.admin)
                 "
                 flat
                 color="primary"
