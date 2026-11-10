@@ -7,7 +7,6 @@ from lnbits.core.crud.wallets import (
     create_wallet,
     delete_wallet,
     force_delete_wallet,
-    get_wallets,
     reset_all_wallet_keys,
 )
 from lnbits.core.db import db
@@ -21,6 +20,15 @@ from lnbits.helpers import create_access_token
 from lnbits.utils.cache import cache
 
 RESET_URL = "/admin/api/v1/wallets/reset-keys"
+
+
+@pytest.fixture
+async def superuser_wallet(http_client, settings):
+    wallet = await create_wallet(user_id=settings.super_user)
+    try:
+        yield wallet
+    finally:
+        await force_delete_wallet(wallet.id)
 
 
 @pytest.fixture
@@ -75,7 +83,7 @@ async def test_bulk_key_reset_requires_superuser(
     user_headers_from,
     admin_user,
     from_wallet,
-    settings,
+    superuser_wallet,
     mocker,
 ):
     reset = mocker.patch(
@@ -93,8 +101,7 @@ async def test_bulk_key_reset_requires_superuser(
     elif auth in ("adminkey", "inkey"):
         headers = {"X-Api-Key": getattr(from_wallet, auth)}
     elif auth == "superkey":
-        wallets = await get_wallets(settings.super_user)
-        headers = {"X-Api-Key": wallets[0].adminkey}
+        headers = {"X-Api-Key": superuser_wallet.adminkey}
 
     response = await http_client.post(RESET_URL, headers=headers)
     assert response.status_code == (403 if auth in ("user", "admin") else 401)
