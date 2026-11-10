@@ -197,7 +197,7 @@ async def test_wasm_extension_api_request_rejects_oversized_body_and_response(
             [{"id": "target", "access": ["write"]}],
             "user-id",
             "access-token",
-            ExtensionApiRequest.construct(
+            ExtensionApiRequest.model_construct(
                 extension_id="target",
                 method="POST",
                 path="/api/v1/run",

@@ -1,14 +1,13 @@
 import asyncio
-import ipaddress
+import json
+import socket
 from http import HTTPStatus
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
-from pywebpush import WebPushException
 
 from lnbits.core.crud import (
     create_account,
@@ -246,9 +245,13 @@ async def test_send_notification_uses_available_channels_and_swallows_exceptions
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("protocol", ["nip04", "nip17"])
 async def test_send_nostr_notifications_and_single_notification(
+    settings: Settings,
     mocker: MockerFixture,
+    protocol: str,
 ):
+    mocker.patch.object(settings, "lnbits_nostr_notifications_protocol", protocol)
     send_mock = mocker.patch(
         "lnbits.core.services.notifications.send_nostr_notification",
         mocker.AsyncMock(side_effect=[None, Exception("boom"), None]),
@@ -267,8 +270,12 @@ async def test_send_nostr_notifications_and_single_notification(
         "lnbits.core.services.notifications.normalize_private_key",
         return_value="server-private-key",
     )
-    dm_mock = mocker.patch(
+    nip04_mock = mocker.patch(
         "lnbits.core.services.notifications.send_nostr_dm",
+        mocker.AsyncMock(),
+    )
+    nip17_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm_nip17",
         mocker.AsyncMock(),
     )
 
@@ -276,12 +283,49 @@ async def test_send_nostr_notifications_and_single_notification(
 
     fetch_mock.assert_awaited_once_with("alice@example.com")
     normalize_mock.assert_called_once()
-    dm_mock.assert_awaited_once_with(
+    selected, unused = (
+        (nip04_mock, nip17_mock) if protocol == "nip04" else (nip17_mock, nip04_mock)
+    )
+    selected.assert_awaited_once_with(
         "server-private-key",
         "pubkey",
         "hello",
         ["wss://relay"],
     )
+    unused.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_nip17_failure_logs_zero_sent_without_fallback(
+    settings: Settings, mocker: MockerFixture
+):
+    mocker.patch.object(settings, "lnbits_nostr_notifications_protocol", "nip17")
+    mocker.patch.object(settings, "lnbits_nostr_notifications_enabled", True)
+    mocker.patch(
+        "lnbits.core.services.notifications.fetch_nip5_details",
+        mocker.AsyncMock(return_value=("pubkey", ["wss://relay"])),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.normalize_private_key", return_value="key"
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm_nip17",
+        mocker.AsyncMock(
+            side_effect=ValueError("No inbox relay accepted notification")
+        ),
+    )
+    legacy = mocker.patch(
+        "lnbits.core.services.notifications.send_nostr_dm", mocker.AsyncMock()
+    )
+    debug = mocker.patch("lnbits.core.services.notifications.logger.debug")
+    warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
+
+    await send_notification(None, ["alice@example.com"], None, "hello")
+
+    legacy.assert_not_awaited()
+    debug.assert_called_once_with("Sent nostr notification: plain text.Sent: 0")
+    warning.assert_called_once()
+    assert "No inbox relay accepted notification" in warning.call_args.args[0]
 
 
 @pytest.mark.anyio
@@ -317,6 +361,126 @@ async def test_send_telegram_message_and_wrapper(
         settings.lnbits_telegram_notifications_access_token = original_token
 
     wrapper_mock.assert_awaited_once_with("wrapper-token", "chat-id", "hello")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (httpx.ReadTimeout(""), "ReadTimeout: Timed out waiting for Telegram"),
+        (httpx.ConnectTimeout(""), "ConnectTimeout: Timed out connecting to Telegram"),
+        (httpx.WriteTimeout(""), "WriteTimeout: Timed out sending to Telegram"),
+        (
+            httpx.PoolTimeout(""),
+            "PoolTimeout: Timed out waiting for an available HTTP connection",
+        ),
+        (httpx.TimeoutException(""), "TimeoutException: Telegram request timed out"),
+        (
+            httpx.ConnectError("All connection attempts failed"),
+            "ConnectError: All connection attempts failed",
+        ),
+        (RuntimeError("  "), "RuntimeError: No error message provided"),
+    ],
+)
+async def test_send_notification_logs_useful_telegram_transport_errors(
+    settings: Settings, mocker: MockerFixture, error: Exception, expected: str
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(post_exception=error),
+    )
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
+
+    await send_notification("chat-id", [], [], "hello")
+
+    log_warning.assert_called_once_with(
+        f"Error sending telegram notification None: {expected}"
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "status, body, expected",
+    [
+        (
+            400,
+            {"description": "Bad Request: chat not found"},
+            "Bad Request: chat not found",
+        ),
+        (
+            429,
+            {"description": "Too Many Requests: retry after 30"},
+            "Too Many Requests: retry after 30",
+        ),
+        (400, {}, "Bad Request"),
+        (400, [], "Bad Request"),
+        (400, {"description": None}, "Bad Request"),
+        (400, {"description": "  "}, "Bad Request"),
+        (503, "invalid JSON", "Service Unavailable"),
+        (400, {"description": "Cannot use test-bot-token"}, "Cannot use [redacted]"),
+    ],
+)
+async def test_send_notification_logs_telegram_http_errors_without_token(
+    settings: Settings, mocker: MockerFixture, status: int, body, expected: str
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch.object(
+        settings, "lnbits_telegram_notifications_access_token", "test-bot-token"
+    )
+    response = httpx.Response(
+        status,
+        request=httpx.Request(
+            "POST", "https://api.telegram.org/bottest-bot-token/sendMessage"
+        ),
+        content=body if isinstance(body, str) else json.dumps(body),
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(post_response=response),
+    )
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
+
+    await send_notification("chat-id", [], [], "hello", "text_message")
+
+    log_warning.assert_called_once_with(
+        f"Error sending telegram notification text_message: HTTP {status}: {expected}"
+    )
+    assert "test-bot-token" not in log_warning.call_args.args[0]
+    assert "api.telegram.org" not in log_warning.call_args.args[0]
+
+
+@pytest.mark.anyio
+async def test_send_notification_redacts_token_from_telegram_exception(
+    settings: Settings, mocker: MockerFixture
+):
+    mocker.patch.object(
+        type(settings), "is_telegram_notifications_configured", return_value=True
+    )
+    mocker.patch.object(
+        settings, "lnbits_telegram_notifications_access_token", "test-bot-token"
+    )
+    mocker.patch(
+        "lnbits.core.services.notifications.httpx.AsyncClient",
+        return_value=MockHTTPClient(
+            post_exception=httpx.ConnectError(
+                "Cannot connect to https://api.telegram.org/bottest-bot-token/sendMessage"
+            )
+        ),
+    )
+    log_warning = mocker.patch("lnbits.core.services.notifications.logger.warning")
+
+    await send_notification("chat-id", [], [], "hello")
+
+    log_warning.assert_called_once_with(
+        "Error sending telegram notification None: ConnectError: "
+        "Cannot connect to https://api.telegram.org/bot[redacted]/sendMessage"
+    )
+    assert "test-bot-token" not in log_warning.call_args.args[0]
 
 
 @pytest.mark.anyio
@@ -415,18 +579,13 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
         side_effect=ValueError("blocked"),
     )
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=invalid_client,
     )
 
     await dispatch_webhook(invalid_payment)
     assert (await get_payment(invalid_payment.checking_id)).webhook_status == "-1"
     assert invalid_client.posts == []
-
-    mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
-    )
 
     error_payment = await _create_payment(wallet, webhook="https://error.example")
     assert error_payment.webhook is not None
@@ -435,7 +594,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
         return_value=None,
     )
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=MockHTTPClient(
             post_response=httpx.Response(
                 500,
@@ -450,7 +609,7 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
     request_payment = await _create_payment(wallet, webhook="https://request.example")
     assert request_payment.webhook is not None
     mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
+        "lnbits.core.services.notifications.SafeHttpClient",
         return_value=MockHTTPClient(
             post_exception=httpx.RequestError(
                 "boom",
@@ -464,88 +623,162 @@ async def test_dispatch_webhook_marks_missing_invalid_and_failed_requests(
 
 
 @pytest.mark.anyio
-async def test_dispatch_webhook_blocks_private_targets(
-    settings: Settings, mocker: MockerFixture
+@pytest.mark.parametrize("same_wallet", [False, True])
+async def test_dispatch_webhook_status_is_scoped_to_payment(
+    mocker: MockerFixture, same_wallet: bool
 ):
+    sender = await _create_wallet()
+    receiver = sender if same_wallet else await _create_wallet()
+    incoming = await _create_payment(receiver, webhook="https://receiver.example")
+    outgoing = await _create_payment(
+        sender, amount_msat=-incoming.amount, webhook="https://sender.example"
+    )
+    outgoing.payment_hash = incoming.payment_hash
+    await update_payment(outgoing)
+    post = mocker.patch(
+        "lnbits.core.services.notifications._post_webhook",
+        mocker.AsyncMock(side_effect=[200, 204]),
+    )
+    mocker.patch("lnbits.core.services.notifications.check_callback_url")
+
+    await dispatch_webhook(outgoing)
+
+    assert (await get_payment(outgoing.checking_id)).webhook_status == "200"
+    assert (await get_payment(incoming.checking_id)).webhook_status is None
+
+    await dispatch_webhook(await get_payment(incoming.checking_id))
+
+    assert (await get_payment(incoming.checking_id)).webhook_status == "204"
+    assert (await get_payment(outgoing.checking_id)).webhook_status == "200"
+    assert post.await_count == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "target_ip",
+    ["10.0.0.2", "169.254.169.254", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe"],
+)
+async def test_dispatch_webhook_blocks_private_targets(
+    settings: Settings, safe_http_mock, target_ip: str
+):
+    resolver, handler = safe_http_mock
     settings.lnbits_callback_url_rules = []
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (target_ip, 80))
+    ]
+    target_url = httpx.URL("http://metadata.internal/metadata").copy_with(
+        host=target_ip
+    )
     wallet = await _create_wallet()
-    response = httpx.Response(
-        200,
-        request=httpx.Request("POST", "http://169.254.169.254/metadata"),
-    )
-    client = MockHTTPClient(post_response=response)
-    mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
-        return_value=client,
-    )
-
-    direct_payment = await _create_payment(
-        wallet, webhook="http://169.254.169.254/metadata"
-    )
+    direct_payment = await _create_payment(wallet, webhook=str(target_url))
     await dispatch_webhook(direct_payment)
-
     assert (await get_payment(direct_payment.checking_id)).webhook_status == "-1"
-    assert client.posts == []
+    handler.assert_not_called()
 
-    resolver = mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(
-            return_value=[
-                ipaddress.ip_address("93.184.216.34"),
-                ipaddress.ip_address("10.0.0.1"),
-            ]
-        ),
+    resolver.return_value.insert(
+        0, (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
     )
     dns_payment = await _create_payment(
         wallet, webhook="https://attacker.example/internal"
     )
     await dispatch_webhook(dns_payment)
-
     assert (await get_payment(dns_payment.checking_id)).webhook_status == "-1"
-    assert client.posts == []
+    handler.assert_not_called()
 
     settings.lnbits_callback_allow_private_ips = True
-    resolver.return_value = [ipaddress.ip_address("10.0.0.1")]
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (target_ip, 443))
+    ]
     allowed_payment = await _create_payment(
         wallet, webhook="https://attacker.example/internal"
     )
     await dispatch_webhook(allowed_payment)
-
-    assert (await get_payment(allowed_payment.checking_id)).webhook_status == "200"
-    assert str(client.posts[0][0]) == "https://10.0.0.1/internal"
+    # The administrator's opt-in retains private access, but never self-targets.
+    expected = "-1" if target_ip == "64:ff9b::127.0.0.1" else "200"
+    assert (await get_payment(allowed_payment.checking_id)).webhook_status == expected
+    if expected == "200":
+        assert handler.call_args.args[0].url == httpx.URL(
+            "https://attacker.example/internal"
+        ).copy_with(host=target_ip)
+    else:
+        handler.assert_not_called()
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("status_code", [200, 302])
 async def test_dispatch_webhook_pins_allowed_target(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, safe_http_mock, status_code
 ):
+    resolver, handler = safe_http_mock
     settings.lnbits_callback_url_rules = []
     wallet = await _create_wallet()
     payment = await _create_payment(
         wallet, webhook="https://callback.example:8443/paid"
     )
-    client = MockHTTPClient(
-        post_response=httpx.Response(
-            200,
-            request=httpx.Request("POST", "https://93.184.216.34:8443/paid"),
-        )
-    )
-    mocker.patch(
-        "lnbits.core.services.notifications._resolve_webhook_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("93.184.216.34")]),
-    )
-    client_factory = mocker.patch(
-        "lnbits.core.services.notifications.httpx.AsyncClient",
-        return_value=client,
-    )
+    expected_body = payment.model_dump_json()
 
+    class UnreadableBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            raise AssertionError("Webhook response body must not be read")
+            yield b""
+
+    handler.side_effect = lambda request: httpx.Response(
+        status_code, headers={"location": "http://127.0.0.1/"}, stream=UnreadableBody()
+    )
     await dispatch_webhook(payment)
 
-    assert (await get_payment(payment.checking_id)).webhook_status == "200"
-    assert str(client.posts[0][0]) == "https://93.184.216.34:8443/paid"
-    assert client.posts[0][1]["headers"]["Host"] == "callback.example:8443"
-    assert client.posts[0][1]["extensions"] == {"sni_hostname": "callback.example"}
-    client_factory.assert_called_once_with(follow_redirects=False, trust_env=False)
+    assert (await get_payment(payment.checking_id)).webhook_status == str(status_code)
+    resolver.assert_awaited_once()
+    handler.assert_called_once()
+    request = handler.call_args.args[0]
+    assert str(request.url) == "https://93.184.216.34:8443/paid"
+    assert request.headers["host"] == "callback.example:8443"
+    assert request.headers["user-agent"] == settings.user_agent
+    assert request.extensions["sni_hostname"] == "callback.example"
+    assert request.extensions["timeout"]["read"] == 40
+    assert request.method == "POST"
+    assert json.loads(request.content) == expected_body
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("allow_private", [False, True])
+@pytest.mark.parametrize("kind", ["hostname", "supplied", "assigned"])
+async def test_dispatch_webhook_blocks_self_targets(
+    settings: Settings, safe_http_mock, monkeypatch, allow_private, kind
+):
+    from lnbits.utils import outbound
+
+    _, handler = safe_http_mock
+    settings.lnbits_callback_url_rules = []
+    settings.lnbits_callback_allow_private_ips = allow_private
+    settings.lnbits_baseurl = "https://instance.example/"
+    if kind == "supplied":
+        settings.lnbits_outbound_host_ips = ["93.184.216.34"]
+    elif kind == "assigned":
+        monkeypatch.setattr(
+            outbound, "_is_assigned", lambda address: str(address) == "93.184.216.34"
+        )
+    target = "instance.example" if kind == "hostname" else "alias.example"
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, webhook=f"https://{target}:8443/paid")
+    await dispatch_webhook(payment)
+    assert (await get_payment(payment.checking_id)).webhook_status == "-1"
+    handler.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_dispatch_webhook_keeps_callback_rules_with_private_opt_in(
+    settings: Settings, safe_http_mock
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_callback_url_rules = [r"https://allowed\.example"]
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, webhook="https://blocked.example/paid")
+    await dispatch_webhook(payment)
+    assert (await get_payment(payment.checking_id)).webhook_status == "-1"
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -646,8 +879,52 @@ async def test_send_ws_payment_notification_and_chat_notifications(
 
 
 @pytest.mark.anyio
+async def test_outgoing_payment_below_user_limit_sends_no_user_notification(
+    mocker: MockerFixture,
+):
+    user_notifications = UserNotifications(
+        telegram_chat_id="chat-id",
+        incoming_payments_sats=1,
+        outgoing_payments_sats=10_000,
+    )
+    wallet = await _create_wallet(user_notifications)
+    payment = await _create_payment(wallet, amount_msat=-2_000)
+    mocker.patch("lnbits.core.services.notifications.enqueue_admin_notification")
+    user_mock = mocker.patch(
+        "lnbits.core.services.notifications.enqueue_user_notification"
+    )
+
+    await send_chat_payment_notification(wallet, payment)
+
+    user_mock.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_send_payment_push_notification_for_outgoing_payment(
+    mocker: MockerFixture,
+):
+    wallet = await _create_wallet()
+    payment = await _create_payment(wallet, amount_msat=-2_000, memo="")
+    await create_webpush_subscription(
+        f"https://push.example/{uuid4().hex}",
+        wallet.user,
+        '{"endpoint":"https://push.example"}',
+        "push.example",
+    )
+    send_push_mock = mocker.patch(
+        "lnbits.core.services.notifications.send_push_notification",
+        mocker.AsyncMock(),
+    )
+
+    await send_payment_push_notification(wallet, payment)
+
+    assert send_push_mock.await_args is not None
+    assert send_push_mock.await_args.args[2] == "You just sent 2 sats!"
+
+
+@pytest.mark.anyio
 async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture, safe_http_mock
 ):
     wallet = await _create_wallet()
     payment = await _create_payment(wallet, amount_msat=2_000, memo="Thanks")
@@ -673,19 +950,15 @@ async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
         f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
     )
 
-    original_privkey = settings.lnbits_webpush_privkey
-    try:
-        settings.lnbits_webpush_privkey = ""
-        exc = WebPushException("gone")
-        exc.response = SimpleNamespace(status_code=HTTPStatus.GONE, text="gone")
-        mocker.patch(
-            "lnbits.core.services.notifications.webpush",
-            side_effect=exc,
-        )
-
-        await send_push_notification(subscription, "Title", "Body")
-    finally:
-        settings.lnbits_webpush_privkey = original_privkey
+    mocker.patch.object(settings, "lnbits_webpush_privkey", "test-private-key")
+    mocker.patch(
+        "lnbits.core.services.notifications.WebPusher"
+    ).return_value.encode.return_value = {"body": b"encrypted"}
+    mocker.patch(
+        "lnbits.core.services.notifications.Vapid.from_pem"
+    ).return_value.sign.return_value = {}
+    safe_http_mock[1].side_effect = lambda request: httpx.Response(HTTPStatus.GONE)
+    await send_push_notification(subscription, "Title", "Body")
 
     assert await get_webpush_subscription(subscription.endpoint, wallet.user) is None
 

@@ -29,7 +29,183 @@ from lnbits.core.wasm_ext.api.websockets import (
 )
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
+from lnbits.helpers import sha256s
 from tests.helpers import make_installable_extension
+
+
+@pytest.fixture
+def scheduler_permission_config():
+    config = _wasm_config(
+        "demoext",
+        [
+            {
+                "id": "scheduler.user",
+                "policies": [
+                    {"handler": "check", "cron_expression": "*/10 * * * *"},
+                    {"handler": "other", "cron_expression": "0 * * * *"},
+                ],
+            },
+            {
+                "id": "scheduler.extension",
+                "policies": [
+                    {
+                        "handler": "check",
+                        "cron_expression": "* * * * *",
+                        "timezone": "Europe/Bucharest",
+                    }
+                ],
+            },
+        ],
+    )
+    config["wasm"]["exports"] = [
+        {"name": name, "visibility": "event"} for name in ("check", "other")
+    ]
+    return config
+
+
+def test_scheduler_permissions_approve_exact_schedules_per_handler_and_scope(
+    scheduler_permission_config,
+):
+    config = scheduler_permission_config
+    extension = make_installable_extension("demoext")
+    grants = [
+        ExtensionPermission.model_validate(item) for item in config["permissions"]
+    ]
+    assert validate_wasm_extension_permissions(extension, grants, config) == grants
+    # Admins can approve only some declared handlers and omit the shared permission.
+    grants[0].policies = [
+        {"handler": "check", "cron_expression": "*/10 * ? * *", "timezone": "UTC"}
+    ]
+    assert (
+        validate_wasm_extension_permissions(extension, grants[:1], config) == grants[:1]
+    )
+    assert validate_wasm_extension_permissions(extension, [], config) == []
+
+
+@pytest.mark.parametrize(
+    "policies",
+    [
+        None,
+        [],
+        ["*/10 * * * *"],
+        [{}],
+        [{"handler": "check", "cron_expression": "* * * * * *"}],
+        [
+            {
+                "handler": "check",
+                "cron_expression": "*/10 * * * *",
+                "timezone": "invalid",
+            }
+        ],
+        [{"handler": "check", "cron_expression": "*/10 * * * *", "enabled": False}],
+        [{"handler": "missing", "cron_expression": "*/10 * * * *"}],
+        [{"handler": "check", "cron_expression": "*/10 * * * *"}] * 2,
+    ],
+)
+def test_scheduler_permissions_reject_invalid_manifest_policies(
+    policies, scheduler_permission_config
+):
+    scheduler_permission_config["permissions"][0]["policies"] = policies
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], scheduler_permission_config
+        )
+
+
+@pytest.mark.parametrize("visibility", ["authenticated", "public"])
+def test_scheduler_permissions_require_event_handlers(
+    visibility, scheduler_permission_config
+):
+    scheduler_permission_config["wasm"]["exports"][0]["visibility"] = visibility
+    with pytest.raises(ValueError, match="event exports"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], scheduler_permission_config
+        )
+
+
+@pytest.mark.parametrize("allow_admin_policy_overrides", [False, True])
+@pytest.mark.parametrize(
+    "policies",
+    [
+        None,
+        [],
+        [{"handler": "missing", "cron_expression": "*/10 * * * *"}],
+        [{"handler": "check", "cron_expression": "* * * * *"}],
+        [{"handler": "check", "cron_expression": "*/20 * * * *"}],
+        [
+            {
+                "handler": "check",
+                "cron_expression": "*/10 * * * *",
+                "timezone": "Europe/Bucharest",
+            }
+        ],
+        [{"handler": "check", "cron_expression": "*/10 * * * *"}] * 2,
+    ],
+)
+def test_scheduler_permissions_reject_unrequested_schedules(
+    policies, allow_admin_policy_overrides, scheduler_permission_config
+):
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"),
+            [ExtensionPermission(id="scheduler.user", policies=policies)],
+            scheduler_permission_config,
+            allow_admin_policy_overrides=allow_admin_policy_overrides,
+        )
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, 1.5, "10", None])
+def test_scheduler_permissions_reject_invalid_job_limits(
+    limit, scheduler_permission_config
+):
+    config = scheduler_permission_config
+    grants = [
+        ExtensionPermission.model_validate(item).model_copy(deep=True)
+        for item in config["permissions"]
+    ]
+    assert grants[0].policies is not None
+    grants[0].policies[0]["max_jobs_per_user"] = limit
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"),
+            grants,
+            config,
+            allow_admin_policy_overrides=True,
+        )
+    config["permissions"][0]["policies"][0]["max_jobs_per_user"] = limit
+    with pytest.raises(ValueError, match="invalid policies"):
+        validate_wasm_extension_permissions(
+            make_installable_extension("demoext"), [], config
+        )
+
+
+@pytest.mark.parametrize("limit", [1, 10, 20])
+@pytest.mark.parametrize("admin_override", [False, True])
+def test_scheduler_permissions_job_limit_overrides(
+    limit, admin_override, scheduler_permission_config
+):
+    config = scheduler_permission_config
+    grants = [
+        ExtensionPermission.model_validate(item).model_copy(deep=True)
+        for item in config["permissions"]
+    ]
+    assert grants[0].policies is not None
+    grants[0].policies[0]["max_jobs_per_user"] = limit
+    if limit > 10 and not admin_override:
+        with pytest.raises(ValueError, match="broader policies"):
+            validate_wasm_extension_permissions(
+                make_installable_extension("demoext"), grants, config
+            )
+    else:
+        assert (
+            validate_wasm_extension_permissions(
+                make_installable_extension("demoext"),
+                grants,
+                config,
+                allow_admin_policy_overrides=admin_override,
+            )
+            == grants
+        )
 
 
 def test_validate_wasm_permissions_rejects_broader_policy_grant():
@@ -765,7 +941,7 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
             ],
         ),
     )
-    payment = SimpleNamespace(extra={"source_id": "source-1"})
+    payment = SimpleNamespace(extra={"source_id": "source-1"}, wallet_id="wallet-1")
     installed_extension = SimpleNamespace(
         permissions=[
             ExtensionPermission(
@@ -779,14 +955,30 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
         mocker.AsyncMock(return_value=installed_extension),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_row_owner_id",
-        mocker.AsyncMock(return_value="owner-1"),
+        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row",
+        mocker.AsyncMock(
+            return_value={
+                "wallet_id": "wallet-1",
+                "__lnbits_owner_id__": sha256s("user-1"),
+            }
+        ),
+    )
+
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                user="user-1", source_wallet_id="wallet-1", can_receive_payments=True
+            )
+        ),
     )
 
     owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
 
-    assert owner_id == "owner-1"
-    storage_mock.assert_awaited_once_with("demoext", "granted_table", "source-1")
+    assert owner_id == sha256s("user-1")
+    storage_mock.assert_awaited_once_with(
+        "demoext", "granted_table", "source-1", include_owner=True
+    )
 
 
 @pytest.mark.anyio

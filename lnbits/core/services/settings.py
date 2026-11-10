@@ -48,7 +48,7 @@ def update_cached_settings(sets_dict: dict):
     for key in sets_dict.keys():
         if key in readonly_variables:
             continue
-        if key not in settings.dict().keys():
+        if key not in settings.model_dump().keys():
             continue
         try:
             value = getattr(editable_settings, key)

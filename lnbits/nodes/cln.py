@@ -305,8 +305,8 @@ class CoreLightningNode(Node):
                 NodePayment(
                     bolt11=pay.get("bolt11"),
                     amount=pay.get("amount_msat", 0),
-                    fee=int(pay.get("amount_msat", 0))
-                    - int(pay.get("amount_sent_msat", 0)),
+                    fee=int(pay.get("amount_sent_msat", 0))
+                    - int(pay.get("amount_msat", 0)),
                     memo=pay.get("description"),
                     time=pay["created_at"],
                     preimage=pay.get("preimage"),
@@ -337,8 +337,7 @@ class CoreLightningNode(Node):
         result = await cache.save_result(
             lambda: self.ln_rpc("listinvoices"), key="node:invoices"
         )
-        invoices = result["invoices"]
-        invoices.reverse()
+        invoices = list(reversed(result["invoices"]))
         count = len(invoices)
         if filters.offset:
             invoices = invoices[filters.offset :]

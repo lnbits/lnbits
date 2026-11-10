@@ -4,6 +4,7 @@ import pytest
 
 from lnbits.core.crud import (
     create_wallet,
+    delete_wallet_payment,
     get_payments,
     get_payments_paginated,
     update_payment,
@@ -150,3 +151,17 @@ async def test_crud_search_payments():
         filters=filters,
     )
     assert page.total == 31
+
+
+@pytest.mark.anyio
+async def test_crud_delete_wallet_payment(app):
+    user = await create_user_account()
+    wallet = await create_wallet(user_id=user.id)
+    await update_wallet_balance(wallet, 10)
+    payments = await get_payments(wallet_id=wallet.id)
+    assert len(payments) == 1
+    checking_id = payments[0].checking_id
+
+    await delete_wallet_payment(checking_id, wallet.id)
+
+    assert await get_standalone_payment(checking_id) is None

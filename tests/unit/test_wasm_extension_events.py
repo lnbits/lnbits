@@ -11,7 +11,7 @@ from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.events import (
     _payment_extension_id,
     _payment_source_id,
-    _wasm_public_invoice_source_tables_from_permissions,
+    _wasm_public_invoice_sources_from_permissions,
     dispatch_wasm_invoice_paid,
 )
 from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -37,8 +37,8 @@ def test_wasm_invoice_paid_helpers_extract_extension_and_source_tables():
 
     assert _payment_extension_id(payment) == "demoext"
     assert _payment_source_id(payment) == "row-1"
-    assert _wasm_public_invoice_source_tables_from_permissions(permissions) == [
-        "tip_jars"
+    assert _wasm_public_invoice_sources_from_permissions(permissions) == [
+        {"table": "tip_jars", "wallet_field": "wallet_id"}
     ]
 
 
@@ -64,15 +64,31 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.events.get_wallet",
-        mocker.AsyncMock(return_value=None),
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                id="wallet-1",
+                user="user-1",
+                source_wallet_id="wallet-1",
+                can_receive_payments=True,
+            )
+        ),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_row_owner_id",
-        mocker.AsyncMock(return_value="owner-1"),
+        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row",
+        mocker.AsyncMock(
+            return_value={
+                "wallet_id": "wallet-1",
+                "__lnbits_owner_id__": sha256s("user-1"),
+            }
+        ),
     )
     invoke_mock = mocker.patch(
         "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
         mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events._wallet_watch_extension_ids",
+        mocker.AsyncMock(return_value=[]),
     )
     payment = _payment(ext_id)
 
@@ -81,7 +97,9 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     finally:
         registry._extensions.pop(ext_id, None)
 
-    storage_mock.assert_awaited_once_with(ext_id, "tip_jars", "row-1")
+    storage_mock.assert_awaited_once_with(
+        ext_id, "tip_jars", "row-1", include_owner=True
+    )
     invoke_mock.assert_awaited_once()
     assert invoke_mock.await_args is not None
     args = invoke_mock.await_args.args
@@ -91,7 +109,7 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     assert args[2]["paymentHash"] == "payment-hash"
     assert args[2]["payment"] == {"id": "payment-row"}
     assert kwargs["context"] == "event"
-    assert kwargs["owner_id"] == "owner-1"
+    assert kwargs["owner_id"] == sha256s("user-1")
     assert kwargs["trigger_type"] == "event"
     assert kwargs["event_type"] == "invoice_paid"
     assert kwargs["wallet_id"] == "wallet-1"
@@ -291,5 +309,5 @@ def _payment(ext_id: str, *, extra: dict | None = None) -> SimpleNamespace:
         memo="memo",
         pending=False,
         status="success",
-        json=lambda: json.dumps({"id": "payment-row"}),
+        model_dump_json=lambda: json.dumps({"id": "payment-row"}),
     )

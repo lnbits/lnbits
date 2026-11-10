@@ -22,9 +22,7 @@ pkgs.nixosTest {
     lnbits.wait_for_open_port(${toString nodes.lnbits.services.lnbits.port})
     client.wait_for_unit("multi-user.target")
     with subtest("Check that the lnbits webserver can be reached."):
-        output = client.succeed(
-            "curl -sSf http://lnbits:8231/ | grep title | head -n1"
-        )
+        output = client.succeed("curl -sSf http://lnbits:8231/")
 
         assert "<title>LNbits</title>" in output;
   '';

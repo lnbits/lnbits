@@ -98,6 +98,7 @@ class LNPayWallet(Wallet):
             self.pending_invoices.append(data["id"])
             return InvoiceResponse(
                 ok=True,
+                checking_id=data["id"],
                 payment_request=data["payment_request"],
             )
         return InvoiceResponse(

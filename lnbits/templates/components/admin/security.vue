@@ -13,6 +13,29 @@
         ></q-input>
       </div>
     </div>
+    {% if outbound_protection %}
+    <q-banner class="q-mt-md rounded-borders bg-grey-9 text-white">
+      <div class="text-weight-bold">Outbound request protection</div>
+      User-supplied destinations cannot target this machine's assigned addresses
+      or the saved instance hostname ({{ outbound_protection.hostname }}). {% if
+      outbound_protection.container_without_host_ips %}
+      <p class="q-mt-sm q-mb-none">
+        Container host addresses have not been supplied. Use the Docker launcher
+        in the installation guide to include the host automatically.
+      </p>
+      {% elif outbound_protection.host_ip_count %}
+      <p class="q-mt-sm q-mb-none">
+        Deployment-supplied host addresses are also protected.
+      </p>
+      {% endif %}
+      <p class="q-mt-sm q-mb-none">
+        If a router or cloud NAT gives this server another public address, your
+        deployment must supply it using LNBITS_OUTBOUND_HOST_IPS. Addresses
+        hidden from this machine cannot be discovered reliably. Reload after
+        saving the base URL to refresh this status.
+      </p>
+    </q-banner>
+    {% endif %}
     <q-separator class="q-mb-lg q-mt-md"></q-separator>
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('authentication')"></span>
@@ -459,6 +482,12 @@
             </div>
             <div class="col-12 col-md-6">
               <q-item tag="label" v-ripple>
+                <q-tooltip>
+                  Not recommended. Enabling private-IP callbacks can let users
+                  probe internal services and cloud metadata endpoints (SSRF).
+                  Keep this disabled unless you have restricted callbacks to
+                  trusted destinations.
+                </q-tooltip>
                 <q-item-section>
                   <q-item-label
                     v-text="$t('callback_allow_private_ips')"

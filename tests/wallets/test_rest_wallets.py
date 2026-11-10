@@ -59,7 +59,7 @@ async def test_rest_wallet(httpserver: HTTPServer, test_data: WalletTest):
 
 def _apply_mock(httpserver: HTTPServer, mock: Mock):
     request_data: dict[str, str | dict | list] = {}
-    request_type = getattr(mock.dict(), "request_type", None)
+    request_type = getattr(mock.model_dump(), "request_type", None)
     # request_type = mock.request_type <--- this des not work for whatever reason!!!
 
     if request_type == "data":

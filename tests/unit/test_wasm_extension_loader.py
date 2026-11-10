@@ -60,7 +60,7 @@ def test_wasm_extension_config_rejects_coerced_scalar_types():
     config = _wasm_config("demoext")
     config["wasm"] = {"module": 123}
 
-    with pytest.raises(ValueError, match="str type expected"):
+    with pytest.raises(ValueError, match="Input should be a valid string"):
         parse_wasm_extension_config("demoext", config)
 
 

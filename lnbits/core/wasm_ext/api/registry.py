@@ -11,6 +11,8 @@ from .models import ExtensionAPIMethod, ExtensionAPIMethodExport
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
 _EXTENSION_RUNTIME_PERMISSION_IDS = {
+    "scheduler.user",
+    "scheduler.extension",
     "ui.camera.scan_qr",
     "wallet.pay_invoice",
     "wallet.pay_invoice_background",
@@ -136,11 +138,11 @@ def extension_api_contract(api_cls: type[Any] | None = None) -> dict[str, object
                 "description": method.description,
                 "required_permission": method.required_permission,
                 "require_auth": method.require_auth,
-                "request_schema": method.request_model.schema(
-                    ref_template="#/definitions/{model}"
+                "request_schema": method.request_model.model_json_schema(
+                    ref_template="#/$defs/{model}"
                 ),
-                "response_schema": method.response_model.schema(
-                    ref_template="#/definitions/{model}"
+                "response_schema": method.response_model.model_json_schema(
+                    ref_template="#/$defs/{model}"
                 ),
             }
             for method in list_extension_api_methods(api_cls)
@@ -165,8 +167,11 @@ def _extension_api_method_sources(
     from .host import ExtensionHostAPI
 
     if issubclass(api_cls, ExtensionHostAPI):
+        # Keep local: scheduler imports this module's extension_api_method decorator.
+        from .scheduler import ExtensionSchedulerAPI
         from .utils import extension_api_utils_method_classes
 
+        sources.append(("scheduler", ExtensionSchedulerAPI))
         sources.extend(extension_api_utils_method_classes().items())
     return sources
 

@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 from lnbits.core.db import db
-from lnbits.db import dict_to_model
+from lnbits.db import Connection, dict_to_model
 from lnbits.settings import (
     AdminSettings,
     EditableSettings,
@@ -15,9 +15,10 @@ from lnbits.settings import (
 )
 
 RESET_PRESERVED_SETTINGS = (
+    "onchain_key",
     "lnbits_webpush_pubkey",
     "lnbits_webpush_privkey",
-    *FundingSourcesSettings.__fields__,
+    *FundingSourcesSettings.model_fields,
 )
 
 
@@ -32,6 +33,7 @@ async def get_super_settings() -> SuperSettings | None:
 
 
 async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | None:
+    """Build role-filtered settings; serialize with exclude_unset=True."""
     sets = await get_super_settings()
     if not sets:
         return None
@@ -39,11 +41,15 @@ async def get_admin_settings(is_super_user: bool = False) -> AdminSettings | Non
     row_dict.pop("super_user")
     row_dict.pop("auth_all_methods")
 
-    admin_settings = AdminSettings(
-        is_super_user=is_super_user,
-        lnbits_allowed_funding_sources=settings.lnbits_allowed_funding_sources,
-        **row_dict,
-    )
+    if is_super_user:
+        row_dict["lnbits_allowed_funding_sources"] = (
+            settings.lnbits_allowed_funding_sources
+        )
+    else:
+        for field in FundingSourcesSettings.model_fields:
+            row_dict.pop(field, None)
+
+    admin_settings = AdminSettings(is_super_user=is_super_user, **row_dict)
     return admin_settings
 
 
@@ -51,7 +57,7 @@ async def update_admin_settings(
     data: EditableSettings, tag: str | None = "core"
 ) -> None:
     editable_settings = await get_settings_by_tag("core") or {}
-    editable_settings.update(data.dict(exclude_unset=True))
+    editable_settings.update(data.model_dump(exclude_unset=True))
     for key, value in editable_settings.items():
         try:
             await set_settings_field(key, value, tag)
@@ -98,10 +104,10 @@ async def create_admin_settings(super_user: str, new_settings: dict) -> SuperSet
 
 
 async def get_settings_field(
-    id_: str, tag: str | None = "core"
+    id_: str, tag: str | None = "core", conn: Connection | None = None
 ) -> SettingsField | None:
 
-    row: dict = await db.fetchone(
+    row: dict = await (conn or db).fetchone(
         """
             SELECT * FROM system_settings
             WHERE  id = :id AND tag = :tag
@@ -142,3 +148,8 @@ async def get_settings_by_tag(tag: str) -> dict[str, Any] | None:
             )
     data.pop("super_user")
     return data
+
+
+async def get_two_factor_policy_revision(conn: Connection | None = None) -> str:
+    field = await get_settings_field("two_factor_revision", "security", conn=conn)
+    return field.value if field and field.value else ""

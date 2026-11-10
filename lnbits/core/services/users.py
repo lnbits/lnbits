@@ -9,6 +9,7 @@ from lnbits.core.models.extensions import UserExtension
 from lnbits.core.models.users import RegisterUser
 from lnbits.db import Connection
 from lnbits.settings import (
+    AuthMethods,
     EditableSettings,
     SuperSettings,
     settings,
@@ -41,10 +42,19 @@ from .settings import update_cached_settings
 
 
 async def create_user_account(
-    account: Account | None = None, wallet_name: str | None = None
+    account: Account | None = None,
+    wallet_name: str | None = None,
+    *,
+    activation_verified: bool = False,
 ) -> User:
     if not settings.new_accounts_allowed:
         raise ValueError("Account creation is disabled.")
+    if account is None and not settings.is_auth_method_allowed(
+        AuthMethods.user_id_only
+    ):
+        raise ValueError("Account creation by user ID is disabled.")
+    if settings.lnbits_require_user_activation and not activation_verified:
+        raise ValueError("Account creation requires an invitation or activation.")
 
     return await create_user_account_no_ckeck(account, wallet_name)
 
@@ -175,7 +185,7 @@ async def check_admin_settings():
             # .env super_user overwrites DB super_user
             settings_db = await update_super_user(settings.super_user)
 
-        update_cached_settings(settings_db.dict())
+        update_cached_settings(settings_db.model_dump())
 
         # saving superuser to {data_dir}/.super_user file
         with open(Path(settings.lnbits_data_folder) / ".super_user", "w") as file:
@@ -210,8 +220,8 @@ async def init_admin_settings(super_user: str | None = None) -> SuperSettings:
         await create_account(account)
         await create_wallet(user_id=account.id)
 
-    editable_settings = EditableSettings.from_dict(settings.dict())
-    return await create_admin_settings(account.id, editable_settings.dict())
+    editable_settings = EditableSettings.from_dict(settings.model_dump())
+    return await create_admin_settings(account.id, editable_settings.model_dump())
 
 
 async def check_register_activation_settings(data: RegisterUser):

@@ -3,12 +3,34 @@ services:
   lnbits:
     hostname: lnbits
     depends_on:
-      - lnd-3
+      - clightning-1
     image: lnbits/lnbits
     restart: on-failure
     user: "0:0"
     environment:
       LNBITS_PORT: 5001
+      DEBUG: true
+      LNBITS_ADMIN_UI: false
+      LNBITS_BACKEND_WALLET_CLASS: "CoreLightningWallet"
+      LNBITS_DATA_FOLDER: "./data"
+      CORELIGHTNING_RPC: "./clightning/regtest/lightning-rpc"
+      LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: 60
+    ports:
+      - 5001:5001
+    volumes:
+      - lnbits-data:/app/data
+      - ./data/clightning-1:/app/clightning:uid=1000,gid=1000
+
+  # LNbits funded by LND, upstream for LNbitsWallet hold invoice tests
+  lnbits-lnd:
+    hostname: lnbits-lnd
+    depends_on:
+      - lnd-3
+    image: lnbits/lnbits
+    restart: on-failure
+    user: "0:0"
+    environment:
+      LNBITS_PORT: 5002
       DEBUG: true
       LNBITS_ADMIN_UI: false
       LNBITS_BACKEND_WALLET_CLASS: "LndRestWallet"
@@ -17,10 +39,10 @@ services:
       LND_REST_CERT: "./lnd/tls.cert"
       LND_REST_MACAROON: "./lnd/data/chain/bitcoin/regtest/admin.macaroon"
     ports:
-      - 5001:5001
+      - 5002:5002
     volumes:
-      - lnbits-data:/app/data
-      - ./data/lnd-3:/app/lnd:uid=1000,gid=1000
+      - lnbits-lnd-data:/app/data
+      - ./data/lnd-3:/app/lnd:ro
 
   boltz:
     hostname: boltz
@@ -93,7 +115,7 @@ services:
 
   bitcoind:
     hostname: bitcoind
-    image: boltz/bitcoin-core:25.0
+    image: boltz/bitcoin-core:28.1
     command:
       - -regtest
       - -fallbackfee=0.00000253
@@ -322,7 +344,7 @@ services:
     hostname: eclair
     depends_on:
       - bitcoind
-    image: boltz/eclair:0.8.0
+    image: boltz/eclair:0.11.0
     restart: on-failure
     entrypoint: "sh -c 'JAVA_OPTS=-Xmx512m /eclair-node/bin/eclair-node.sh -Declair.datadir=/root/eclair -Declair.printToConsole'"
     ports:
@@ -423,6 +445,7 @@ services:
 
 volumes:
   lnbits-data:
+  lnbits-lnd-data:
   bitcoin-data:
   elements-data:
   nginx-data:

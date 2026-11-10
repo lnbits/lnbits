@@ -2529,7 +2529,7 @@
                       {
                         "status": "complete",
                         "amount_msat": "21000msat",
-                        "amount_sent_msat": "-22000msat",
+                        "amount_sent_msat": "22000msat",
                         "preimage": "0000000000000000000000000000000000000000000000000000000000000000"
                       }
                     ]

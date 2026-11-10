@@ -411,20 +411,62 @@
             <q-item-label caption v-text="$t('payment_details_desc')">
             </q-item-label>
           </q-item-section>
+          <q-item-section side>
+            <q-btn
+              outline
+              color="grey"
+              icon="refresh"
+              :label="$t('check_status')"
+              :dense="$q.screen.lt.sm"
+              :loading="checkingPaymentStatus"
+              :disable="forceResendDialog.loading || changeStatusDialog.loading"
+              @click="checkPaymentStatus"
+            ></q-btn>
+          </q-item-section>
+          <q-item-section v-if="canForceResendPayment" side>
+            <q-btn
+              color="primary"
+              :label="$t('force_resend')"
+              :dense="$q.screen.lt.sm"
+              :disable="checkingPaymentStatus"
+              @click="forceResendDialog.show = true"
+            ></q-btn>
+          </q-item-section>
+          <q-item-section v-if="canChangePaymentStatus" side>
+            <q-btn
+              color="primary"
+              :label="$t('change_status')"
+              :dense="$q.screen.lt.sm"
+              :disable="checkingPaymentStatus"
+              @click="openChangeStatusDialog"
+            ></q-btn>
+          </q-item-section>
         </q-item>
       </q-card-section>
       <q-card-section>
         <q-list separator>
-          <q-item v-for="(value, key) in paymentDetails" :key="key">
+          <q-item v-for="(value, key) in paymentDetailsJson" :key="key">
             <q-item-section>
-              <q-item-label v-text="key"></q-item-label>
+              <q-item-label class="row items-center">
+                <span v-text="key"></span>
+                <q-toggle
+                  v-if="key === 'extra'"
+                  v-model="formatJson"
+                  size="xs"
+                  label="Formatted JSON"
+                  class="q-ml-auto"
+                ></q-toggle>
+              </q-item-label>
               <q-item-label
                 caption
                 v-text="value"
                 style="word-wrap: break-word"
+                :style="
+                  key === 'extra' && formatJson ? {whiteSpace: 'pre-wrap'} : {}
+                "
               ></q-item-label>
             </q-item-section>
-            <q-item-section side>
+            <q-item-section side :top="key === 'extra'">
               <q-btn
                 v-show="value"
                 icon="content_copy"
@@ -441,4 +483,113 @@
       </q-card-section>
     </q-card>
   </div>
+  <q-dialog
+    v-model="forceResendDialog.show"
+    :persistent="forceResendDialog.loading"
+  >
+    <q-card class="lnbits__dialog-card">
+      <q-card-section
+        class="text-h6"
+        v-text="$t('force_resend')"
+      ></q-card-section>
+      <q-card-section v-text="$t('force_resend_confirmation')"></q-card-section>
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          :label="$t('cancel')"
+          v-close-popup
+          :disable="forceResendDialog.loading"
+        ></q-btn>
+        <q-btn
+          color="primary"
+          label="OK"
+          :loading="forceResendDialog.loading"
+          :disable="!canForceResendPayment"
+          @click="forceResendPayment"
+        ></q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  <q-dialog
+    v-model="changeStatusDialog.show"
+    :persistent="changeStatusDialog.loading"
+  >
+    <q-card class="lnbits__dialog-card">
+      <q-form @submit="changePaymentStatus">
+        <q-card-section
+          class="text-h6"
+          v-text="$t('change_status')"
+        ></q-card-section>
+        <q-card-section>
+          <q-select
+            v-model="changeStatusDialog.status"
+            :options="paymentStatusOptions"
+            :label="$t('status')"
+            emit-value
+            map-options
+            outlined
+            :disable="changeStatusDialog.loading"
+          ></q-select>
+          <template v-if="changeStatusDialog.status === 'success'">
+            <q-checkbox
+              v-model="changeStatusDialog.sendPaymentNotifications"
+              class="q-mt-md"
+              :label="$t('send_payment_notifications')"
+              :disable="changeStatusDialog.loading"
+            ></q-checkbox>
+            <q-input
+              v-model.number="changeStatusDialog.feeMsat"
+              class="q-mt-md"
+              label="fee_msat"
+              :hint="$t('payment_status_fee_hint')"
+              type="number"
+              min="0"
+              step="1"
+              outlined
+              :disable="changeStatusDialog.loading"
+              :rules="[
+                value =>
+                  value == null ||
+                  value === '' ||
+                  (Number.isInteger(Number(value)) && Number(value) >= 0) ||
+                  $t('payment_status_fee_invalid')
+              ]"
+            ></q-input>
+            <q-input
+              v-model="changeStatusDialog.preimage"
+              class="q-mt-md"
+              label="preimage"
+              :hint="$t('payment_status_preimage_hint')"
+              maxlength="64"
+              outlined
+              :disable="
+                changeStatusDialog.loading || !!paymentDetails?.preimage
+              "
+              :rules="[
+                value =>
+                  !value ||
+                  /^[0-9a-fA-F]{64}$/.test(value.trim()) ||
+                  $t('payment_status_preimage_invalid')
+              ]"
+            ></q-input>
+          </template>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            :label="$t('cancel')"
+            v-close-popup
+            :disable="changeStatusDialog.loading"
+          ></q-btn>
+          <q-btn
+            color="primary"
+            type="submit"
+            :label="$t('save')"
+            :loading="changeStatusDialog.loading"
+            :disable="changeStatusDialog.status === paymentDetails?.status"
+          ></q-btn>
+        </q-card-actions>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </template>

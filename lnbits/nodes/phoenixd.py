@@ -30,11 +30,11 @@ if TYPE_CHECKING:
 
 
 class PhoenixdStatus(BaseModel):
-    version: str | None
+    version: str | None = None
     chain: str
-    blockheight: int | None
+    blockheight: int | None = None
     fee_credit_sat: int
-    swap_in: dict[str, int] | None
+    swap_in: dict[str, int] | None = None
     capabilities: list[str]
 
 

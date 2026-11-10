@@ -5,7 +5,7 @@ from uuid import UUID
 
 from bcrypt import checkpw, gensalt, hashpw
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from lnbits.core.models.misc import SimpleItem
 from lnbits.db import FilterModel
@@ -38,10 +38,10 @@ class WalletInviteRequest(BaseModel):
 
 
 class UserLabel(BaseModel):
-    name: str = Field(regex=r"([A-Za-z0-9 ._-]{1,100}$)")
+    name: str = Field(pattern=r"^[A-Za-z0-9 ._-]{1,100}$")
     description: str | None = Field(default=None, max_length=250)
     color: str | None = Field(
-        default=None, regex=r"^#[0-9A-Fa-f]{6}$"
+        default=None, pattern=r"^#[0-9A-Fa-f]{6}$"
     )  # e.g., "#RRGGBB"
 
 
@@ -193,9 +193,11 @@ class Account(AccountId):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    is_super_user: bool = Field(default=False, no_database=True)
-    is_admin: bool = Field(default=False, no_database=True)
-    fiat_providers: list[str] = Field(default=[], no_database=True)
+    is_super_user: bool = Field(default=False, json_schema_extra={"no_database": True})
+    is_admin: bool = Field(default=False, json_schema_extra={"no_database": True})
+    fiat_providers: list[str] = Field(
+        default=[], json_schema_extra={"no_database": True}
+    )
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -290,6 +292,7 @@ class User(BaseModel):
     admin: bool = False
     super_user: bool = False
     fiat_providers: list[str] = []
+    can_create_fiat_wallet: bool = False
     has_password: bool = False
     extra: UserExtra = UserExtra()
     ui_customization: dict = Field(default_factory=dict)
@@ -327,8 +330,8 @@ class CreateUser(BaseModel):
     username: str | None = Query(default=None, min_length=2, max_length=20)
     password: str | None = Query(default=None, min_length=8, max_length=50)
     password_repeat: str | None = Query(default=None, min_length=8, max_length=50)
-    pubkey: str = Query(default=None, max_length=64)
-    external_id: str = Query(default=None, max_length=256)
+    pubkey: str | None = Query(default=None, max_length=64)
+    external_id: str | None = Query(default=None, max_length=256)
     extensions: list[str] | None = None
     extra: UserExtra | None = None
 
@@ -380,11 +383,26 @@ class AccessTokenPayload(BaseModel):
     email: str | None = None
     auth_time: int | None = 0
     api_token_id: str | None = None
+    purpose: str = "session"
+    jti: str | None = None
+    mfa_revision: str = ""
+    mfa_policy: str = ""
+    mfa_time: int = 0
+    impersonated_by: str | None = None
 
 
 class UpdateBalance(BaseModel):
     id: str
     amount: int
+    memo: str | None = Field(default=None, max_length=639)
+
+    @field_validator("memo")
+    @classmethod
+    def memo_max_bytes(cls, value: str | None) -> str | None:
+        # bolt11 invoice descriptions are limited to 639 bytes
+        if value and len(value.encode("utf-8")) > 639:
+            raise ValueError("Memo cannot be longer than 639 bytes.")
+        return value
 
 
 class ApiTokenRequest(BaseModel):
@@ -412,3 +430,32 @@ class DeleteTokenRequest(BaseModel):
     id: str
     acl_id: str
     password: str
+
+
+class TwoFactorConfig(BaseModel):
+    """Private persistence model; never embed in Account or User responses."""
+
+    secret: str | None = None
+    pending_secret: str | None = None
+    pending_until: int = 0
+    revision: str = ""
+    last_step: int = -1
+    recovery_hashes: list[str] = []
+    recovery_saved: bool = False
+    failures: int = 0
+    failure_window: int = 0
+    challenges: dict[str, int] = {}
+
+
+class TwoFactorCode(BaseModel):
+    code: str = Field(min_length=6, max_length=64)
+
+
+class TwoFactorStatus(BaseModel):
+    available: bool
+    enrolled: bool
+    mandatory: bool
+    challenge: bool
+    recovery_remaining: int
+    recovery_saved: bool
+    verification_required: bool

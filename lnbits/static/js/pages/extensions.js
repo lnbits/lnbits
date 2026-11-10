@@ -536,6 +536,11 @@ window.PageExtensions = {
           clonedPolicy.max_messages_per_second
         )
       }
+      if (permissionId === 'scheduler.user') {
+        clonedPolicy.max_jobs_per_user = Number(
+          clonedPolicy.max_jobs_per_user ?? 10
+        )
+      }
       return clonedPolicy
     },
     maxRowsPerSourceValue(value, fallback) {
@@ -544,6 +549,8 @@ window.PageExtensions = {
       return Math.min(number, EXTENSION_PERMISSION_MAX_ROWS_PER_SOURCE_LIMIT)
     },
     extensionPermissionLimitError(permissions) {
+      const schedulerError = this.schedulerUserLimitError(permissions)
+      if (schedulerError) return schedulerError
       const appendPermission = (permissions || []).find(
         permission => permission?.id === 'ext.storage.append_public'
       )
@@ -561,6 +568,20 @@ window.PageExtensions = {
         }
       }
       return this.websocketPublishLimitError(permissions)
+    },
+    schedulerUserLimitError(permissions) {
+      const permission = (permissions || []).find(
+        permission => permission?.id === 'scheduler.user'
+      )
+      for (const policy of permission?.policies || []) {
+        if (
+          !Number.isSafeInteger(policy?.max_jobs_per_user) ||
+          policy.max_jobs_per_user <= 0
+        ) {
+          return 'Max jobs per user must be a positive integer.'
+        }
+      }
+      return ''
     },
     websocketPublishLimitError(permissions) {
       const publishPermission = (permissions || []).find(
@@ -601,7 +622,7 @@ window.PageExtensions = {
           (permission?.id === 'ext.storage.append_public' &&
             Array.isArray(permission.policies) &&
             permission.policies.length > 0) ||
-          permission?.id === 'websocket.publish'
+          ['websocket.publish', 'scheduler.user'].includes(permission?.id)
       )
     },
     async saveManagedExtensionPermissions() {
@@ -808,6 +829,7 @@ window.PageExtensions = {
       }
 
       this.selectedRelease = release
+      this.showManageExtensionDialog = true
 
       try {
         const data = await this.requestPaymentForInstall(

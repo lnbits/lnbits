@@ -52,7 +52,7 @@ window.app.component('lnbits-manage-wallet-list', {
         }
       })
       // if current wallet, update balance and payments
-      if (this.g.wallet.id === data.payment.wallet_id) {
+      if (this.g.wallet?.id === data.payment.wallet_id) {
         this.g.wallet.sat = data.wallet_balance
         // lnbits-payment-list is watching
         this.g.updatePayments = !this.g.updatePayments
@@ -71,8 +71,30 @@ window.app.component('lnbits-manage-wallet-list', {
         if (!this.g.walletEventListeners.includes(wallet.id)) {
           this.g.walletEventListeners.push(wallet.id)
           const ws = new WebSocket(`${websocketUrl}/${wallet.inkey}`)
-          ws.onmessage = this.onWebsocketMessage
-          ws.onopen = () => console.log('ws connected for wallet', wallet.id)
+          let receivedPayment = false
+          ws.onmessage = ev => {
+            receivedPayment = true
+            this.onWebsocketMessage(ev)
+          }
+          ws.onopen = async () => {
+            console.log('ws connected for wallet', wallet.id)
+            try {
+              const {data} = await LNbits.api.getWallet(wallet)
+              // A live payment already refreshed the UI if it arrived meanwhile.
+              if (receivedPayment || ws.readyState !== WebSocket.OPEN) return
+              const currentWallet = this.g.user?.wallets.find(
+                w => w.id === wallet.id
+              )
+              if (!currentWallet) return
+              currentWallet.sat = Math.floor(data.balance / 1000)
+              if (this.g.wallet?.id === wallet.id) {
+                this.g.wallet.sat = currentWallet.sat
+                this.g.updatePayments = !this.g.updatePayments
+              }
+            } catch {
+              console.warn('Failed to refresh wallet', wallet.id)
+            }
+          }
           // onclose and onerror can both happen on their own or together,
           // so we add a clearTimeout to avoid multiple reconnections
           ws.onclose = () => {

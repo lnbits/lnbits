@@ -111,16 +111,21 @@ async def invoke_wasm_extension_export(
                     timeout=max_execution_ms / 1000,
                 )
             else:
-                result = await thread_task
+                result = await asyncio.shield(thread_task)
         except asyncio.TimeoutError as exc:
             timed_out = True
             stop_reason = "WASM execution time limit exceeded."
             await stop_wasm_invocation(invocation.id, reason=stop_reason)
             try:
-                result = await asyncio.wait_for(
-                    asyncio.shield(thread_task),
-                    timeout=2,
-                )
+                if context == "schedule":
+                    # Keep renewing the schedule lease until the native runtime
+                    # exits; a slow host call must not overlap the next run.
+                    result = await asyncio.shield(thread_task)
+                else:
+                    result = await asyncio.wait_for(
+                        asyncio.shield(thread_task),
+                        timeout=2,
+                    )
             except asyncio.TimeoutError:
                 await finish_wasm_invocation(
                     invocation.id,
@@ -149,6 +154,16 @@ async def invoke_wasm_extension_export(
         )
         finished = True
         return result
+    except asyncio.CancelledError:
+        # A scheduled coroutine can be cancelled while its WASM thread is still
+        # running. Stop and drain the runtime before releasing its schedule claim.
+        await stop_wasm_invocation(invocation.id, reason="Invocation cancelled.")
+        await asyncio.gather(thread_task, return_exceptions=True)
+        if not finished:
+            await finish_wasm_invocation(
+                invocation.id, status="stopped", stop_reason="Invocation cancelled."
+            )
+        raise
     except Exception as exc:
         if not finished:
             await finish_wasm_invocation(
@@ -180,7 +195,7 @@ def _invoke_wasm_extension_export_sync(
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import attach_wasm_invocation_runtime
 
-    engine = _wasm_engine(limits["wasm_runtime_max_wasm_stack_bytes"])
+    engine = _wasm_engine(extension.id, limits["wasm_runtime_max_wasm_stack_bytes"])
     store = Store(engine)
     _set_store_limits(store, limits)
     _set_store_fuel(store, limits)
@@ -192,7 +207,7 @@ def _invoke_wasm_extension_export_sync(
     linker.add_wasip2()
     add_extension_host_imports(linker, ExtensionAPIHost(api), event_loop)
 
-    wasm_component = _wasm_component(extension, limits)
+    wasm_component = _wasm_component(extension, engine)
     instance = linker.instantiate(store, wasm_component)
     function = instance.get_func(store, export_name)
     if not function:

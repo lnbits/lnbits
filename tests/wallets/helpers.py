@@ -77,7 +77,7 @@ def load_funding_source(funding_source: FundingSourceConfig) -> WalletInfo:
 
 
 async def check_assertions(wallet, _test_data: WalletTest):
-    test_data = _test_data.dict()
+    test_data = _test_data.model_dump()
     tested_func = _test_data.function
     call_params = _test_data.call_params
 

@@ -88,7 +88,7 @@ def fiat_provider_test_settings(settings: Settings):
     original_square_payment_success_url = settings.square_payment_success_url
     original_square_payment_webhook_url = settings.square_payment_webhook_url
     original_square_webhook_signature_key = settings.square_webhook_signature_key
-    original_square_limits = settings.square_limits.copy(deep=True)
+    original_square_limits = settings.square_limits.model_copy(deep=True)
     original_revolut_enabled = settings.revolut_enabled
     original_revolut_api_endpoint = settings.revolut_api_endpoint
     original_revolut_api_secret_key = settings.revolut_api_secret_key
@@ -96,7 +96,7 @@ def fiat_provider_test_settings(settings: Settings):
     original_revolut_payment_success_url = settings.revolut_payment_success_url
     original_revolut_payment_webhook_url = settings.revolut_payment_webhook_url
     original_revolut_webhook_signing_secret = settings.revolut_webhook_signing_secret
-    original_revolut_limits = settings.revolut_limits.copy(deep=True)
+    original_revolut_limits = settings.revolut_limits.model_copy(deep=True)
     settings.lnbits_allowed_currencies = []
     settings.paypal_enabled = False
     settings.square_enabled = False

@@ -1,5 +1,26 @@
 <template id="page-wallet">
-  <div v-if="g.wallet" class="row q-col-gutter-md" style="margin-bottom: 6rem">
+  <lnbits-onchain-wallet
+    v-if="g.wallet?.walletType === 'onchain'"
+    :key="g.wallet.id"
+    :chart-config="chartConfig"
+    @update-wallet="updateWallet"
+    @synced="$refs.onchainCharts?.changeCharts()"
+  >
+    <template #wallet-tools>
+      <lnbits-wallet-charts
+        ref="onchainCharts"
+        :payment-filter="onchainPaymentFilter"
+        :chart-config="chartConfig"
+        api-url="/api/v1/onchain/stats/daily"
+        :api-key="g.wallet.inkey"
+      ></lnbits-wallet-charts>
+    </template>
+  </lnbits-onchain-wallet>
+  <div
+    v-else-if="g.wallet"
+    class="row q-col-gutter-md"
+    style="margin-bottom: 6rem"
+  >
     <div class="col-12 col-md-7 q-gutter-y-md wallet-wrapper">
       <q-card class="wallet-card">
         <q-card-section>
@@ -52,7 +73,7 @@
                       <lnbits-update-balance
                         v-if="$q.screen.lt.lg"
                         :wallet_id="g.wallet.id"
-                        :callback="updateBalanceCallback"
+                        @credit-value="handleBalanceUpdate"
                         :small_btn="true"
                       ></lnbits-update-balance>
                     </div>
@@ -96,7 +117,7 @@
                       <lnbits-update-balance
                         v-if="$q.screen.lt.lg"
                         :wallet_id="g.wallet.id"
-                        :callback="updateBalanceCallback"
+                        @credit-value="handleBalanceUpdate"
                         :small_btn="true"
                       ></lnbits-update-balance>
                     </div>
@@ -159,6 +180,7 @@
                 icon="file_download"
               ></q-btn>
               <q-btn
+                v-if="g.wallet.walletType !== 'fiat'"
                 unelevated
                 color="primary"
                 class="q-mr-md"
@@ -168,7 +190,7 @@
                 icon="file_upload"
               ></q-btn>
               <q-btn
-                v-if="g.hasCamera"
+                v-if="g.hasCamera && g.wallet.walletType !== 'fiat'"
                 unelevated
                 icon="qr_code_scanner"
                 color="secondary"
@@ -197,7 +219,7 @@
               <lnbits-update-balance
                 v-if="$q.screen.gt.md"
                 :wallet_id="this.g.wallet.id"
-                :callback="updateBalanceCallback"
+                @credit-value="handleBalanceUpdate"
                 :small_btn="false"
               ></lnbits-update-balance>
             </div>
@@ -355,7 +377,7 @@
           <b v-text="receive.lnurl.domain"></b> is requesting an invoice:
         </p>
         <q-input
-          v-if="!g.isSatsDenomination"
+          v-if="!isFiatWallet && !g.isSatsDenomination"
           filled
           dense
           v-model="receive.data.amount"
@@ -381,7 +403,7 @@
             </div>
             <div class="col-2">
               <q-btn
-                v-if="g.fiatTracking"
+                v-if="!isFiatWallet && g.fiatTracking"
                 @click="g.isFiatPriority = !g.isFiatPriority"
                 class="float-right"
                 color="primary"
@@ -406,7 +428,7 @@
           ></q-input>
         </div>
         <q-input
-          v-if="g.settings.hasHoldinvoice"
+          v-if="!isFiatWallet && g.settings.hasHoldinvoice"
           filled
           dense
           v-model="receive.data.payment_hash"
@@ -451,13 +473,17 @@
               class="cursor-pointer"
             /> </template
         ></q-input>
-        <div v-if="g.user.fiat_providers?.length" class="q-mt-md">
+        <div
+          v-if="isFiatWallet || g.user.fiat_providers?.length"
+          class="q-mt-md"
+        >
           <q-list bordered dense class="rounded-borders">
             <q-item-label dense header>
               <span v-text="$t('select_payment_provider')"></span>
             </q-item-label>
             <q-separator></q-separator>
             <q-item
+              v-if="!isFiatWallet"
               :active="!receive.fiatProvider"
               @click="receive.fiatProvider = ''"
               active-class="bg-teal-1 text-grey-8 text-weight-bold"
@@ -474,6 +500,19 @@
                   v-text="$t('pay_with', {provider: 'Lightning Network'})"
                 ></span>
               </q-item-section>
+            </q-item>
+            <q-item
+              v-if="isFiatWallet"
+              :active="isCashPayment"
+              @click="receive.fiatProvider = 'cash'"
+              active-class="bg-teal-1 text-grey-8 text-weight-bold"
+              clickable
+              v-ripple
+            >
+              <q-item-section avatar>
+                <q-icon name="payments"></q-icon>
+              </q-item-section>
+              <q-item-section>Cash validation</q-item-section>
             </q-item>
             <q-separator></q-separator>
             <q-item
@@ -552,6 +591,7 @@
           </q-list>
         </div>
 
+        <p v-if="isCashPayment">Validate after receiving the cash.</p>
         <div v-if="receive.status == 'pending'" class="row q-mt-lg">
           <q-btn
             unelevated
@@ -563,6 +603,7 @@
               v-if="receive.lnurl"
               v-text="`${$t('withdraw_from')} ${receive.lnurl.domain}`"
             ></span>
+            <span v-else-if="isCashPayment">Validate</span>
             <span v-else v-text="$t('create_invoice')"></span>
           </q-btn>
           <q-btn
@@ -591,13 +632,14 @@
       >
       </lnbits-qrcode>
       <lnbits-qrcode
-        v-else
+        v-else-if="!isFiatWallet"
         :href="'lightning:' + receive.paymentReq"
         :value="'LIGHTNING:' + receive.paymentReq.toUpperCase()"
       >
       </lnbits-qrcode>
       <div
         v-if="
+          !isFiatWallet &&
           !receive.fiatPaymentReq &&
           g.settings.enableWalletLightningAddresses &&
           g.wallet.lightningAddressFull
@@ -628,10 +670,13 @@
         <h3 class="q-my-md">
           <span v-text="formattedAmount"></span>
         </h3>
-        <h5 v-if="receive.unit != 'sat'" class="q-mt-none q-mb-sm">
+        <h5
+          v-if="!isFiatWallet && receive.unit != 'sat'"
+          class="q-mt-none q-mb-sm"
+        >
           <span v-text="formattedSatAmount"></span>
         </h5>
-        <div v-if="!receive.fiatPaymentReq">
+        <div v-if="!isFiatWallet && !receive.fiatPaymentReq">
           <q-chip v-if="hasNfc" outline square color="positive">
             <q-avatar icon="nfc" color="positive" text-color="white"></q-avatar>
             <span v-text="$t('nfc_supported')"></span>
@@ -651,9 +696,50 @@
   </q-dialog>
 
   <q-dialog v-model="parse.show" @hide="closeParseDialog" position="top">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-card
+      class="lnbits__dialog-card"
+      :class="parse.invoice?.isBolt12Offer ? 'q-pa-md' : 'q-pa-lg q-pt-xl'"
+    >
       <div v-if="parse.invoice">
-        <div class="column content-center text-center q-mb-md">
+        <div
+          v-if="parse.invoice.isBolt12Offer"
+          class="column content-center text-center q-mb-sm"
+        >
+          <h6 class="q-my-none" v-text="$t('bolt12_offer')"></h6>
+          <q-input
+            filled
+            dense
+            class="q-mt-sm full-width"
+            v-model.number="parse.data.amount"
+            type="number"
+            min="1"
+            :label="$t('amount_sats')"
+            :hint="$t('bolt12_offer_amount_hint')"
+          ></q-input>
+          <q-input
+            v-if="parse.invoice.description"
+            filled
+            dense
+            readonly
+            class="q-mt-sm full-width"
+            type="textarea"
+            rows="1"
+            input-style="resize: vertical"
+            :model-value="parse.invoice.description"
+            :label="$t('description')"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            class="q-mt-sm full-width"
+            v-model="parse.data.memo"
+            type="textarea"
+            rows="2"
+            :label="$t('memo_optional')"
+            :hint="$t('bolt12_offer_memo_hint')"
+          ></q-input>
+        </div>
+        <div v-else class="column content-center text-center q-mb-md">
           <div v-if="!g.isFiatPriority">
             <h4 class="q-my-none text-bold">
               <span
@@ -697,16 +783,28 @@
             </div>
           </div>
         </div>
-        <q-separator></q-separator>
-        <h6 class="text-center" v-text="parse.invoice.description"></h6>
+        <q-separator
+          :class="{'q-mb-sm': parse.invoice.isBolt12Offer}"
+        ></q-separator>
+        <h6
+          v-if="!parse.invoice.isBolt12Offer && parse.invoice.description"
+          class="text-center"
+          v-text="parse.invoice.description"
+        ></h6>
         <q-input
           autogrow
           filled
           dense
           v-model="parse.data.internalMemo"
           :label="$t('internal_memo')"
-          :hint="$t('internal_memo_hint_pay')"
-          class="q-mb-lg"
+          :hint="
+            $t(
+              parse.invoice.isBolt12Offer
+                ? 'bolt12_offer_internal_memo_hint'
+                : 'internal_memo_hint_pay'
+            )
+          "
+          :class="parse.invoice.isBolt12Offer ? 'q-mb-md' : 'q-mb-lg'"
           :rules="[
             val =>
               !val || val.length <= 512 || 'Please use maximum 512 characters'
@@ -720,7 +818,7 @@
         <q-list separator bordered dense class="q-mb-md">
           <q-expansion-item expand-separator icon="info" label="Details">
             <q-list separator>
-              <q-item>
+              <q-item v-if="parse.invoice.createdDate">
                 <q-item-section>
                   <q-item-label v-text="$t('created')"></q-item-label>
                   <q-item-label
@@ -736,7 +834,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.expireDate">
                 <q-item-section>
                   <q-item-label v-text="$t('expire_date')"></q-item-label>
                   <q-item-label
@@ -751,7 +849,7 @@
                   ></q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="parse.invoice.hash">
                 <q-item-section>
                   <q-item-label v-text="$t('payment_hash')"></q-item-label>
                   <q-item-label
@@ -806,10 +904,20 @@
         </q-list>
         <div v-if="canPay" class="row q-mt-lg">
           <q-btn
+            v-if="g.wallet.walletType !== 'fiat' && bolt12AmountMissing"
             unelevated
             color="primary"
+            disable
+            :label="$t('pay')"
+          ></q-btn>
+          <q-btn
+            v-else-if="g.wallet.walletType !== 'fiat'"
+            unelevated
+            color="primary"
+            type="button"
             @click="payInvoice"
-            :disable="parse.sending"
+            :loading="parse.sending"
+            :disable="parse.sending || !g.wallet.canSendPayments"
             :label="parse.sending ? $t('sending') + '...' : $t('pay')"
           ></q-btn>
           <q-btn
@@ -856,6 +964,7 @@
           </p>
           <div class="row q-mt-lg">
             <q-btn
+              v-if="g.wallet.walletType !== 'fiat'"
               unelevated
               color="primary"
               type="submit"
@@ -984,10 +1093,11 @@
           </div>
           <div class="row q-mt-lg">
             <q-btn
+              v-if="g.wallet.walletType !== 'fiat'"
               unelevated
               color="primary"
               type="submit"
-              :disable="parse.sending"
+              :disable="parse.sending || !g.wallet.canSendPayments"
               :label="parse.sending ? $t('sending') + '...' : $t('send')"
             ></q-btn>
             <q-btn
@@ -1010,6 +1120,7 @@
             filled
             dense
             v-model.trim="parse.data.request"
+            :readonly="parse.decoding"
             type="textarea"
             :label="$t('paste_invoice_label')"
             ref="textArea"
@@ -1020,6 +1131,7 @@
               unelevated
               color="primary"
               :disable="parse.data.request == ''"
+              :loading="parse.decoding"
               type="submit"
               :label="$t('read')"
             ></q-btn>
@@ -1027,7 +1139,7 @@
               name="content_paste"
               color="grey"
               class="q-mt-xs q-ml-sm q-mr-auto"
-              v-if="parse.copy.show"
+              v-if="parse.copy.show && !parse.decoding"
               @click="pasteToTextArea"
             >
               <q-tooltip>
@@ -1077,11 +1189,18 @@
       >
       </q-tab>
 
-      <q-tab @click="showParseDialog" icon="file_upload" :label="$t('send')">
+      <q-tab
+        v-if="g.wallet.walletType !== 'fiat'"
+        @click="showParseDialog"
+        icon="file_upload"
+        :label="$t('send')"
+        :disable="!g.wallet.canSendPayments"
+      >
       </q-tab>
     </q-tabs>
 
     <q-btn
+      v-if="g.wallet.walletType !== 'fiat'"
       @click="g.scanner = decodeQR"
       round
       unelevated

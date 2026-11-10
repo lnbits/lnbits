@@ -902,3 +902,146 @@ async def m050_add_lightning_address_to_wallets(db: Connection):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_lightning_address
         ON wallets (lightning_address);
         """)
+
+
+async def m051_add_two_factor_to_accounts(db: Connection):
+    await db.execute("ALTER TABLE accounts ADD COLUMN two_factor TEXT")
+
+
+async def m052_core_onchain_wallets(db: Connection):
+    """Store onchain setup on wallets and blockchain state on their addresses."""
+    for column in (
+        "onchain_network TEXT",
+        "onchain_meta TEXT NOT NULL DEFAULT '{}'",
+        "onchain_config TEXT NOT NULL DEFAULT '{}'",
+        "onchain_wallet_kind TEXT",
+        "onchain_address_no INTEGER NOT NULL DEFAULT -1",
+        "onchain_encrypted_seed TEXT",
+        "onchain_sync_lease_until BIGINT NOT NULL DEFAULT 0",
+    ):
+        await db.execute(f"ALTER TABLE wallets ADD COLUMN {column}")
+    await db.execute(f"""
+        CREATE TABLE onchain_addresses (
+            id TEXT PRIMARY KEY,
+            walet_id TEXT NOT NULL,
+            address TEXT NOT NULL,
+            amount {db.big_int} NOT NULL DEFAULT 0,
+            branch_index INTEGER NOT NULL,
+            address_index INTEGER NOT NULL,
+            note TEXT,
+            has_activity BOOLEAN NOT NULL DEFAULT false,
+            transactions TEXT NOT NULL DEFAULT '[]',
+            utxos TEXT NOT NULL DEFAULT '[]',
+            snapshot_checked_at BIGINT NOT NULL DEFAULT 0,
+            UNIQUE(walet_id, branch_index, address_index)
+        )
+    """)
+
+
+async def m053_balances_view_include_onchain(db: Connection):
+    """Include onchain balances in the shared balances view."""
+    await db.execute("DROP VIEW IF EXISTS balances")
+    await db.execute("""
+        CREATE VIEW balances AS
+        SELECT apipayments.wallet_id,
+               SUM(apipayments.amount - ABS(apipayments.fee)) AS balance
+        FROM wallets
+        LEFT JOIN apipayments ON apipayments.wallet_id = wallets.id
+        WHERE (wallets.deleted = false OR wallets.deleted is NULL)
+        AND wallets.wallet_type != 'onchain'
+        AND (
+            (apipayments.status = 'success' AND apipayments.amount > 0)
+            OR (apipayments.status IN ('success', 'pending') AND apipayments.amount < 0)
+        )
+        GROUP BY apipayments.wallet_id
+
+        UNION ALL
+
+        SELECT wallets.id AS wallet_id, SUM(coins.amount) * 1000 AS balance
+        FROM wallets
+        INNER JOIN (
+            SELECT walet_id, address, MAX(amount) AS amount
+            FROM onchain_addresses
+            GROUP BY walet_id, address
+        ) coins ON coins.walet_id = wallets.id
+        WHERE wallets.wallet_type = 'onchain'
+        AND (wallets.deleted = false OR wallets.deleted is NULL)
+        GROUP BY wallets.id
+    """)
+
+
+async def m054_create_scheduled_jobs(db: Connection):
+    """One shared schedule store for core, Python and WASM callbacks."""
+    await db.execute("""
+        CREATE TABLE scheduled_jobs (
+            id TEXT PRIMARY KEY,
+            namespace TEXT NOT NULL,
+            handler TEXT NOT NULL,
+            user_id TEXT,
+            cron_expression TEXT NOT NULL,
+            timezone TEXT NOT NULL DEFAULT 'UTC',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            enabled BOOLEAN NOT NULL DEFAULT true,
+            next_run_at BIGINT,
+            lease_token TEXT,
+            lease_until BIGINT NOT NULL DEFAULT 0
+        )
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_jobs_due ON scheduled_jobs (enabled, next_run_at)
+    """)
+
+
+async def m055_create_scheduled_job_runs(db: Connection):
+    # No foreign key: history survives deletion of its job until retention expires.
+    await db.execute("""
+        CREATE TABLE scheduled_job_runs (
+            id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL,
+            namespace TEXT NOT NULL,
+            user_id TEXT,
+            handler TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            timezone TEXT NOT NULL,
+            scheduled_at BIGINT,
+            started_at DOUBLE PRECISION NOT NULL,
+            finished_at DOUBLE PRECISION,
+            status TEXT NOT NULL,
+            error_summary TEXT,
+            lease_token TEXT NOT NULL
+        )
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_job_runs_job
+        ON scheduled_job_runs (job_id, started_at DESC, id DESC)
+    """)
+    await db.execute("""
+        CREATE INDEX idx_scheduled_job_runs_status
+        ON scheduled_job_runs (status, started_at)
+    """)
+
+
+async def m056_disable_public_registration(db: Connection):
+    # Only initialise this field for existing admin settings. An otherwise empty
+    # settings table must stay empty so first-start superuser setup still runs.
+    await db.execute("""
+        INSERT INTO system_settings (id, value, tag)
+        SELECT 'lnbits_allow_new_accounts', 'false', 'core'
+        WHERE EXISTS (
+            SELECT 1 FROM system_settings WHERE id = 'super_user' AND tag = 'core'
+        )
+        ON CONFLICT (id, tag) DO UPDATE SET value = 'false'
+    """)
+    await db.execute("""
+        UPDATE system_settings SET value = 'false'
+        WHERE id = 'lnbits_allow_new_accounts' AND tag = 'core'
+    """)
+    # Apply the one-time reset before first-start settings are persisted, too.
+    from lnbits.settings import settings
+
+    settings.lnbits_allow_new_accounts = False
+
+
+async def m057_add_payment_extension_context(db: Connection):
+    # Keep trusted invoice routing separate from externally supplied extra data.
+    await db.execute("ALTER TABLE apipayments ADD COLUMN extension_context TEXT")

@@ -119,6 +119,36 @@
           </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
+              <q-item-label>Update extensions on startup</q-item-label>
+              <q-item-label caption>
+                Update installed extensions when LNbits starts.
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_autoupdate_extensions_on_startup"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-input
+            dense
+            filled
+            class="q-mb-md"
+            v-model.number="
+              formData.lnbits_autoupdate_extensions_interval_hours
+            "
+            type="number"
+            min="0"
+            step="1"
+            label="Extension update interval (hours)"
+            hint="0 disables scheduled updates. Startup updates use the toggle above."
+          ></q-input>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
               <q-item-label>
                 <span v-text="$t('misc_disable_extensions')"></span>
               </q-item-label>

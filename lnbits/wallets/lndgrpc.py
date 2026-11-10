@@ -394,6 +394,7 @@ _PRE_DISPATCH_PAYMENT_ERROR_CODES = {
 _PRE_DISPATCH_PAYMENT_ERROR_MESSAGES = (
     "invoice not for current active network",
     "invoice expired",
+    "self-payments not allowed",
 )
 
 

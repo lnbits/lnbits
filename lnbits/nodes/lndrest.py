@@ -364,15 +364,15 @@ class LndRestNode(Node):
         fee_report = await self.get("/v1/fees")
         balance = await self.get("/v1/balance/channels")
         return NodeInfoResponse(
-            **public.dict(),
+            **public.model_dump(),
             onchain_balance_sat=onchain["total_balance"],
             onchain_confirmed_sat=onchain["confirmed_balance"],
             balance_msat=balance["local_balance"]["msat"],
             fees=NodeFees(
                 total_msat=0,
-                daily_msat=fee_report["day_fee_sum"],
-                weekly_msat=fee_report["week_fee_sum"],
-                monthly_msat=fee_report["month_fee_sum"],
+                daily_msat=msat(fee_report["day_fee_sum"]),
+                weekly_msat=msat(fee_report["week_fee_sum"]),
+                monthly_msat=msat(fee_report["month_fee_sum"]),
             ),
         )
 

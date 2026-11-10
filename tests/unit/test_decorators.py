@@ -1,4 +1,5 @@
-from uuid import uuid4
+from base64 import urlsafe_b64encode
+from uuid import UUID, uuid4
 
 import jwt
 import pytest
@@ -6,12 +7,12 @@ import shortuuid
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 from httpx import AsyncClient
-from pydantic.types import UUID4
 from pytest_mock import MockerFixture
 
-from lnbits.core.crud.users import delete_account
-from lnbits.core.models import User
+from lnbits.core.crud.users import delete_account, update_account
+from lnbits.core.models import Account, User
 from lnbits.core.models.users import AccessTokenPayload, AccountId, EndpointAccess
+from lnbits.core.services.users import create_user_account
 from lnbits.decorators import (
     _extension_id_from_request_path,
     access_token_payload,
@@ -48,10 +49,53 @@ async def test_check_user_exists_with_valid_access_token(
 
 
 @pytest.mark.anyio
+async def test_check_user_exists_after_username_reuse(http_client: AsyncClient):
+    username = f"user_{uuid4().hex[:8]}"
+    account = Account(id=uuid4().hex, username=username)
+    account.hash_password("secret1234")
+    await create_user_account(account)
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": username, "password": "secret1234"}
+    )
+    assert response.status_code == 200
+    access_token = response.json()["access_token"]
+    request = Request({"type": "http", "path": "/api/v1/auth", "method": "GET"})
+
+    account.username = f"renamed_{uuid4().hex[:8]}"
+    await update_account(account)
+    user = await check_user_exists(request, access_token=access_token)
+    assert user.id == account.id
+
+    await create_user_account(Account(id=uuid4().hex, username=username))
+    user = await check_user_exists(request, access_token=access_token)
+    assert user.id == account.id
+    assert user.username == account.username
+
+    await delete_account(account.id)
+    with pytest.raises(HTTPException) as exc_info:
+        await check_user_exists(request, access_token=access_token)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "User not found."
+
+
+@pytest.mark.anyio
 async def test_check_user_exists_with_invalid_access_token():
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     with pytest.raises(HTTPException) as exc_info:
         await check_user_exists(request, access_token="invalid_token")
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Invalid access token."
+
+
+@pytest.mark.anyio
+async def test_check_user_exists_with_deeply_nested_token_header():
+    header = urlsafe_b64encode(b"[" * 100_000 + b"0" + b"]" * 100_000)
+    token = f"{header.rstrip(b'=').decode()}.e30.c2lnbmF0dXJl"
+    request = Request({"type": "http", "path": "/some/path", "method": "GET"})
+
+    with pytest.raises(HTTPException) as exc_info:
+        await check_user_exists(request, access_token=token)
+
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid access token."
 
@@ -68,7 +112,7 @@ async def test_check_user_exists_with_missing_access_token():
 @pytest.mark.anyio
 async def test_check_user_exists_with_valid_user_id(user_alan: User):
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
 
     assert user.id == user_alan.id
 
@@ -88,7 +132,7 @@ async def test_check_user_exists_with_user_not_allowed(user_alan: User):
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     settings.lnbits_allowed_users = ["only_this_user_id"]
     with pytest.raises(HTTPException) as exc_info:
-        await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+        await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "User not allowed."
 
@@ -135,7 +179,7 @@ async def test_check_user_exists_with_user_id_only_allowed(
 ):
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
 
     assert user.id == user_alan.id
     assert request.scope["user_id"] == user.id
@@ -146,7 +190,7 @@ async def test_check_user_exists_with_user_id_only_not_allowed(user_alan: User):
     settings.auth_allowed_methods = []
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     with pytest.raises(HTTPException) as exc_info:
-        await check_user_exists(request, access_token=None, usr=UUID4(user_alan.id))
+        await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Missing user ID or access token."
 
@@ -229,7 +273,7 @@ async def test_optional_user_id_uses_user_id_or_access_token(
     request = Request({"type": "http", "path": "/wallet", "method": "GET"})
 
     assert (
-        await optional_user_id(request, access_token=None, usr=UUID4(user_alan.id))
+        await optional_user_id(request, access_token=None, usr=UUID(user_alan.id))
         == user_alan.id
     )
 
@@ -275,7 +319,7 @@ async def test_check_extension_builder_requires_admin_when_disabled_for_users(
     ):
         await check_extension_builder(user_alan)
 
-    admin_user = user_alan.copy(deep=True)
+    admin_user = user_alan.model_copy(deep=True)
     admin_user.admin = True
     await check_extension_builder(admin_user)
 

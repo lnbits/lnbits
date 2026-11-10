@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lnbits.helpers import normalize_endpoint, urlsafe_short_hash
 from lnbits.settings import settings
@@ -28,8 +28,7 @@ from .base import (
 
 
 class RevolutCheckoutOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     success_url: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -37,8 +36,7 @@ class RevolutCheckoutOptions(BaseModel):
 
 
 class RevolutCreateInvoiceOptions(BaseModel):
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
 
     checkout: RevolutCheckoutOptions | None = None
 
@@ -580,7 +578,7 @@ class RevolutWallet(FiatProvider):
         self, raw_opts: dict[str, Any]
     ) -> RevolutCreateInvoiceOptions | None:
         try:
-            return RevolutCreateInvoiceOptions.parse_obj(raw_opts)
+            return RevolutCreateInvoiceOptions.model_validate(raw_opts)
         except ValidationError as e:
             logger.warning(f"Invalid Revolut options: {e}")
             return None
@@ -588,7 +586,7 @@ class RevolutWallet(FiatProvider):
     def _serialize_subscription_reference(
         self, reference: RevolutSubscriptionReference
     ) -> str:
-        payload = reference.dict(exclude_none=True)
+        payload = reference.model_dump(exclude_none=True)
         serialized = json.dumps(payload, separators=(",", ":"))
         if len(serialized) > 1024:
             raise ValueError("Revolut subscription external_reference is too long.")
@@ -600,7 +598,7 @@ class RevolutWallet(FiatProvider):
         if not external_reference:
             return None
         try:
-            return RevolutSubscriptionReference.parse_obj(
+            return RevolutSubscriptionReference.model_validate(
                 json.loads(external_reference)
             )
         except (json.JSONDecodeError, ValidationError) as exc:

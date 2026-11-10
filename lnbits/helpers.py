@@ -12,7 +12,7 @@ import shortuuid
 from fastapi.routing import APIRoute
 from loguru import logger
 from packaging import version
-from pydantic.schema import field_schema
+from pydantic import TypeAdapter
 from random_username.generate import generate_username  # type: ignore[import-untyped]
 from starlette.templating import Jinja2Templates
 
@@ -76,7 +76,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     # used in base.html
     t.env.globals["SITE_TITLE"] = settings.lnbits_site_title
     t.env.globals["LNBITS_APPLE_TOUCH_ICON"] = settings.lnbits_apple_touch_icon
-    t.env.globals["SETTINGS"] = settings.to_public().dict(by_alias=True)
+    t.env.globals["SETTINGS"] = settings.to_public().model_dump(by_alias=True)
     t.env.globals["CURRENCIES"] = list(currencies.keys())
 
     if settings.bundle_assets:
@@ -132,22 +132,18 @@ def generate_filter_params_openapi(model: type[FilterModel], keep_optional=False
     :param keep_optional: If false, all parameters will be optional,
     otherwise inferred from model
     """
-    fields = list(model.__fields__.values())
     params = []
-    for field in fields:
-        schema, _, _ = field_schema(field, model_name_map={})
+    for name, field in model.model_fields.items():
+        schema = TypeAdapter(field.rebuild_annotation()).json_schema()
 
         description = "Supports Filtering"
-        if (
-            hasattr(model, "__search_fields__")
-            and field.name in model.__search_fields__
-        ):
+        if hasattr(model, "__search_fields__") and name in model.__search_fields__:
             description += ". Supports Search"
 
         parameter = {
-            "name": field.alias,
+            "name": field.alias or name,
             "in": "query",
-            "required": field.required if keep_optional else False,
+            "required": field.is_required() if keep_optional else False,
             "schema": schema,
             "description": description,
         }

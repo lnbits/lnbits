@@ -66,6 +66,35 @@ async def test_get_accounts_success_flow():
 
 
 @pytest.mark.anyio
+async def test_get_accounts_returns_extra():
+    username = f"user_{uuid4().hex[:8]}"
+    account = Account(
+        id=uuid4().hex,
+        username=username,
+        email=f"{username}@lnbits.com",
+    )
+    account.extra.email_verified = True
+    await create_account(account)
+
+    filters = Filters[AccountFilters](
+        filters=[
+            Filter(
+                field="id",
+                op=Operator.EQ,
+                values={"id__0": account.id},
+                model=AccountFilters,
+            )
+        ],
+        model=AccountFilters,
+    )
+    page = await get_accounts(filters=filters)
+    assert page.total == 1
+    assert page.data[0].extra.email_verified is True
+    assert page.data[0].created_at == account.created_at
+    await delete_account(account.id)
+
+
+@pytest.mark.anyio
 async def test_get_accounts_with_wallet_id_filter():
     # Create account and wallet
     username = f"user_{uuid4().hex[:8]}"

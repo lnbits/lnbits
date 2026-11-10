@@ -482,6 +482,7 @@
         :editable-append-public-limits="g.user.admin === true"
         :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
         :editable-websocket-publish-limits="g.user.admin === true"
+        :editable-scheduler-user-limits="g.user.admin === true"
         :max-messages-per-second-limit="
           extensionPermissionMaxMessagesPerSecondLimit
         "
@@ -883,6 +884,7 @@
           :editable-append-public-limits="g.user.admin === true"
           :max-rows-per-source-limit="extensionPermissionMaxRowsPerSourceLimit"
           :editable-websocket-publish-limits="g.user.admin === true"
+          :editable-scheduler-user-limits="g.user.admin === true"
           :max-messages-per-second-limit="
             extensionPermissionMaxMessagesPerSecondLimit
           "

@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from pytest_mock.plugin import MockerFixture
+from wasmtime import wat2wasm
 
 from lnbits.core.crud import (
     create_installed_extension,
@@ -36,6 +37,7 @@ from lnbits.core.services.extensions import (
     stop_wasm_invocation,
     uninstall_extension,
 )
+from lnbits.core.wasm_ext.wasm.component import _wasm_engine
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
 
@@ -181,6 +183,7 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
         "lnbits.core.services.extensions.start_extension_background_work",
         mocker.AsyncMock(return_value=True),
     )
+    _wasm_engine.cache_clear()
 
     try:
         settings.lnbits_data_folder = str(tmp_path / "data")
@@ -206,7 +209,9 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
             granted_permissions=granted_permissions,
         )
         stored = await get_installed_extension(ext_id)
+        assert list((tmp_path / "data" / "wasm_cache" / ext_id / "modules").glob("*/*"))
     finally:
+        _wasm_engine.cache_clear()
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_data_folder = original_data_folder
         settings.lnbits_extensions_path = original_extensions_path
@@ -622,7 +627,7 @@ def _write_extension_archive(
     with zipfile.ZipFile(ext_info.zip_path, "w") as archive:
         archive.writestr(f"{root}/config.json", json.dumps(config))
         for filename in extra_files or []:
-            archive.writestr(f"{root}/{filename}", b"\0asm")
+            archive.writestr(f"{root}/{filename}", wat2wasm("(component)"))
 
 
 def _wasm_install_config(ext_id: str) -> dict:

@@ -1,9 +1,7 @@
-import ipaddress
-from typing import cast
+import socket
 
 import httpx
 import pytest
-from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.wasm_ext.api.models import HttpRequest
 from lnbits.core.wasm_ext.client import http as wasm_http
@@ -29,19 +27,42 @@ def test_wasm_http_origin_normalization_and_url_rejections():
 
 
 @pytest.mark.anyio
-async def test_wasm_http_rejects_internal_hosts(mocker: MockerFixture):
-    with pytest.raises(PermissionError, match="localhost"):
-        await wasm_http._reject_internal_host("https://localhost/api")
+@pytest.mark.parametrize(
+    "target_ip",
+    ["127.0.0.1", "10.0.0.2", "64:ff9b::127.0.0.1", "64:ff9b::a9fe:a9fe", "8.8.8.8"],
+)
+async def test_wasm_http_rejects_internal_and_self_hosts(
+    safe_http_mock, settings, target_ip
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_outbound_host_ips = ["8.8.8.8"]
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (target_ip, 443))
+    ]
+    for url in (
+        "https://api.example.com",
+        str(httpx.URL("https://example.com").copy_with(host=target_ip)),
+    ):
+        with pytest.raises(PermissionError, match="target is not allowed"):
+            await wasm_http.send_extension_http_request(
+                "demoext", [url], HttpRequest(url=url, body=None)
+            )
+    handler.assert_not_called()
 
-    with pytest.raises(PermissionError, match="internal network"):
-        await wasm_http._reject_internal_host("https://127.0.0.1/api")
 
-    mocker.patch(
-        "lnbits.core.wasm_ext.client.http._resolve_host",
-        mocker.AsyncMock(return_value=[ipaddress.ip_address("10.0.0.1")]),
-    )
-    with pytest.raises(PermissionError, match="internal network"):
-        await wasm_http._reject_internal_host("https://api.example.com")
+@pytest.mark.anyio
+async def test_wasm_http_rejects_self_hostname_before_dns(safe_http_mock, settings):
+    resolver, handler = safe_http_mock
+    settings.lnbits_baseurl = "https://api.example.com"
+    with pytest.raises(PermissionError, match="target is not allowed"):
+        await wasm_http.send_extension_http_request(
+            "demoext",
+            ["https://api.example.com"],
+            HttpRequest(url="https://api.example.com", body=None),
+        )
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
 
 
 def test_wasm_http_strips_forbidden_headers_and_normalizes_timeout():
@@ -66,45 +87,51 @@ def test_wasm_http_strips_forbidden_headers_and_normalizes_timeout():
 
 
 @pytest.mark.anyio
-async def test_wasm_http_request_enforces_policies_and_response_bounds(
-    mocker: MockerFixture,
+async def test_wasm_http_request_enforces_policies_and_pins_dns(
+    safe_http_mock, settings
 ):
-    mocker.patch(
-        "lnbits.core.wasm_ext.client.http._reject_internal_host",
-        mocker.AsyncMock(),
-    )
-    client = _FakeAsyncClient(
-        _FakeStreamResponse(
-            status_code=201,
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+
+    def respond(request):
+        # A later resolution would reach loopback, but the request is already pinned.
+        resolver.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))
+        ]
+        return httpx.Response(
+            201,
             headers={
                 "content-type": "application/json",
                 "set-cookie": "session=secret",
             },
-            chunks=[b'{"ok":true}'],
+            content=b'{"ok":true}',
         )
-    )
-    mocker.patch("lnbits.core.wasm_ext.client.http.httpx.AsyncClient", client.factory)
 
+    handler.side_effect = respond
     response = await wasm_http.send_extension_http_request(
         "demoext",
         [{"host": "https://api.example.com"}],
         HttpRequest(
             method="POST",
             url="https://api.example.com/path",
-            headers={"Host": "evil.example", "X-Test": "yes"},
+            headers={"Host": "evil.example", "Cookie": "secret", "X-Test": "yes"},
             body="{}",
         ),
         timeout_ms=500,
         max_response_bytes=100,
     )
-
     assert response.status_code == 201
     assert response.body == '{"ok":true}'
     assert response.headers == {"content-type": "application/json"}
-    assert client.kwargs["follow_redirects"] is False
-    assert client.kwargs["trust_env"] is False
-    assert client.kwargs["timeout"] == 0.5
-    assert client.stream_kwargs["headers"] == {"X-Test": "yes"}
+    resolver.assert_awaited_once()
+    request = handler.call_args.args[0]
+    assert str(request.url) == "https://93.184.216.34/path"
+    assert request.headers["host"] == "api.example.com"
+    assert request.headers["x-test"] == "yes"
+    assert "cookie" not in request.headers
+    assert request.content == b"{}"
+    assert request.extensions["sni_hostname"] == "api.example.com"
+    assert request.extensions["timeout"]["read"] == 0.5
 
     with pytest.raises(PermissionError, match="not allowed"):
         await wasm_http.send_extension_http_request(
@@ -112,103 +139,81 @@ async def test_wasm_http_request_enforces_policies_and_response_bounds(
             [{"host": "https://api.example.com"}],
             HttpRequest(url="https://other.example.com/path", body=None),
         )
+    resolver.assert_awaited_once()
+    handler.assert_called_once()
 
 
 @pytest.mark.anyio
-async def test_wasm_http_request_rejects_oversized_bodies_and_responses(
-    mocker: MockerFixture,
-):
-    mocker.patch(
-        "lnbits.core.wasm_ext.client.http._reject_internal_host",
-        mocker.AsyncMock(),
-    )
+async def test_wasm_http_request_rejects_oversized_bodies_and_responses(safe_http_mock):
+    resolver, handler = safe_http_mock
     with pytest.raises(ValueError, match="body is too large"):
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
-            HttpRequest.construct(
+            HttpRequest.model_construct(
                 method="GET",
                 url="https://api.example.com/path",
                 headers={},
                 body="x" * 65_537,
             ),
         )
-
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
+    handler.side_effect = lambda request: httpx.Response(200, content=b"123456789")
     with pytest.raises(ValueError, match="response is too large"):
-        await wasm_http._read_limited_response(
-            cast(httpx.Response, _FakeStreamResponse(chunks=[b"12345", b"67890"])),
+        await wasm_http.send_extension_http_request(
+            "demoext",
+            ["https://api.example.com"],
+            HttpRequest(url="https://api.example.com", body=None),
             max_response_bytes=8,
+        )
+    handler.side_effect = lambda request: httpx.Response(
+        200, content=b"x" * (wasm_http.HTTP_MAX_RESPONSE_BYTES + 1)
+    )
+    with pytest.raises(ValueError, match="response is too large"):
+        await wasm_http.send_extension_http_request(
+            "demoext",
+            ["https://api.example.com"],
+            HttpRequest(url="https://api.example.com", body=None),
         )
 
 
 @pytest.mark.anyio
-async def test_wasm_http_request_hides_transport_errors(mocker: MockerFixture):
-    mocker.patch(
-        "lnbits.core.wasm_ext.client.http._reject_internal_host",
-        mocker.AsyncMock(),
+async def test_wasm_http_preserves_disabled_limits_and_does_not_follow_redirects(
+    safe_http_mock,
+):
+    _, handler = safe_http_mock
+    body = b"x" * 1048577
+    handler.side_effect = lambda request: httpx.Response(200, content=body)
+    response = await wasm_http.send_extension_http_request(
+        "demoext",
+        ["https://api.example.com"],
+        HttpRequest(url="https://api.example.com", body=None),
+        timeout_ms=0,
+        max_response_bytes=0,
     )
-    client = _FakeAsyncClient(_FakeStreamError())
-    mocker.patch("lnbits.core.wasm_ext.client.http.httpx.AsyncClient", client.factory)
+    assert response.body == body.decode()
+    assert handler.call_args.args[0].extensions["timeout"]["read"] is None
+    handler.reset_mock()
+    handler.side_effect = lambda request: httpx.Response(
+        302, headers={"location": "https://other.example.com"}
+    )
+    response = await wasm_http.send_extension_http_request(
+        "demoext",
+        ["https://api.example.com"],
+        HttpRequest(url="https://api.example.com", body=None),
+    )
+    assert response.status_code == 302
+    handler.assert_called_once()
 
-    with pytest.raises(ValueError, match="HTTP request failed"):
+
+@pytest.mark.anyio
+async def test_wasm_http_request_hides_transport_errors(safe_http_mock):
+    _, handler = safe_http_mock
+    handler.side_effect = httpx.ConnectError("sensitive transport detail")
+    with pytest.raises(ValueError, match=r"^HTTP request failed\.$"):
         await wasm_http.send_extension_http_request(
             "demoext",
             [{"host": "https://api.example.com"}],
             HttpRequest(url="https://api.example.com/path", body=None),
         )
-
-
-class _FakeAsyncClient:
-    def __init__(self, response):
-        self.response = response
-        self.kwargs = {}
-        self.stream_kwargs = {}
-
-    def factory(self, **kwargs):
-        self.kwargs = kwargs
-        return self
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *_args):
-        return False
-
-    def stream(self, method, url, **kwargs):
-        self.stream_kwargs = {"method": method, "url": url, **kwargs}
-        return self.response
-
-
-class _FakeStreamResponse:
-    def __init__(
-        self,
-        *,
-        status_code: int = 200,
-        headers: dict[str, str] | None = None,
-        chunks: list[bytes] | None = None,
-    ):
-        self.status_code = status_code
-        self.headers = headers or {}
-        self.encoding = "utf-8"
-        self._chunks = chunks or []
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *_args):
-        return False
-
-    async def aiter_bytes(self):
-        for chunk in self._chunks:
-            yield chunk
-
-
-class _FakeStreamError:
-    async def __aenter__(self):
-        raise httpx.RequestError(
-            "network failed",
-            request=httpx.Request("GET", "https://api.example.com"),
-        )
-
-    async def __aexit__(self, *_args):
-        return False

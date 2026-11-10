@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from lnbits.core.models.extensions import ExtensionPermission, InstallableExtension
+from lnbits.core.models.scheduler import SchedulePolicy, UserSchedulePolicy
 from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
@@ -17,6 +18,8 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "ext.storage.read_public",
     "extension.api.request",
     "http.request",
+    "scheduler.user",
+    "scheduler.extension",
     "wallet.create_invoice_public",
     "websocket.publish",
 }
@@ -40,7 +43,7 @@ def validate_extension_permissions(
             unknown_ids.append(permission.id)
             if strict:
                 continue
-        normalized_permissions.append(permission.copy())
+        normalized_permissions.append(permission.model_copy())
 
     if unknown_ids and strict:
         raise ValueError(
@@ -68,7 +71,12 @@ def validate_wasm_extension_permissions(
     requested_permissions = validate_extension_permissions(
         ext_info.id, config.permissions
     )
-    _validate_requested_permission_policies(ext_info.id, requested_permissions)
+    _validate_requested_permission_policies(
+        ext_info.id,
+        requested_permissions,
+        {export.name for export in config.wasm.exports if export.visibility == "event"},
+    )
+    _validate_automatic_schedules(config.schedules, requested_permissions)
     if not requested_permissions:
         return []
 
@@ -102,9 +110,12 @@ def validate_wasm_extension_permissions(
                 f"permission '{permission_id}'."
             )
         effective_permissions.append(
-            requested_permission.copy(update={"policies": granted_permission.policies})
+            requested_permission.model_copy(
+                update={"policies": granted_permission.policies}
+            )
         )
 
+    _validate_automatic_schedules(config.schedules, effective_permissions)
     return effective_permissions
 
 
@@ -140,34 +151,52 @@ def _permission_grant_is_subset(
         return False
     if requested.id not in _POLICY_AWARE_PERMISSION_IDS:
         return True
-    if requested.id == "http.request":
-        return _http_request_grant_is_subset(requested.policies, granted.policies)
-    if requested.id == "extension.api.request":
-        return _extension_api_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "ext.storage.append_public":
         return _public_storage_append_grant_is_subset(
             requested.policies,
             granted.policies,
             allow_max_rows_per_source_override=allow_admin_policy_overrides,
         )
-    if requested.id == "ext.storage.read_public":
-        return _public_storage_grant_is_subset(requested.policies, granted.policies)
-    if requested.id == "wallet.create_invoice_public":
-        return _public_invoice_grant_is_subset(requested.policies, granted.policies)
     if requested.id == "websocket.publish":
         return _websocket_publish_grant_is_subset(
             requested.policies,
             granted.policies,
             allow_max_messages_per_second_override=allow_admin_policy_overrides,
         )
-    return False
+    if requested.id in {"scheduler.user", "scheduler.extension"}:
+        return _schedule_grant_is_subset(
+            requested.policies,
+            granted.policies,
+            user_scope=requested.id == "scheduler.user",
+            allow_job_limit_override=allow_admin_policy_overrides,
+        )
+    checker = {
+        "http.request": _http_request_grant_is_subset,
+        "extension.api.request": _extension_api_grant_is_subset,
+        "ext.storage.read_public": _public_storage_grant_is_subset,
+        "wallet.create_invoice_public": _public_invoice_grant_is_subset,
+    }.get(requested.id)
+    return checker(requested.policies, granted.policies) if checker else False
 
 
 def _validate_requested_permission_policies(
     ext_id: str,
     permissions: Iterable[ExtensionPermission],
+    event_handlers: set[str],
 ) -> None:
     for permission in permissions:
+        if permission.id in {"scheduler.user", "scheduler.extension"}:
+            try:
+                policies = SchedulePolicy.parse_policies(
+                    permission.policies, user_scope=permission.id == "scheduler.user"
+                )
+                if not policies.keys() <= event_handlers:
+                    raise ValueError("Scheduled handlers must be event exports.")
+            except ValueError as exc:
+                raise ValueError(
+                    f"Extension '{ext_id}' requests invalid policies for permission "
+                    f"'{permission.id}': {exc}"
+                ) from exc
         if permission.id != "websocket.publish":
             continue
         if _websocket_publish_policy(permission.policies) is None:
@@ -410,3 +439,47 @@ def _websocket_publish_policy(policies: list[Any] | None) -> dict[str, int] | No
     ):
         return None
     return {"max_messages_per_second": max_messages_per_second}
+
+
+def _validate_automatic_schedules(
+    schedules: list[SchedulePolicy], permissions: list[ExtensionPermission]
+) -> None:
+    if not schedules:
+        return
+    grant = next((p for p in permissions if p.id == "scheduler.extension"), None)
+    approved = SchedulePolicy.parse_policies(grant.policies) if grant else {}
+    for schedule in schedules:
+        if approved.get(schedule.handler) != schedule:
+            raise ValueError(
+                "Automatic schedules require matching scheduler.extension policies."
+            )
+
+
+def _schedule_grant_is_subset(
+    requested_policies: list[Any] | None,
+    granted_policies: list[Any] | None,
+    *,
+    user_scope: bool = False,
+    allow_job_limit_override: bool = False,
+) -> bool:
+    try:
+        requested = SchedulePolicy.parse_policies(
+            requested_policies, user_scope=user_scope
+        )
+        granted = SchedulePolicy.parse_policies(granted_policies, user_scope=user_scope)
+    except ValueError:
+        return False
+    for handler, policy in granted.items():
+        declared = requested.get(handler)
+        if not declared or declared.model_dump(
+            exclude={"max_jobs_per_user"}
+        ) != policy.model_dump(exclude={"max_jobs_per_user"}):
+            return False
+        if (
+            isinstance(policy, UserSchedulePolicy)
+            and isinstance(declared, UserSchedulePolicy)
+            and policy.max_jobs_per_user > declared.max_jobs_per_user
+            and not allow_job_limit_override
+        ):
+            return False
+    return True

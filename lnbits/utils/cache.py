@@ -41,12 +41,13 @@ class Cache:
             return cached.value
         return default
 
-    async def save_result(self, coro, key: str, expiry: float = 10):
+    async def save_result(self, coro, key: str, expiry: float = 10) -> Any:
         """
         If `key` exists, return its value, otherwise call coro and cache its result
         """
-        cached = self.get(key)
-        if cached:
+        missing = object()
+        cached = self.get(key, default=missing)
+        if cached is not missing:
             return cached
         else:
             value = await coro()

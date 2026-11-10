@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
-import logging
 import secrets
 import time
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from loguru import logger
+
+from lnbits.core.models.users import Account, UserNotifications
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
@@ -44,6 +46,8 @@ from .models import (
     PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
+    SendUserNotificationRequest,
+    SendUserNotificationResponse,
     StorageAppendPublicRequest,
     StorageAppendPublicResponse,
     StorageDeleteRequest,
@@ -62,9 +66,9 @@ from .models import (
     WebsocketPublishResponse,
 )
 from .registry import extension_api_method
+from .scheduler import ExtensionSchedulerAPI
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
-logger = logging.getLogger("lnbits.extensions")
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 
 
@@ -91,11 +95,40 @@ class ExtensionHostAPI:
         self.runtime_limits = runtime_limits or {}
         from .utils import ExtensionAPIUtils
 
+        self.scheduler = ExtensionSchedulerAPI(self)
         self.utils = ExtensionAPIUtils(
             self.extension_id,
             self.permissions,
             authenticated=self.has_authenticated_context(),
         )
+
+    @extension_api_method(
+        method_id="notifications.send_user_notification",
+        namespace="notifications",
+        name="Send user notification",
+        host_name="notifications_send_user_notification",
+        sdk_name="sendUserNotification",
+        description=(
+            "Send a notification to the current user or the invocation's "
+            "wallet owner, using their saved settings for the selected "
+            "email, Nostr, or Telegram notification type. Queued does not "
+            "guarantee delivery."
+        ),
+        required_permission="notifications.send_user_notification",
+    )
+    async def notifications_send_user_notification(
+        self, request: SendUserNotificationRequest
+    ) -> SendUserNotificationResponse:
+
+        from lnbits.core.services.notifications import send_user_notification
+
+        user = await self._current_user()
+        if not user:
+            raise PermissionError("Invocation has no notification recipient.")
+
+        notifications = _user_notification_preferences(user, request.type)
+        await send_user_notification(notifications, request.message)
+        return SendUserNotificationResponse()
 
     @extension_api_method(
         method_id="storage.get",
@@ -356,6 +389,12 @@ class ExtensionHostAPI:
                 extra=request.extra,
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": sha256s(wallet.user),
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": (request.extra or {}).get("source_id") or None,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -376,6 +415,7 @@ class ExtensionHostAPI:
     async def wallet_create_invoice_public(
         self, request: CreateInvoicePublicRequest
     ) -> CreateInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
@@ -386,6 +426,7 @@ class ExtensionHostAPI:
                 self.extension_id,
                 policy["table"],
                 request.source_id,
+                include_owner=True,
             )
             if row:
                 wallet_field = policy["wallet_field"]
@@ -397,6 +438,11 @@ class ExtensionHostAPI:
         wallet_id = row.get(wallet_field)
         if not isinstance(wallet_id, str) or not wallet_id:
             raise PermissionError("Public invoice source has no valid wallet.")
+
+        wallet = await get_wallet(wallet_id)
+        owner_id = row.get(OWNER_ID_FIELD)
+        if not wallet or owner_id != sha256s(wallet.user):
+            raise PermissionError("Public invoice source does not own its wallet.")
 
         payment = await create_payment_request(
             wallet_id,
@@ -411,6 +457,12 @@ class ExtensionHostAPI:
                 },
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": owner_id,
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": request.source_id,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -503,11 +555,14 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
+        if wallet is None or (
+            self.context == "schedule"
+            and (not self.user_id or wallet.user != self.user_id)
+        ):
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            if self.user_id:
+            if self.user_id and self.context != "schedule":
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError(
@@ -568,11 +623,14 @@ class ExtensionHostAPI:
         )
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None:
+        if wallet is None or (
+            self.context == "schedule"
+            and (not self.user_id or wallet.user != self.user_id)
+        ):
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
-            if self.user_id:
+            if self.user_id and self.context != "schedule":
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError("Paying from this wallet is not allowed.")
@@ -599,7 +657,7 @@ class ExtensionHostAPI:
                 extra["fiat_currency"] = unit
                 extra["fiat_amount"] = str(request.amount)
 
-            if not self.user_id:
+            if not self.user_id or self.context == "schedule":
                 amount_msat = invoice_amount_msat(str(action.pr))
                 extra = {
                     **extra,
@@ -631,6 +689,7 @@ class ExtensionHostAPI:
             PermissionError,
             ValueError,
         ) as exc:
+            logger.warning(f"Error occurred while paying invoice: {exc}")
             return PayInvoiceResponse(ok=False, error=str(exc))
 
         return _pay_invoice_response(payment)
@@ -720,8 +779,9 @@ class ExtensionHostAPI:
         require_auth=False,
     )
     async def system_log(self, request: LogRequest) -> LogResponse:
-        log = getattr(logger, request.level)
-        log("extension:%s %s", self.extension_id, request.message)
+        logger.log(
+            request.level.upper(), "extension:{} {}", self.extension_id, request.message
+        )
         return LogResponse()
 
     @staticmethod
@@ -752,6 +812,32 @@ class ExtensionHostAPI:
                 policies[permission_id] = permission_policies
 
         return permission_ids, policies
+
+    async def _current_user_id(self) -> str | None:
+        from lnbits.core.crud.extensions import get_wasm_invocation
+        from lnbits.core.crud.wallets import get_wallet
+
+        if self.user_id:
+            return self.user_id
+        if not self.invocation_id:
+            return None
+        invocation = await get_wasm_invocation(self.invocation_id)
+        if (
+            invocation
+            and invocation.extension_id == self.extension_id
+            and invocation.wallet_id
+        ):
+            wallet = await get_wallet(invocation.wallet_id)
+            return wallet.user if wallet else None
+        return None
+
+    async def _current_user(self) -> Account | None:
+        from lnbits.core.crud.users import get_account
+
+        user_id = await self._current_user_id()
+        if not user_id:
+            return None
+        return await get_account(user_id)
 
     def _public_storage_policy(self, table: str) -> dict[str, Any]:
         tables = self.permission_policies.get("ext.storage.read_public")
@@ -973,7 +1059,7 @@ class ExtensionHostAPI:
             )
 
     def has_authenticated_context(self) -> bool:
-        return bool(self.user_id) or self.context == "event"
+        return bool(self.user_id) or self.context in {"event", "schedule"}
 
     def _require_owner_id(self) -> str:
         if not self.owner_id:
@@ -1000,4 +1086,21 @@ def _pay_invoice_response(payment: Any) -> PayInvoiceResponse:
         fee_msat=abs(payment.fee),
         pending=payment.pending,
         success=payment.success,
+    )
+
+
+def _user_notification_preferences(
+    user: Account, notification_type: str
+) -> UserNotifications:
+    preferences = user.extra.notifications
+    return UserNotifications(
+        email_address=(
+            preferences.email_address if notification_type == "email" else None
+        ),
+        nostr_identifier=(
+            preferences.nostr_identifier if notification_type == "nostr" else None
+        ),
+        telegram_chat_id=(
+            preferences.telegram_chat_id if notification_type == "telegram" else None
+        ),
     )

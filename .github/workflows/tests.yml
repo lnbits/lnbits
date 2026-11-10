@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       python-version:
-        default: "3.12"
+        default: "3.13"
         type: string
       os-version:
         default: "ubuntu-24.04"
@@ -75,8 +75,8 @@ jobs:
           report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: false

@@ -1,35 +1,79 @@
+import base64
+import json
 import os
 import time
+from collections.abc import Iterable
 from http import HTTPStatus
 from pathlib import Path
 from shutil import make_archive
-from subprocess import Popen
-from typing import cast
+from subprocess import PIPE, Popen
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, File
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Response
 from fastapi.responses import FileResponse
+from loguru import logger
+from pydantic import SecretStr
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
+from starlette.concurrency import run_in_threadpool
 
+from lnbits.core.crud.wallets import reset_all_wallet_keys
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services import (
     enqueue_admin_notification,
     get_balance_delta,
     update_cached_settings,
 )
 from lnbits.core.services.notifications import send_email_notification
+from lnbits.core.services.onchain import (
+    OnchainKeyStatus,
+    confirm_onchain_key_backup,
+    onchain_key_status,
+    read_onchain_key,
+    setup_onchain_key,
+)
 from lnbits.core.services.settings import dict_to_settings
-from lnbits.decorators import check_admin, check_super_user
+from lnbits.core.services.two_factor import (
+    sync_two_factor_policy,
+    validate_two_factor_policy,
+)
+from lnbits.decorators import access_token_payload, check_admin, check_super_user
 from lnbits.server import server_restart
-from lnbits.settings import AdminSettings, Settings, UpdateSettings, settings
+from lnbits.settings import (
+    AdminSettings,
+    FundingSourcesSettings,
+    Settings,
+    UpdateSettings,
+    settings,
+)
 from lnbits.task_manager import PublicTask, task_manager
 
 from .. import core_app_extra
-from ..crud import get_admin_settings, reset_core_settings, update_admin_settings
+from ..crud import (
+    get_admin_settings,
+    get_super_settings,
+    get_total_balance,
+    reset_core_settings,
+    update_admin_settings,
+)
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
+
+
+@admin_router.post(
+    "/api/v1/wallets/reset-keys", dependencies=[Depends(check_super_user)]
+)
+async def api_reset_all_wallet_keys() -> dict[str, int]:
+    try:
+        count = await reset_all_wallet_keys()
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Could not reset wallet keys."
+        ) from None
+    return {"wallets_updated": count}
 
 
 @admin_router.get(
@@ -39,7 +83,12 @@ file_upload = File(...)
     dependencies=[Depends(check_admin)],
 )
 async def api_auditor():
-    return await get_balance_delta()
+    balance = await get_balance_delta()
+    fiat_balance = await get_total_balance(fiat=True)
+    return {
+        **balance.model_dump(),
+        "lnbits_fiat_balance_sats": int(fiat_balance) // 1000,
+    }
 
 
 @admin_router.get(
@@ -67,12 +116,13 @@ async def api_test_email():
     )
 
 
-@admin_router.get("/api/v1/settings")
+@admin_router.get("/api/v1/settings", response_model_exclude_unset=True)
 async def api_get_settings(
+    response: Response,
     account: Account = Depends(check_admin),
 ) -> AdminSettings | None:
-    admin_settings = await get_admin_settings(account.is_super_user)
-    return admin_settings
+    response.headers["Cache-Control"] = "no-store"
+    return await get_admin_settings(account.is_super_user)
 
 
 @admin_router.put(
@@ -80,18 +130,124 @@ async def api_get_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings(
-    data: UpdateSettings, account: Account = Depends(check_admin)
+    data: UpdateSettings,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
+    _check_funding_settings_access(data.model_fields_set, account)
+    policy_changed = await validate_two_factor_policy(data, account.id, payload)
+    if "lnbits_allow_onchain_payments" in data.model_fields_set:
+        enabled = data.lnbits_allow_onchain_payments
+        if (
+            enabled != settings.lnbits_allow_onchain_payments
+            and not account.is_super_user
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN, "Only the super user can change onchain payments."
+            )
+        if enabled:
+            status = await onchain_key_status()
+            if not status.configured or not status.backup_confirmed:
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    "Set up and back up the onchain encryption key "
+                    "before enabling onchain payments.",
+                )
     enqueue_admin_notification(
         NotificationType.settings_update, {"username": account.username}
     )
     await update_admin_settings(data)
-    admin_settings = await get_admin_settings(account.is_super_user)
-    if not admin_settings:
+    # Reload the complete stored configuration, not the caller's filtered view.
+    stored_settings = await get_super_settings()
+    if not stored_settings:
         raise ValueError("Updated admin settings not found.")
-    update_cached_settings(admin_settings.dict())
+    update_cached_settings(
+        stored_settings.model_dump(exclude={"super_user", "auth_all_methods"})
+    )
     core_app_extra.register_new_ratelimiter()
+    if policy_changed:
+        from lnbits.core.views.auth_api import _auth_success_response
+
+        policy_revision = await sync_two_factor_policy()
+        # Preserve the acting admin's fresh verification; all other sessions
+        # must satisfy the new policy on their next protected request.
+        response = _auth_success_response(
+            payload=payload.model_copy(update={"mfa_policy": policy_revision})
+        )
+        return response
     return {"status": "Success"}
+
+
+@admin_router.get("/api/v1/onchain/key", dependencies=[Depends(check_super_user)])
+async def api_onchain_key_status(response: Response) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    return await onchain_key_status()
+
+
+@admin_router.post("/api/v1/onchain/key", dependencies=[Depends(check_super_user)])
+async def api_setup_onchain_key(
+    response: Response,
+    recovery_key: Annotated[
+        SecretStr | None, Header(alias="X-Onchain-Recovery-Key")
+    ] = None,
+) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await setup_onchain_key(
+            recovery_key.get_secret_value() if recovery_key else None
+        )
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "Cannot set up the onchain key. Check the recovery key, "
+            "existing configuration and data-folder permissions.",
+        ) from exc
+
+
+@admin_router.post(
+    "/api/v1/onchain/key/backup", dependencies=[Depends(check_super_user)]
+)
+async def api_backup_onchain_key() -> Response:
+    try:
+        status = await setup_onchain_key()
+        key = await run_in_threadpool(read_onchain_key)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT,
+            "The onchain key is unavailable. Restore its original backup.",
+        ) from exc
+    return Response(
+        content=json.dumps(
+            {
+                "version": 1,
+                "key": base64.b64encode(key).decode(),
+                "fingerprint": status.fingerprint,
+            },
+            indent=2,
+        ),
+        media_type="application/json",
+        headers={
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+            "Content-Disposition": 'attachment; filename="lnbits-onchain-key.json"',
+        },
+    )
+
+
+@admin_router.post(
+    "/api/v1/onchain/key/confirm", dependencies=[Depends(check_super_user)]
+)
+async def api_confirm_onchain_key_backup(
+    fingerprint: Annotated[str, Header(alias="X-Onchain-Key-Fingerprint")],
+    response: Response,
+) -> OnchainKeyStatus:
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return await confirm_onchain_key_backup(fingerprint)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(
+            HTTPStatus.CONFLICT, "The backup does not match the onchain key."
+        ) from exc
 
 
 @admin_router.patch(
@@ -99,18 +255,37 @@ async def api_update_settings(
     status_code=HTTPStatus.OK,
 )
 async def api_update_settings_partial(
-    data: dict, account: Account = Depends(check_admin)
+    data: dict,
+    account: Account = Depends(check_admin),
+    payload: AccessTokenPayload = Depends(access_token_payload),
 ):
-    updatable_settings = dict_to_settings({**settings.dict(), **data})
-    return await api_update_settings(updatable_settings, account)
+    _check_funding_settings_access(data, account)
+    current_settings = settings.model_dump(
+        exclude=(
+            set(FundingSourcesSettings.model_fields)
+            if not account.is_super_user
+            else set()
+        )
+    )
+    updatable_settings = dict_to_settings({**current_settings, **data})
+    return await api_update_settings(updatable_settings, account, payload)
 
 
 @admin_router.get(
     "/api/v1/settings/default",
     status_code=HTTPStatus.OK,
-    dependencies=[Depends(check_admin)],
 )
-async def api_reset_settings(field_name: str):
+async def api_reset_settings(
+    field_name: str,
+    response: Response,
+    account: Account = Depends(check_admin),
+):
+    _check_funding_settings_access({field_name}, account)
+    response.headers["Cache-Control"] = "no-store"
+    if field_name not in UpdateSettings.model_fields:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "Only editable settings have public defaults."
+        )
     default_settings = Settings()
     return {"default_value": getattr(default_settings, field_name)}
 
@@ -159,9 +334,17 @@ async def api_download_backup() -> FileResponse:
                 ],
                 shell=False,
                 env=env,
+                stderr=PIPE,
+                text=True,
             )
-            if proc.wait() != 0:
-                raise ValueError("PostgreSQL database backup failed.")
+            _, stderr = proc.communicate()
+            if proc.returncode != 0:
+                detail = stderr.strip()
+                logger.error(f"pg_dump exited with code {proc.returncode}: {detail}")
+                raise ValueError(
+                    "PostgreSQL database backup failed."
+                    f"{_pg_dump_error_hint(stderr)}"
+                )
             make_archive(last_filename, "zip", settings.lnbits_data_folder)
         finally:
             pg_backup_filename.unlink(missing_ok=True)
@@ -169,8 +352,21 @@ async def api_download_backup() -> FileResponse:
         make_archive(last_filename, "zip", settings.lnbits_data_folder)
 
     return FileResponse(
-        path=f"{last_filename}.zip", filename=filename, media_type="application/zip"
+        path=f"{last_filename}.zip",
+        filename=filename,
+        media_type="application/zip",
+        headers={"Cache-Control": "no-store"},
     )
+
+
+def _pg_dump_error_hint(stderr: str | None, limit: int = 300) -> str:
+    """Condense pg_dump's own message so the caller learns why it failed."""
+    message = " ".join((stderr or "").split())
+    if not message:
+        return ""
+    if len(message) > limit:
+        message = message[: limit - 3].rstrip() + "..."
+    return f" {message}"
 
 
 def _build_pg_dump_env(database_url: str) -> dict[str, str]:
@@ -197,3 +393,13 @@ def _build_pg_dump_env(database_url: str) -> dict[str, str]:
         if value is not None:
             env[variable] = ",".join(value) if isinstance(value, tuple) else str(value)
     return env
+
+
+def _check_funding_settings_access(fields: Iterable[str], account: Account) -> None:
+    if not account.is_super_user and set(fields).intersection(
+        FundingSourcesSettings.model_fields
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Only the super user can access funding source settings.",
+        )

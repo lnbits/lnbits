@@ -61,8 +61,8 @@ class NodeChannel(BaseModel):
 class ChannelStats(BaseModel):
     counts: dict[ChannelState, int]
     avg_size: int
-    biggest_size: int | None
-    smallest_size: int | None
+    biggest_size: int | None = None
+    smallest_size: int | None = None
     total_capacity: int
 
     @classmethod
@@ -107,8 +107,8 @@ class PublicNodeInfo(BaseModel):
     backend_name: str
     alias: str
     color: str
-    num_peers: int | None
-    blockheight: int | None
+    num_peers: int | None = None
+    blockheight: int | None = None
     channel_stats: ChannelStats
     addresses: list[str]
     managed_channels: bool = False
@@ -128,8 +128,8 @@ class NodePayment(BaseModel):
     memo: str | None = None
     time: int
     bolt11: str | None = None
-    preimage: str | None
-    payment_hash: str | None
+    preimage: str | None = None
+    payment_hash: str | None = None
     payment_id: str | None = None
     txid: str | None = None
     expiry: float | None = None
@@ -139,9 +139,9 @@ class NodePayment(BaseModel):
 class NodeInvoice(BaseModel):
     pending: bool
     amount: int
-    memo: str | None
+    memo: str | None = None
     bolt11: str
-    preimage: str | None
+    preimage: str | None = None
     payment_hash: str
     paid_at: int | None = None
     expiry: int | None = None

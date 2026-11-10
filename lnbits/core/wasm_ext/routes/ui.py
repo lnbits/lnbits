@@ -121,7 +121,7 @@ def _add_wasm_extension_wrapper_route(
             request,
             extension,
             auth,
-            user.json() if user else None,
+            user.model_dump_json() if user else None,
         )
 
     async def serve_public_wasm_extension_page(request: Request) -> Any:

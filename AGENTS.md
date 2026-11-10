@@ -6,6 +6,7 @@ This file guides AI coding agents working on LNbits. Keep changes small, verifie
 
 - Think before coding. State material assumptions. Ask when ambiguity affects correctness, security, payments, wallets, or data migrations.
 - Prefer the simplest implementation that solves the request.
+- Use `assert` only in tests. In application code, use explicit checks and raise appropriate exceptions; Python can remove assertions when run with `-O` or `-OO`.
 - Make surgical changes. Every changed line should trace back to the task.
 - Do not refactor, reformat, rename, or clean adjacent code unless required.
 - Remove only dead code or imports created by your own changes.
@@ -16,7 +17,9 @@ This file guides AI coding agents working on LNbits. Keep changes small, verifie
 - Keep core lean. Prefer/assess extensions for non-core features.
 - Preserve compatibility with existing extensions and wallet backends.
 - Follow existing patterns in `lnbits/core`, `lnbits/wallets`, `lnbits/extensions`, and frontend code.
+- Place private functions at the bottom of the file and private methods at the bottom of the class.
 - Use existing CRUD, services, settings, and migration patterns.
+- Always use `while settings.lnbits_running:` instead of `while True:` for open-ended loops so they respect application shutdown. If shutdown interrupts a validation loop, reject the operation rather than accepting incomplete results.
 - Do not edit generated files, bundled vendor files, or unrelated extension code.
 
 ## Security-Sensitive Areas
@@ -39,6 +42,8 @@ Use Makefile targets instead of hand-written commands when available:
 - `make format` only when formatting is intended.
 
 Do not run `make test` by default. Use the targeted tests available in the Makefile that are related to the work done, unless the user explicitly asks for broader test coverage.
+
+Do not create new end-to-end (e2e) tests, including new scenarios in existing e2e suites.
 
 ## Dependencies
 

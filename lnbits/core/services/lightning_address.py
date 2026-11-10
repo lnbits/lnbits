@@ -11,7 +11,7 @@ from lnurl import (
     LnurlPayResponse,
     MilliSatoshi,
 )
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 
 from lnbits.core.crud.wallets import (
     get_wallet,
@@ -78,7 +78,7 @@ async def wallet_lightning_address_response(
     )
     identifier = _lightning_address_for_request(request, tagged_local_part)
     return LnurlPayResponse(
-        callback=parse_obj_as(CallbackUrl, str(callback)),
+        callback=TypeAdapter(CallbackUrl).validate_python(str(callback)),
         minSendable=MilliSatoshi(1000),
         maxSendable=MilliSatoshi(MAX_SENDABLE_MSAT),
         metadata=LnurlPayMetadata(json.dumps(_metadata(identifier, tag))),
@@ -133,7 +133,9 @@ async def wallet_lightning_address_callback(
         unhashed_description=metadata.encode(),
         extra=extra,
     )
-    invoice = parse_obj_as(LightningInvoice, LightningInvoice(payment.bolt11))
+    invoice = TypeAdapter(LightningInvoice).validate_python(
+        LightningInvoice(payment.bolt11)
+    )
     return LnurlPayActionResponse(pr=invoice, disposable=False)
 
 

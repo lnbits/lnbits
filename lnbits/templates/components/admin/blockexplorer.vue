@@ -27,28 +27,8 @@
           <q-item-section avatar>
             <q-toggle
               size="md"
-              v-model="formData.lnbits_blockexplorer_public_api"
-              checked-icon="check"
-              color="green"
-              unchecked-icon="clear"
-            />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label
-              v-text="$t('blockexplorer_public_api')"
-            ></q-item-label>
-            <q-item-label
-              caption
-              v-text="$t('blockexplorer_public_api_desc')"
-            ></q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item tag="label" v-ripple>
-          <q-item-section avatar>
-            <q-toggle
-              size="md"
               v-model="formData.lnbits_blockexplorer_in_user_menu"
-              :disable="!formData.lnbits_blockexplorer_public_api"
+              :disable="!formData.lnbits_blockexplorer_enabled"
               checked-icon="check"
               color="green"
               unchecked-icon="clear"
@@ -61,6 +41,27 @@
             <q-item-label
               caption
               v-text="$t('blockexplorer_in_user_menu_desc')"
+            ></q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item tag="label" v-ripple>
+          <q-item-section avatar>
+            <q-toggle
+              size="md"
+              v-model="formData.lnbits_blockexplorer_public_api"
+              :disable="!formData.lnbits_blockexplorer_enabled"
+              checked-icon="check"
+              color="green"
+              unchecked-icon="clear"
+            />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label
+              v-text="$t('blockexplorer_public_api')"
+            ></q-item-label>
+            <q-item-label
+              caption
+              v-text="$t('blockexplorer_public_api_desc')"
             ></q-item-label>
           </q-item-section>
         </q-item>
@@ -111,7 +112,7 @@
           dense
           filled
           v-model="formData.lnbits_blockexplorer_network"
-          :options="['main', 'test', 'regtest', 'signet']"
+          :options="['main', 'test', 'test4', 'regtest', 'signet']"
           :label="$t('blockexplorer_network')"
           :hint="$t('blockexplorer_network_hint')"
         ></q-select>
@@ -130,5 +131,23 @@
         ></q-btn>
       </div>
     </div>
+    <q-separator class="q-mb-lg q-mt-md"></q-separator>
+    <h6 class="q-my-none q-mb-sm">Approved onchain wallet explorers</h6>
+    <p>
+      Wallet users can select only these Mempool-compatible HTTP(S) URLs. Adding
+      a local or private URL allows wallets to contact that service. Removing a
+      URL blocks wallets using it until they select another approved explorer.
+    </p>
+    <q-select
+      filled
+      dense
+      multiple
+      use-input
+      use-chips
+      new-value-mode="add-unique"
+      v-model="formData.lnbits_onchain_explorer_urls"
+      label="Approved explorer URLs"
+      hint="Type a URL and press Enter. Custom URLs must include the network path; mempool.space selects it automatically. An empty list disables external explorers."
+    ></q-select>
   </q-card-section>
 </template>

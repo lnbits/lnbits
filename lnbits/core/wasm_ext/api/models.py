@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 @dataclass(frozen=True)
@@ -42,6 +42,24 @@ class EmptyRequest(BaseModel):
     pass
 
 
+class SendUserNotificationRequest(BaseModel):
+    type: Literal["email", "nostr", "telegram"]
+    message: str = Field(..., min_length=1, max_length=4096)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, message: str) -> str:
+        if not message.strip():
+            raise ValueError("Notification message must contain text.")
+        return message
+
+
+class SendUserNotificationResponse(BaseModel):
+    queued: bool = True
+
+
 class StorageGetRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     id: str = Field(..., min_length=1, max_length=512)
@@ -55,7 +73,8 @@ class StorageSetRequest(BaseModel):
     table: str = Field(..., min_length=1, max_length=128)
     data: dict[str, Any] = Field(default_factory=dict)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
         data_json = values.get("data_json")
         if data_json is not None and "data" not in values:
@@ -72,7 +91,8 @@ class StorageAppendPublicRequest(BaseModel):
     source_id: str = Field(..., min_length=1, max_length=512)
     data: dict[str, Any] = Field(default_factory=dict)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
         data_json = values.get("data_json")
         if data_json is not None and "data" not in values:
@@ -94,7 +114,8 @@ class StoragePaginatedRequest(BaseModel):
     limit: int = Field(25, ge=1, le=1000)
     offset: int = Field(0, ge=0)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def parse_json_fields(cls, values: dict[str, Any]) -> dict[str, Any]:
         filters_json = values.get("filters_json")
         if filters_json is not None and "filters" not in values:
@@ -122,24 +143,24 @@ class WebsocketPublishRequest(BaseModel):
     item_id: str = Field(..., min_length=1, max_length=128)
     data: Any = Field(default_factory=dict)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def parse_data_json(cls, values: dict[str, Any]) -> dict[str, Any]:
         data_json = values.get("data_json")
         if data_json is not None and "data" not in values:
             values["data"] = json.loads(data_json)
         return values
 
-    @root_validator
-    def validate_data_size(cls, values: dict[str, Any]) -> dict[str, Any]:
-        data = values.get("data")
+    @field_validator("data")
+    @classmethod
+    def validate_data_size(cls, data):
         try:
             encoded = json.dumps(data, separators=(",", ":"))
         except TypeError as exc:
             raise ValueError("websocket data must be JSON serializable.") from exc
         if len(encoded.encode()) > 65536:
             raise ValueError("websocket data must not exceed 65536 bytes.")
-        values["data"] = data
-        return values
+        return data
 
     @property
     def data_json(self) -> str:
@@ -180,17 +201,16 @@ class CreateInvoicePublicRequest(BaseModel):
     memo: str = Field("", max_length=512)
     extra: dict[str, Any] = Field(default_factory=dict)
 
-    @root_validator
-    def validate_extra_size(cls, values: dict[str, Any]) -> dict[str, Any]:
-        extra = values.get("extra") or {}
+    @field_validator("extra")
+    @classmethod
+    def validate_extra_size(cls, extra):
         try:
             encoded = json.dumps(extra, separators=(",", ":"))
         except TypeError as exc:
             raise ValueError("extra must be JSON serializable.") from exc
         if len(encoded.encode()) > 4096:
             raise ValueError("extra must not exceed 4096 bytes.")
-        values["extra"] = extra
-        return values
+        return extra
 
 
 class CreateInvoiceResponse(BaseModel):
@@ -265,23 +285,23 @@ class HttpRequest(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict)
     body: str | None = Field(None, max_length=65536)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def normalize_method(cls, values: dict[str, Any]) -> dict[str, Any]:
         method = values.get("method")
         if isinstance(method, str):
             values["method"] = method.upper()
         return values
 
-    @root_validator
-    def validate_headers_size(cls, values: dict[str, Any]) -> dict[str, Any]:
-        headers = values.get("headers") or {}
+    @field_validator("headers")
+    @classmethod
+    def validate_headers_size(cls, headers):
         if len(headers) > 32:
             raise ValueError("headers must not contain more than 32 entries.")
         for key, value in headers.items():
             if len(key) > 128 or len(value) > 4096:
                 raise ValueError("headers are too large.")
-        values["headers"] = headers
-        return values
+        return headers
 
 
 class HttpResponse(BaseModel):
@@ -296,7 +316,8 @@ class ExtensionApiRequest(BaseModel):
     path: str = Field(..., min_length=1, max_length=2048)
     body: str | None = Field(None, max_length=65536)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def normalize_method(cls, values: dict[str, Any]) -> dict[str, Any]:
         method = values.get("method")
         if isinstance(method, str):
@@ -322,8 +343,7 @@ class CurrencyConvertRequest(BaseModel):
     from_currency: str = Field(..., alias="from", min_length=1, max_length=8)
     to: str = Field(..., min_length=1, max_length=256)
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class CurrencyConvertResponse(BaseModel):

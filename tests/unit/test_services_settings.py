@@ -110,9 +110,9 @@ async def test_check_webpush_settings_generates_and_persists_keys(
         if previous_settings:
             await create_admin_settings(
                 previous_settings.super_user,
-                previous_settings.dict(exclude={"super_user"}),
+                previous_settings.model_dump(exclude={"super_user"}),
             )
-            update_cached_settings(previous_settings.dict())
+            update_cached_settings(previous_settings.model_dump())
         settings.lnbits_webpush_privkey = previous_private
         settings.lnbits_webpush_pubkey = previous_public
         settings.lnbits_admin_ui = previous_admin_ui
