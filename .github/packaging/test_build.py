@@ -59,6 +59,8 @@ class BuildTests(unittest.TestCase):
                     "--additional-hooks-dir" in command, system == "darwin"
                 )
                 self.assertIn("--hidden-import=embit", command)
+                self.assertIn("--hidden-import=_wallycore", command)
+                self.assertIn("--collect-binaries=nostr_sdk", command)
 
     def check_bindings(self, imports, error):
         bindepend = Mock()
