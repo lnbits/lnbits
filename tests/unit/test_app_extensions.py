@@ -22,7 +22,11 @@ def extension_update_schedule(mocker, monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_startup_updates_extensions_before_restoring_and_registering(mocker):
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_startup_updates_extensions_before_restoring_and_registering(
+    mocker, settings, enabled
+):
+    settings.lnbits_autoupdate_extensions_on_startup = enabled
     calls = mocker.Mock()
     for name in (
         "auto_update_extensions",
@@ -34,8 +38,9 @@ async def test_startup_updates_extensions_before_restoring_and_registering(mocke
 
     await check_and_register_extensions(app)
 
+    expected_calls = [mocker.call.auto_update_extensions()] if enabled else []
     assert calls.mock_calls == [
-        mocker.call.auto_update_extensions(),
+        *expected_calls,
         mocker.call.check_installed_extensions(app),
         mocker.call.get_valid_extensions(False),
     ]

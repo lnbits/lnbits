@@ -548,7 +548,8 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
-    await auto_update_extensions()
+    if settings.lnbits_autoupdate_extensions_on_startup:
+        await auto_update_extensions()
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
