@@ -274,6 +274,7 @@ async def create_payment(
         fee=-abs(data.fee),
         tag=extra.get("tag", None),
         extension=data.extension,
+        extension_context=data.extension_context,
         extra=extra,
         labels=data.labels or [],
         external_id=data.external_id,

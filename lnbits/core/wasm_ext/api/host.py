@@ -389,6 +389,12 @@ class ExtensionHostAPI:
                 extra=request.extra,
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": sha256s(wallet.user),
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": (request.extra or {}).get("source_id") or None,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -409,6 +415,7 @@ class ExtensionHostAPI:
     async def wallet_create_invoice_public(
         self, request: CreateInvoicePublicRequest
     ) -> CreateInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
@@ -419,6 +426,7 @@ class ExtensionHostAPI:
                 self.extension_id,
                 policy["table"],
                 request.source_id,
+                include_owner=True,
             )
             if row:
                 wallet_field = policy["wallet_field"]
@@ -430,6 +438,11 @@ class ExtensionHostAPI:
         wallet_id = row.get(wallet_field)
         if not isinstance(wallet_id, str) or not wallet_id:
             raise PermissionError("Public invoice source has no valid wallet.")
+
+        wallet = await get_wallet(wallet_id)
+        owner_id = row.get(OWNER_ID_FIELD)
+        if not wallet or owner_id != sha256s(wallet.user):
+            raise PermissionError("Public invoice source does not own its wallet.")
 
         payment = await create_payment_request(
             wallet_id,
@@ -444,6 +457,12 @@ class ExtensionHostAPI:
                 },
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": owner_id,
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": request.source_id,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
