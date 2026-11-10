@@ -117,6 +117,23 @@
           <p>
             <span v-text="$t('miscellanous')"></span>
           </p>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
+              <q-item-label>Update extensions on startup</q-item-label>
+              <q-item-label caption>
+                Update installed extensions when LNbits starts.
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_autoupdate_extensions_on_startup"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
           <q-input
             dense
             filled
