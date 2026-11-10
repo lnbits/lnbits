@@ -58,27 +58,27 @@ def test_scheduled_extension_updates_are_registered(mocker):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("interval", [1, 15, 60])
+@pytest.mark.parametrize("interval", [1, 12, 24])
 async def test_scheduled_extension_updates_use_configured_interval(
     settings, extension_update_schedule, interval
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = interval
+    settings.lnbits_autoupdate_extensions_interval_hours = interval
     await scheduled_extension_updates()
 
-    clock.return_value = interval * 60 - 1
+    clock.return_value = interval * 3600 - 1
     await scheduled_extension_updates()
     update.assert_not_awaited()
 
-    clock.return_value = interval * 60
+    clock.return_value = interval * 3600
     await scheduled_extension_updates()
     update.assert_awaited_once_with(reload_active=True)
 
-    clock.return_value = interval * 120 - 1
+    clock.return_value = interval * 7200 - 1
     await scheduled_extension_updates()
     update.assert_awaited_once()
 
-    clock.return_value = interval * 120
+    clock.return_value = interval * 7200
     await scheduled_extension_updates()
     assert update.await_count == 2
 
@@ -89,15 +89,15 @@ async def test_scheduled_extension_updates_wait_while_disabled_and_can_be_enable
     settings, extension_update_schedule, initial_interval
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = initial_interval
+    settings.lnbits_autoupdate_extensions_interval_hours = initial_interval
     await scheduled_extension_updates()
 
-    settings.lnbits_autoupdate_extensions_interval_minutes = 0
+    settings.lnbits_autoupdate_extensions_interval_hours = 0
     clock.return_value = 3600
     await scheduled_extension_updates()
     update.assert_not_awaited()
 
-    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    settings.lnbits_autoupdate_extensions_interval_hours = 1
     clock.return_value = 3660
     await scheduled_extension_updates()
     update.assert_awaited_once_with(reload_active=True)
@@ -108,15 +108,15 @@ async def test_shorter_extension_update_interval_applies_on_next_tick(
     settings, extension_update_schedule
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = 60
+    settings.lnbits_autoupdate_extensions_interval_hours = 24
     await scheduled_extension_updates()
 
-    clock.return_value = 600
+    clock.return_value = 3600
     await scheduled_extension_updates()
     update.assert_not_awaited()
 
-    settings.lnbits_autoupdate_extensions_interval_minutes = 1
-    clock.return_value = 660
+    settings.lnbits_autoupdate_extensions_interval_hours = 1
+    clock.return_value = 3660
     await scheduled_extension_updates()
     update.assert_awaited_once_with(reload_active=True)
 
@@ -126,15 +126,15 @@ async def test_longer_extension_update_interval_delays_next_check(
     settings, extension_update_schedule
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    settings.lnbits_autoupdate_extensions_interval_hours = 1
     await scheduled_extension_updates()
 
-    settings.lnbits_autoupdate_extensions_interval_minutes = 60
-    clock.return_value = 60
+    settings.lnbits_autoupdate_extensions_interval_hours = 24
+    clock.return_value = 3600
     await scheduled_extension_updates()
     update.assert_not_awaited()
 
-    clock.return_value = 3600
+    clock.return_value = 86400
     await scheduled_extension_updates()
     update.assert_awaited_once_with(reload_active=True)
 
@@ -144,22 +144,22 @@ async def test_extension_update_interval_starts_when_check_begins(
     settings, extension_update_schedule
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = 1
+    settings.lnbits_autoupdate_extensions_interval_hours = 1
     await scheduled_extension_updates()
 
     async def finish_update(**kwargs):
         clock.return_value += 30
 
     update.side_effect = finish_update
-    clock.return_value = 60
+    clock.return_value = 3600
     await scheduled_extension_updates()
     update.assert_awaited_once()
 
-    clock.return_value = 119
+    clock.return_value = 7199
     await scheduled_extension_updates()
     update.assert_awaited_once()
 
-    clock.return_value = 120
+    clock.return_value = 7200
     await scheduled_extension_updates()
     assert update.await_count == 2
 
@@ -169,19 +169,19 @@ async def test_failed_extension_update_waits_for_configured_interval(
     settings, extension_update_schedule
 ):
     clock, update = extension_update_schedule
-    settings.lnbits_autoupdate_extensions_interval_minutes = 2
+    settings.lnbits_autoupdate_extensions_interval_hours = 2
     await scheduled_extension_updates()
     update.side_effect = ValueError("Update check failed")
 
-    clock.return_value = 120
+    clock.return_value = 7200
     with pytest.raises(ValueError, match="Update check failed"):
         await scheduled_extension_updates()
 
-    clock.return_value = 180
+    clock.return_value = 10800
     await scheduled_extension_updates()
     update.assert_awaited_once()
 
-    clock.return_value = 240
+    clock.return_value = 14400
     with pytest.raises(ValueError, match="Update check failed"):
         await scheduled_extension_updates()
     assert update.await_count == 2

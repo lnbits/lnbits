@@ -46,8 +46,8 @@ async def scheduled_extension_updates() -> None:
         # Startup already checked for updates.
         _last_extension_update_check = now
 
-    interval = settings.lnbits_autoupdate_extensions_interval_minutes
-    if interval == 0 or now - _last_extension_update_check < interval * 60:
+    interval = settings.lnbits_autoupdate_extensions_interval_hours
+    if interval == 0 or now - _last_extension_update_check < interval * 60 * 60:
         return
 
     _last_extension_update_check = monotonic()

@@ -25,7 +25,7 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
     monkeypatch.setattr(settings, "lnbits_data_folder", str(tmp_path / "data"))
     monkeypatch.setattr(settings, "lnbits_extensions_path", str(tmp_path / "code"))
     monkeypatch.setattr(settings, "lnbits_wasm_extensions_path", str(tmp_path / "wasm"))
-    monkeypatch.setattr(settings, "lnbits_autoupdate_extensions_interval_minutes", 60)
+    monkeypatch.setattr(settings, "lnbits_autoupdate_extensions_interval_hours", 24)
     monkeypatch.setattr(settings, "lnbits_extensions_deactivate_all", False)
     monkeypatch.setattr(settings, "lnbits_running", True)
     monkeypatch.setattr(settings, "lnbits_deactivated_extensions", set())
@@ -88,21 +88,21 @@ def update_context(tmp_path, settings, monkeypatch, mocker):
     sys.modules.pop(ext.module_name, None)
 
 
-@pytest.mark.parametrize("interval", [0, 15, 60])
-def test_autoupdate_interval_defaults_hourly_and_loads_from_env(monkeypatch, interval):
-    assert ExtensionsSettings().lnbits_autoupdate_extensions_interval_minutes == 60
-    monkeypatch.setenv("LNBITS_AUTOUPDATE_EXTENSIONS_INTERVAL_MINUTES", str(interval))
+@pytest.mark.parametrize("interval", [0, 1, 24])
+def test_autoupdate_interval_defaults_daily_and_loads_from_env(monkeypatch, interval):
+    assert ExtensionsSettings().lnbits_autoupdate_extensions_interval_hours == 24
+    monkeypatch.setenv("LNBITS_AUTOUPDATE_EXTENSIONS_INTERVAL_HOURS", str(interval))
     loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
-    assert loaded.lnbits_autoupdate_extensions_interval_minutes == interval
+    assert loaded.lnbits_autoupdate_extensions_interval_hours == interval
     assert (
-        "lnbits_autoupdate_extensions_interval_minutes" in EditableSettings.model_fields
+        "lnbits_autoupdate_extensions_interval_hours" in EditableSettings.model_fields
     )
 
 
 @pytest.mark.parametrize("interval", [-1, 1.5])
 def test_autoupdate_interval_rejects_negative_and_fractional_values(interval):
     with pytest.raises(ValueError):
-        EditableSettings(lnbits_autoupdate_extensions_interval_minutes=interval)
+        EditableSettings(lnbits_autoupdate_extensions_interval_hours=interval)
 
 
 @pytest.mark.anyio
@@ -110,7 +110,7 @@ def test_autoupdate_interval_rejects_negative_and_fractional_values(interval):
 async def test_autoupdate_disabled_does_not_fetch(
     update_context, settings, disable_all
 ):
-    settings.lnbits_autoupdate_extensions_interval_minutes = 60 if disable_all else 0
+    settings.lnbits_autoupdate_extensions_interval_hours = 24 if disable_all else 0
     settings.lnbits_extensions_deactivate_all = disable_all
     await services.auto_update_extensions()
     update_context.releases.assert_not_awaited()

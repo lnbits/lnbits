@@ -139,12 +139,12 @@
             filled
             class="q-mb-md"
             v-model.number="
-              formData.lnbits_autoupdate_extensions_interval_minutes
+              formData.lnbits_autoupdate_extensions_interval_hours
             "
             type="number"
             min="0"
             step="1"
-            label="Extension update interval (minutes)"
+            label="Extension update interval (hours)"
             hint="0 disables automatic updates, including startup checks."
           ></q-input>
           <q-item tag="label" v-ripple>
