@@ -11,7 +11,7 @@ from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.events import (
     _payment_extension_id,
     _payment_source_id,
-    _wasm_public_invoice_source_tables_from_permissions,
+    _wasm_public_invoice_sources_from_permissions,
     dispatch_wasm_invoice_paid,
 )
 from lnbits.core.wasm_ext.wasm.loader import WasmExtension
@@ -37,8 +37,8 @@ def test_wasm_invoice_paid_helpers_extract_extension_and_source_tables():
 
     assert _payment_extension_id(payment) == "demoext"
     assert _payment_source_id(payment) == "row-1"
-    assert _wasm_public_invoice_source_tables_from_permissions(permissions) == [
-        "tip_jars"
+    assert _wasm_public_invoice_sources_from_permissions(permissions) == [
+        {"table": "tip_jars", "wallet_field": "wallet_id"}
     ]
 
 
@@ -64,15 +64,19 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.events.get_wallet",
-        mocker.AsyncMock(return_value=None),
+        mocker.AsyncMock(return_value=SimpleNamespace(id="wallet-1", user="user-1")),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_row_owner_id",
-        mocker.AsyncMock(return_value="owner-1"),
+        "lnbits.core.wasm_ext.wasm.events.storage_get_row",
+        mocker.AsyncMock(return_value={"wallet_id": "wallet-1"}),
     )
     invoke_mock = mocker.patch(
         "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
         mocker.AsyncMock(),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_user_extensions",
+        mocker.AsyncMock(return_value=[]),
     )
     payment = _payment(ext_id)
 
@@ -81,7 +85,9 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     finally:
         registry._extensions.pop(ext_id, None)
 
-    storage_mock.assert_awaited_once_with(ext_id, "tip_jars", "row-1")
+    storage_mock.assert_awaited_once_with(
+        ext_id, "tip_jars", "row-1", sha256s("user-1")
+    )
     invoke_mock.assert_awaited_once()
     assert invoke_mock.await_args is not None
     args = invoke_mock.await_args.args
@@ -91,7 +97,7 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
     assert args[2]["paymentHash"] == "payment-hash"
     assert args[2]["payment"] == {"id": "payment-row"}
     assert kwargs["context"] == "event"
-    assert kwargs["owner_id"] == "owner-1"
+    assert kwargs["owner_id"] == sha256s("user-1")
     assert kwargs["trigger_type"] == "event"
     assert kwargs["event_type"] == "invoice_paid"
     assert kwargs["wallet_id"] == "wallet-1"
@@ -240,6 +246,111 @@ async def test_dispatch_wasm_invoice_paid_dedupes_tagged_wallet_watch_grant(
     invoke_mock.assert_awaited_once()
     assert invoke_mock.await_args is not None
     assert invoke_mock.await_args.kwargs["owner_id"] == sha256s("user-1")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "row, policies",
+    [
+        (None, [{"table": "tip_jars", "wallet_field": "wallet_id"}]),
+        (
+            {"wallet_id": "victim-wallet"},
+            [{"table": "tip_jars", "wallet_field": "wallet_id"}],
+        ),
+        ({}, [{"table": "tip_jars", "wallet_field": "wallet_id"}]),
+        ({"wallet_id": "wallet-1"}, [{"table": "tip_jars"}]),
+        ({"wallet_id": "wallet-1"}, []),
+    ],
+)
+async def test_forged_source_is_not_dispatched_even_with_watch_grant(
+    mocker, row, policies
+):
+    ext_id = "forged_event_ext"
+    other_id = "other_watch_ext"
+    registry = core_app_extra.wasm_extension_registry
+    registry.register(_wasm_extension(ext_id))
+    registry.register(_wasm_extension(other_id))
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(return_value=SimpleNamespace(id="wallet-1", user="attacker")),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_installed_extension",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                permissions=[
+                    ExtensionPermission(
+                        id="wallet.create_invoice_public", policies=policies
+                    )
+                ]
+            )
+        ),
+    )
+    storage = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.storage_get_row",
+        mocker.AsyncMock(return_value=row),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events._wallet_watch_extension_ids",
+        mocker.AsyncMock(return_value=[ext_id, other_id]),
+    )
+    invoke = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
+        mocker.AsyncMock(),
+    )
+    try:
+        await dispatch_wasm_invoice_paid(_payment(ext_id))
+    finally:
+        registry._extensions.pop(ext_id, None)
+        registry._extensions.pop(other_id, None)
+    # No lookup may use the victim's storage partition, even if metadata names it.
+    for call in storage.await_args_list:
+        assert call.args[3] == sha256s("attacker")
+    invoke.assert_awaited_once()
+    assert invoke.await_args.args[0] == other_id
+    assert invoke.await_args.kwargs["owner_id"] == sha256s("attacker")
+
+
+@pytest.mark.anyio
+async def test_tag_without_source_uses_paid_wallet_owner(mocker):
+    ext_id = "tagged_event_ext"
+    registry = core_app_extra.wasm_extension_registry
+    registry.register(_wasm_extension(ext_id))
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(id="wallet-1", user="payer-wallet-owner")
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_user_extensions",
+        mocker.AsyncMock(return_value=[]),
+    )
+    invoke = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
+        mocker.AsyncMock(),
+    )
+    payment = _payment(ext_id, extra={"owner_id": "victim", "game_id": "victim-game"})
+    try:
+        await dispatch_wasm_invoice_paid(payment)
+    finally:
+        registry._extensions.pop(ext_id, None)
+    invoke.assert_awaited_once()
+    assert invoke.await_args.kwargs["owner_id"] == sha256s("payer-wallet-owner")
+
+
+@pytest.mark.anyio
+async def test_event_without_receiving_wallet_is_not_dispatched(mocker):
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(return_value=None),
+    )
+    invoke = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
+        mocker.AsyncMock(),
+    )
+    await dispatch_wasm_invoice_paid(_payment("missing-wallet-ext"))
+    invoke.assert_not_awaited()
 
 
 def _wasm_extension(ext_id: str, *, visibility: str = "event") -> WasmExtension:

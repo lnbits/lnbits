@@ -8,7 +8,7 @@ from lnbits.core.crud.extensions import get_installed_extension, get_user_extens
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.db import core_app_extra
 from lnbits.core.models.extensions import ExtensionWalletPaymentsWatchGrant
-from lnbits.core.wasm_ext.storage.crud import storage_get_row_owner_id
+from lnbits.core.wasm_ext.storage.crud import storage_get_row
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 from lnbits.helpers import sha256s
 
@@ -16,32 +16,26 @@ WALLET_PAYMENTS_WATCH_PERMISSION = "wallet.payments.watch"
 
 
 async def dispatch_wasm_invoice_paid(payment: Any) -> None:
-    targets: dict[str, tuple[Any, str | None]] = {}
+    wallet = await _payment_wallet(payment)
+    if not wallet:
+        return
+
+    wallet_owner_id = sha256s(wallet.user)
+    targets: dict[str, tuple[Any, str]] = {}
     extension_id = _payment_extension_id(payment)
     if extension_id:
         extension = core_app_extra.wasm_extension_registry.get(extension_id)
         if extension:
-            targets[extension_id] = (
-                extension,
-                await _wasm_invoice_paid_owner_id(extension, payment),
-            )
+            owner_id = await _wasm_invoice_paid_owner_id(extension, payment, wallet)
+            if owner_id:
+                targets[extension_id] = (extension, owner_id)
 
-    wallet = await _payment_wallet(payment)
-    if wallet:
-        wallet_owner_id = sha256s(wallet.user)
-        for watch_extension_id in await _wallet_watch_extension_ids(
-            wallet.user, wallet.id
-        ):
-            extension = core_app_extra.wasm_extension_registry.get(watch_extension_id)
-            if not extension:
-                continue
-            if watch_extension_id in targets:
-                existing_extension, existing_owner_id = targets[watch_extension_id]
-                targets[watch_extension_id] = (
-                    existing_extension,
-                    existing_owner_id or wallet_owner_id,
-                )
-                continue
+    for watch_extension_id in await _wallet_watch_extension_ids(wallet.user, wallet.id):
+        if watch_extension_id == extension_id:
+            # Never let a watch grant bypass a failed tagged-source check.
+            continue
+        extension = core_app_extra.wasm_extension_registry.get(watch_extension_id)
+        if extension:
             targets[watch_extension_id] = (extension, wallet_owner_id)
 
     for extension, owner_id in targets.values():
@@ -171,15 +165,27 @@ def _payment_extension_id(payment: Any) -> str | None:
     return tag if isinstance(tag, str) and tag else None
 
 
-async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | None:
-    source_id = _payment_source_id(payment)
-    source_tables = await _wasm_public_invoice_source_tables(extension.id)
-    if not source_id or not source_tables:
+async def _wasm_invoice_paid_owner_id(
+    extension: Any, payment: Any, wallet: Any | None = None
+) -> str | None:
+    wallet = wallet or await _payment_wallet(payment)
+    if not wallet:
         return None
+    # Payment metadata must never select another user's storage partition.
+    owner_id = sha256s(wallet.user)
+    source_id = _payment_source_id(payment)
+    if not source_id:
+        return owner_id
 
-    for source_table in source_tables:
-        owner_id = await storage_get_row_owner_id(extension.id, source_table, source_id)
-        if owner_id:
+    installed_extension = await get_installed_extension(extension.id)
+    if not installed_extension:
+        return None
+    sources = _wasm_public_invoice_sources_from_permissions(
+        installed_extension.permissions
+    )
+    for source in sources:
+        row = await storage_get_row(extension.id, source["table"], source_id, owner_id)
+        if row and row.get(source["wallet_field"]) == payment.wallet_id:
             return owner_id
     return None
 
@@ -190,18 +196,9 @@ def _payment_source_id(payment: Any) -> str | None:
     return source_id if isinstance(source_id, str) and source_id else None
 
 
-async def _wasm_public_invoice_source_tables(extension_id: str) -> list[str]:
-    installed_extension = await get_installed_extension(extension_id)
-    if not installed_extension:
-        return []
-    return _wasm_public_invoice_source_tables_from_permissions(
-        installed_extension.permissions
-    )
-
-
-def _wasm_public_invoice_source_tables_from_permissions(
+def _wasm_public_invoice_sources_from_permissions(
     permissions: Iterable[Any],
-) -> list[str]:
+) -> list[dict[str, str]]:
     for permission in permissions:
         permission_id = (
             permission.get("id")
@@ -218,11 +215,13 @@ def _wasm_public_invoice_source_tables_from_permissions(
         if not isinstance(policies, list):
             return []
         return [
-            source_policy["table"]
+            source_policy
             for source_policy in policies
             if isinstance(source_policy, dict)
             and isinstance(source_policy.get("table"), str)
             and source_policy["table"]
+            and isinstance(source_policy.get("wallet_field"), str)
+            and source_policy["wallet_field"]
         ]
     return []
 

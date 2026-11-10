@@ -187,13 +187,17 @@ async def validate_url(
 
 
 @asynccontextmanager
-async def safe_websocket(url, *, private_endpoint=None):
+async def safe_websocket(url, *, private_endpoint=None, apply_callback_rules=True):
     """Connect to a validated, pinned WebSocket target without redirects or proxies."""
     target = httpx.URL(url)
     if target.scheme not in {"ws", "wss"}:
         raise ValueError("WebSocket target is not allowed.")
     http_url = target.copy_with(scheme="https" if target.scheme == "wss" else "http")
-    addresses = await validate_url(http_url, private_endpoint=private_endpoint)
+    addresses = await validate_url(
+        http_url,
+        private_endpoint=private_endpoint,
+        apply_callback_rules=apply_callback_rules,
+    )
     for index, address in enumerate(addresses):
         connected = False
         try:

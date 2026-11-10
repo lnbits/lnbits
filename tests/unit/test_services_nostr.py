@@ -33,10 +33,16 @@ class FakeWebSocket:
         self.sent: list[str] = []
         self.closed = False
 
-    def send(self, message: str):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.close()
+
+    async def send(self, message: str):
         self.sent.append(message)
 
-    def close(self):
+    async def close(self):
         self.closed = True
 
 
@@ -83,7 +89,7 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
     ws_one = FakeWebSocket()
     ws_two = FakeWebSocket()
     mocker.patch(
-        "lnbits.core.services.nostr.create_connection",
+        "lnbits.utils.safe_http._NoRedirectConnect",
         side_effect=[ws_one, RuntimeError("boom"), ws_two],
     )
     result = await send_nostr_dm(
@@ -224,7 +230,10 @@ def nip17_sender(mocker: MockerFixture, safe_http_mock):
     receiver = Keys.generate()
     client = mocker.Mock(spec=Client)
     client.fetch_events.return_value = mocker.Mock()
-    mocker.patch("lnbits.core.services.nostr.Client", return_value=client)
+    builder = mocker.patch("lnbits.core.services.nostr.ClientBuilder").return_value
+    builder.signer.return_value = builder
+    builder.websocket_transport.return_value = builder
+    builder.build.return_value = client
     inbox = (
         EventBuilder(Kind(10050), "")
         .tags([Tag.parse(["relay", "wss://inbox.example.com"])])
@@ -500,7 +509,7 @@ async def test_senders_validate_relays_before_using_them(
     resolver.side_effect = resolve
     unsafe_relay = "ws://internal.example.com"
     if target == "nip04":
-        connect = mocker.patch("lnbits.core.services.nostr.create_connection")
+        connect = mocker.patch("lnbits.utils.safe_http._NoRedirectConnect")
         await send_nostr_dm(
             sender.secret_key().to_hex(),
             receiver.public_key().to_hex(),
@@ -525,3 +534,176 @@ async def test_senders_validate_relays_before_using_them(
     assert client.add_relay.await_count == (1 if target == "nip17_inbox" else 0)
     client.send_event_to.assert_not_awaited()
     client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_nip17_sdk_uses_guarded_transport_for_discovery_and_delivery(
+    mocker, safe_http_mock, settings
+):
+    """Run the real SDK against in-memory relay frames, including its callbacks."""
+    sender, receiver = Keys.generate(), Keys.generate()
+    inbox = (
+        EventBuilder(Kind(10050), "")
+        .tags([Tag.parse(["relay", "wss://inbox.example.com"])])
+        .sign_with_keys(receiver)
+    )
+    sockets = []
+
+    class RelaySocket(FakeWebSocket):
+        def __init__(self):
+            super().__init__()
+            self.messages = asyncio.Queue()
+
+        async def send(self, message):
+            await super().send(message)
+            frame = json.loads(message)
+            if frame[0] == "REQ":
+                await self.messages.put(
+                    json.dumps(["EVENT", frame[1], json.loads(inbox.as_json())])
+                )
+                await self.messages.put(json.dumps(["EOSE", frame[1]]))
+            elif frame[0] == "EVENT":
+                await self.messages.put(json.dumps(["OK", frame[1]["id"], True, ""]))
+
+        async def recv(self):
+            from websockets.exceptions import ConnectionClosedOK
+
+            message = await self.messages.get()
+            if message is None:
+                raise ConnectionClosedOK(None, None)
+            return message
+
+        async def close(self):
+            await super().close()
+            await self.messages.put(None)
+
+    def connect(*args, **kwargs):
+        ws = RelaySocket()
+        sockets.append(ws)
+        return ws
+
+    factory = mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect", side_effect=connect
+    )
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    await send_nostr_dm_nip17(
+        sender.secret_key().to_hex(),
+        receiver.public_key().to_hex(),
+        "Private notification",
+        ["wss://discovery.example.com"],
+    )
+    urls = {call.args[0] for call in factory.call_args_list}
+    assert urls == {"wss://discovery.example.com/", "wss://inbox.example.com/"}
+    for call in factory.call_args_list:
+        assert call.kwargs["host"] == "93.184.216.34"
+        assert call.kwargs["proxy"] is None
+    published = [
+        json.loads(message)[1]
+        for ws in sockets
+        for message in ws.sent
+        if json.loads(message)[0] == "EVENT"
+    ]
+    assert len(published) == 1
+    assert published[0]["kind"] == 1059
+    assert "Private notification" not in published[0]["content"]
+    assert all(ws.closed for ws in sockets)
+
+
+@pytest.mark.anyio
+async def test_nostr_transport_revalidates_and_blocks_rebinding(mocker, safe_http_mock):
+    from contextlib import AsyncExitStack
+    from datetime import timedelta
+
+    from nostr_sdk import ConnectionMode, NostrSdkError
+
+    from lnbits.core.services.nostr import _SafeNostrTransport
+
+    resolver, _ = safe_http_mock
+    relay = "wss://relay.example.com"
+    await _validate_relay_url(relay)
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))
+    ]
+    factory = mocker.patch("lnbits.utils.safe_http._NoRedirectConnect")
+    async with AsyncExitStack() as connections:
+        transport = _SafeNostrTransport(connections)
+        with pytest.raises(NostrSdkError, match="connection failed"):
+            await transport.connect(
+                relay, ConnectionMode.DIRECT(), timedelta(seconds=5)
+            )
+    factory.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nostr_transport_checks_every_reconnect(mocker, safe_http_mock):
+    from contextlib import AsyncExitStack
+    from datetime import timedelta
+
+    from nostr_sdk import ConnectionMode, NostrSdkError
+
+    from lnbits.core.services.nostr import _SafeNostrTransport
+
+    resolver, _ = safe_http_mock
+    ws = FakeWebSocket()
+    factory = mocker.patch("lnbits.utils.safe_http._NoRedirectConnect", return_value=ws)
+    async with AsyncExitStack() as connections:
+        transport = _SafeNostrTransport(connections)
+        await transport.connect(
+            "wss://relay.example.com", ConnectionMode.DIRECT(), timedelta(seconds=5)
+        )
+        resolver.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", 443))
+        ]
+        with pytest.raises(NostrSdkError, match="connection failed"):
+            await transport.connect(
+                "wss://relay.example.com", ConnectionMode.DIRECT(), timedelta(seconds=5)
+            )
+    factory.assert_called_once()
+    assert ws.closed
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol", ["nip04", "nip17"])
+async def test_nostr_transport_rejects_redirects(mocker, safe_http_mock, protocol):
+    from contextlib import AsyncExitStack
+    from datetime import timedelta
+
+    from nostr_sdk import ConnectionMode, NostrSdkError
+    from websockets.datastructures import Headers
+    from websockets.exceptions import InvalidStatus
+    from websockets.http11 import Response
+
+    from lnbits.core.services.nostr import _SafeNostrTransport
+    from lnbits.utils.safe_http import _NoRedirectConnect
+
+    error = InvalidStatus(
+        Response(302, "Found", Headers({"Location": "ws://127.0.0.1/admin"}))
+    )
+    assert (
+        _NoRedirectConnect("wss://relay.example.com", proxy=None).process_redirect(
+            error
+        )
+        is error
+    )
+    connection = mocker.AsyncMock()
+    connection.__aenter__.side_effect = error
+    factory = mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect", return_value=connection
+    )
+    if protocol == "nip04":
+        sender, receiver = Keys.generate(), Keys.generate()
+        await send_nostr_dm(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            ["wss://relay.example.com"],
+        )
+    else:
+        async with AsyncExitStack() as connections:
+            with pytest.raises(NostrSdkError, match="connection failed"):
+                await _SafeNostrTransport(connections).connect(
+                    "wss://relay.example.com",
+                    ConnectionMode.DIRECT(),
+                    timedelta(seconds=5),
+                )
+    factory.assert_called_once()

@@ -940,7 +940,7 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
             ],
         ),
     )
-    payment = SimpleNamespace(extra={"source_id": "source-1"})
+    payment = SimpleNamespace(extra={"source_id": "source-1"}, wallet_id="wallet-1")
     installed_extension = SimpleNamespace(
         permissions=[
             ExtensionPermission(
@@ -954,14 +954,19 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
         mocker.AsyncMock(return_value=installed_extension),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_row_owner_id",
-        mocker.AsyncMock(return_value="owner-1"),
+        "lnbits.core.wasm_ext.wasm.events.storage_get_row",
+        mocker.AsyncMock(return_value={"wallet_id": "wallet-1"}),
     )
 
-    owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
+    from lnbits.helpers import sha256s
 
-    assert owner_id == "owner-1"
-    storage_mock.assert_awaited_once_with("demoext", "granted_table", "source-1")
+    wallet = SimpleNamespace(id="wallet-1", user="user-1")
+    owner_id = await _wasm_invoice_paid_owner_id(extension, payment, wallet)
+
+    assert owner_id == sha256s("user-1")
+    storage_mock.assert_awaited_once_with(
+        "demoext", "granted_table", "source-1", sha256s("user-1")
+    )
 
 
 @pytest.mark.anyio

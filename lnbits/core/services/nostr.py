@@ -1,28 +1,38 @@
 import asyncio
+from contextlib import AsyncExitStack
 from datetime import timedelta
 
 import httpx
 from loguru import logger
 from nostr_sdk import (
     Client,
+    ClientBuilder,
+    ConnectionMode,
+    CustomWebSocketTransport,
     EventBuilder,
     Filter,
     Keys,
     Kind,
+    NostrSdkError,
     NostrSigner,
     PublicKey,
     RelayUrl,
+    WebSocketAdapter,
+    WebSocketAdapterWrapper,
+    WebSocketMessage,
     gift_wrap,
+    uniffi_set_event_loop,
 )
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from websocket import WebSocket, create_connection
+from websockets.asyncio.client import ClientConnection
+from websockets.exceptions import ConnectionClosedOK
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,
 )
-from lnbits.utils.safe_http import SafeHttpClient, validate_url
+from lnbits.utils.safe_http import SafeHttpClient, safe_websocket, validate_url
 
 
 async def send_nostr_dm(
@@ -42,21 +52,16 @@ async def send_nostr_dm(
     dm_event.sign(private_key_hex=from_private_key_hex)
     notification = dm_event.to_message()
 
-    ws_connections: list[WebSocket] = []
-    for relay in relays:
-        try:
-            await _validate_relay_url(relay)
-            ws = create_connection(relay, timeout=2)
-            ws.send(notification)
-            ws_connections.append(ws)
-        except Exception as e:
-            logger.warning(f"Error sending Nostr notification: {type(e).__name__}")
-    await asyncio.sleep(1)
-    for ws in ws_connections:
-        try:
-            ws.close()
-        except Exception as e:
-            logger.debug(f"Failed to close websocket connection: {e}")
+    async with AsyncExitStack() as connections:
+        for relay in relays:
+            try:
+                ws = await connections.enter_async_context(
+                    safe_websocket(relay, apply_callback_rules=False)
+                )
+                await ws.send(notification)
+            except Exception as e:
+                logger.warning(f"Error sending Nostr notification: {type(e).__name__}")
+        await asyncio.sleep(1)
 
     return dm_event.to_dict()
 
@@ -72,15 +77,24 @@ async def send_nostr_dm_nip17(
 
     signer = NostrSigner.keys(Keys.parse(from_private_key_hex))
     receiver = PublicKey.parse(to_pubkey_hex)
-    client = Client(signer)
-    try:
-        await asyncio.wait_for(
-            _send_nip17_message(client, signer, receiver, message, relays), timeout=30
+    # SDK callbacks run on Rust worker threads and must use our event loop.
+    uniffi_set_event_loop(asyncio.get_running_loop())
+    async with AsyncExitStack() as connections:
+        client = (
+            ClientBuilder()
+            .signer(signer)
+            .websocket_transport(_SafeNostrTransport(connections))
+            .build()
         )
-    except asyncio.TimeoutError as exc:
-        raise ValueError("NIP-17 notification timed out") from exc
-    finally:
-        await client.shutdown()
+        try:
+            await asyncio.wait_for(
+                _send_nip17_message(client, signer, receiver, message, relays),
+                timeout=30,
+            )
+        except asyncio.TimeoutError as exc:
+            raise ValueError("NIP-17 notification timed out") from exc
+        finally:
+            await client.shutdown()
 
 
 async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
@@ -160,8 +174,67 @@ async def _validate_relay_url(relay: str) -> None:
     url = httpx.URL(relay)
     if url.scheme not in {"ws", "wss"}:
         raise ValueError("Invalid Nostr relay URL")
-    # Preflight only: the WebSocket clients still resolve DNS when connecting.
+    # Reject invalid discovery/inbox lists early. The transport also validates
+    # and pins the destination on every connection, including SDK reconnects.
     await validate_url(
         url.copy_with(scheme="https" if url.scheme == "wss" else "http"),
         apply_callback_rules=False,
     )
+
+
+class _SafeNostrTransport(CustomWebSocketTransport):
+    def __init__(self, connections: AsyncExitStack):
+        self.connections = connections
+
+    def support_ping(self) -> bool:
+        # websockets handles ping/pong and keepalives itself.
+        return False
+
+    async def connect(
+        self, url: str, mode: ConnectionMode, timeout: timedelta
+    ) -> WebSocketAdapterWrapper:
+        if not mode.is_direct():
+            raise NostrSdkError.Generic("Nostr notification proxies are not supported")
+        try:
+            async with asyncio.timeout(timeout.total_seconds()):
+                ws = await self.connections.enter_async_context(
+                    safe_websocket(url, apply_callback_rules=False)
+                )
+            return WebSocketAdapterWrapper(_SafeNostrWebSocket(ws))
+        except Exception as exc:
+            raise NostrSdkError.Generic("Nostr relay connection failed") from exc
+
+
+class _SafeNostrWebSocket(WebSocketAdapter):
+    def __init__(self, connection: ClientConnection):
+        self.connection = connection
+
+    async def send(self, msg: WebSocketMessage) -> None:
+        try:
+            if isinstance(msg, WebSocketMessage.TEXT):
+                await self.connection.send(msg.text)
+            elif isinstance(msg, WebSocketMessage.BINARY):
+                await self.connection.send(msg.bytes)
+            elif isinstance(msg, WebSocketMessage.CLOSE):
+                await self.close_connection()
+            else:
+                raise ValueError("Unsupported Nostr WebSocket message")
+        except Exception as exc:
+            raise NostrSdkError.Generic("Nostr relay send failed") from exc
+
+    async def recv(self) -> WebSocketMessage | None:
+        try:
+            message = await self.connection.recv()
+            if isinstance(message, str):
+                return WebSocketMessage.TEXT(message)
+            return WebSocketMessage.BINARY(message)
+        except ConnectionClosedOK:
+            return None
+        except Exception as exc:
+            raise NostrSdkError.Generic("Nostr relay receive failed") from exc
+
+    async def close_connection(self) -> None:
+        try:
+            await self.connection.close()
+        except Exception as exc:
+            raise NostrSdkError.Generic("Nostr relay close failed") from exc
