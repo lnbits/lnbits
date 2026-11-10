@@ -145,7 +145,7 @@
             min="0"
             step="1"
             label="Extension update interval (hours)"
-            hint="0 disables automatic updates, including startup checks."
+            hint="0 disables scheduled updates. Startup updates use the toggle above."
           ></q-input>
           <q-item tag="label" v-ripple>
             <q-item-section>

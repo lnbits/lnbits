@@ -255,9 +255,8 @@ async def install_extension(
 
 async def auto_update_extensions(*, reload_active: bool = False) -> None:
     if (
-        settings.lnbits_autoupdate_extensions_interval_hours == 0
-        or settings.lnbits_extensions_deactivate_all
-    ):
+        reload_active and settings.lnbits_autoupdate_extensions_interval_hours == 0
+    ) or settings.lnbits_extensions_deactivate_all:
         return
 
     for ext in await get_installed_extensions():
@@ -848,7 +847,10 @@ async def _auto_update_extension(
             permissions = _validate_extension_update(updated)
             if (
                 not settings.lnbits_running
-                or settings.lnbits_autoupdate_extensions_interval_hours == 0
+                or (
+                    reload_active
+                    and settings.lnbits_autoupdate_extensions_interval_hours == 0
+                )
                 or settings.lnbits_extensions_deactivate_all
             ):
                 raise ValueError("Extension auto-update stopped before installation.")

@@ -106,23 +106,27 @@ def test_autoupdate_interval_rejects_negative_and_fractional_values(interval):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("disable_all", [True, False])
+@pytest.mark.parametrize(
+    "disable_all,reload_active", [(True, False), (True, True), (False, True)]
+)
 async def test_autoupdate_disabled_does_not_fetch(
-    update_context, settings, disable_all
+    update_context, settings, disable_all, reload_active
 ):
     settings.lnbits_autoupdate_extensions_interval_hours = 24 if disable_all else 0
     settings.lnbits_extensions_deactivate_all = disable_all
-    await services.auto_update_extensions()
+    await services.auto_update_extensions(reload_active=reload_active)
     update_context.releases.assert_not_awaited()
     update_context.download.assert_not_called()
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("active", [True, False])
+@pytest.mark.parametrize("interval", [0, 24])
 async def test_autoupdate_latest_compatible_preserves_state_and_paid_access(
-    update_context, settings, monkeypatch, active
+    update_context, settings, monkeypatch, active, interval
 ):
     ctx = update_context
+    settings.lnbits_autoupdate_extensions_interval_hours = interval
     ctx.ext.active = active
     if active:
         ctx.ext.meta.payments = [
@@ -267,6 +271,7 @@ async def test_periodic_autoupdate_reloads_only_active_python_extensions(
     update_context, settings, mocker, monkeypatch, active
 ):
     ctx = update_context
+    settings.lnbits_autoupdate_extensions_on_startup = False
     ctx.ext.active = active
     if not active:
         settings.lnbits_deactivated_extensions.add(ctx.ext.id)
