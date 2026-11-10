@@ -77,6 +77,30 @@ async def update_wallet(
     return wallet
 
 
+async def reset_all_wallet_keys(conn: Connection | None = None) -> int:
+    last_id = ""
+    count = 0
+    while settings.lnbits_running:
+        wallets = await (conn or db).fetchall(
+            """
+            SELECT * FROM wallets WHERE id > :last_id
+            ORDER BY id LIMIT 1000
+            """,
+            {"last_id": last_id},
+            model=Wallet,
+        )
+        if not wallets:
+            return count
+        for wallet in wallets:
+            clear_wallet_cache(wallet)
+            wallet.adminkey = uuid4().hex
+            wallet.inkey = uuid4().hex
+            await update_wallet(wallet, conn)
+            count += 1
+        last_id = wallets[-1].id
+    raise RuntimeError("Wallet key reset interrupted by shutdown.")
+
+
 async def delete_wallet(
     user_id: str,
     wallet_id: str,
@@ -614,7 +638,7 @@ def clear_wallet_id_cache(wallet_id: str):
         cache.pop(f"auth:x-api-key:{cached_wallet.inkey}")
 
 
-def clear_wallet_cache(wallet: Wallet):
+def clear_wallet_cache(wallet: BaseWallet):
     cache.pop(f"auth:wallet:{wallet.id}")
     cache.pop(f"auth:x-api-key:{wallet.adminkey}")
     cache.pop(f"auth:x-api-key:{wallet.inkey}")

@@ -16,6 +16,7 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError
 from starlette.concurrency import run_in_threadpool
 
+from lnbits.core.crud.wallets import reset_all_wallet_keys
 from lnbits.core.models.notifications import NotificationType
 from lnbits.core.models.users import AccessTokenPayload, Account
 from lnbits.core.services import (
@@ -51,6 +52,20 @@ from ..crud import (
 
 admin_router = APIRouter(tags=["Admin UI"], prefix="/admin")
 file_upload = File(...)
+
+
+@admin_router.post(
+    "/api/v1/wallets/reset-keys", dependencies=[Depends(check_super_user)]
+)
+async def api_reset_all_wallet_keys() -> dict[str, int]:
+    try:
+        count = await reset_all_wallet_keys()
+    except Exception as exc:
+        logger.warning(exc)
+        raise HTTPException(
+            HTTPStatus.INTERNAL_SERVER_ERROR, "Could not reset wallet keys."
+        ) from None
+    return {"wallets_updated": count}
 
 
 @admin_router.get(

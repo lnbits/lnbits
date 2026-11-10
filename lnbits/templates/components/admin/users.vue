@@ -1,5 +1,15 @@
 <template id="lnbits-admin-users">
   <q-card-section class="q-pa-none">
+    <q-btn
+      v-if="isSuperUser"
+      class="q-mb-md"
+      color="negative"
+      outline
+      icon="refresh"
+      label="Reset Wallet Keys"
+      :loading="resettingWalletKeys"
+      @click="resetWalletKeys"
+    ></q-btn>
     <h6 class="q-my-none q-mb-sm">
       <span v-text="$t('user_management')"></span>
     </h6>
