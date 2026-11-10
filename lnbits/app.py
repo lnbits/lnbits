@@ -24,9 +24,13 @@ from lnbits.core.crud import (
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
 from lnbits.core.crud.extensions import create_installed_extension
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import clear_extension_module_cache, migrate_extension_database
 from lnbits.core.models.notifications import NotificationType
-from lnbits.core.services.extensions import deactivate_extension, get_valid_extensions
+from lnbits.core.services.extensions import (
+    auto_update_extensions,
+    deactivate_extension,
+    get_valid_extensions,
+)
 from lnbits.core.services.funding_source import (
     check_balance_delta_changed,
     check_server_balance_against_node,
@@ -48,6 +52,7 @@ from lnbits.core.tasks import (
     notify_server_status,
     process_next_audit_entry,
     refresh_extension_cache,
+    scheduled_extension_updates,
 )
 from lnbits.core.wasm_ext.routes.register import (
     register_wasm_extension,
@@ -502,14 +507,7 @@ def register_ext_tasks(ext: Extension) -> None:
 def register_ext_routes(app: FastAPI, ext: Extension) -> None:
     """Register FastAPI routes for extension."""
     module_name = ext.module_name
-    # Clear all cached sub-modules so a fresh import picks up new files from ext_dir.
-    # A simple reload() would reuse cached sub-modules (e.g. views_api) and serve
-    # stale code even after the extension files have been replaced on disk.
-    stale = [
-        k for k in sys.modules if k == module_name or k.startswith(f"{module_name}.")
-    ]
-    for k in stale:
-        del sys.modules[k]
+    clear_extension_module_cache(module_name)
     ext_module = importlib.import_module(module_name)
 
     ext_route = getattr(ext_module, f"{ext.code}_ext")
@@ -550,6 +548,8 @@ def register_ext_routes(app: FastAPI, ext: Extension) -> None:
 
 
 async def check_and_register_extensions(app: FastAPI) -> None:
+    if settings.lnbits_autoupdate_extensions_on_startup:
+        await auto_update_extensions()
     await check_installed_extensions(app)
     for ext in await get_valid_extensions(False):
         try:
@@ -596,6 +596,7 @@ def register_async_tasks() -> None:
         interval=60 * 60 * settings.lnbits_notification_server_status_hours,
     )
     task_manager.create_permanent_task(refresh_extension_cache, interval=60)
+    task_manager.create_permanent_task(scheduled_extension_updates, interval=60)
 
     # permanent tasks run in a loop, will be restarted if they fail
     task_manager.create_permanent_task(fundingsource_invoice_producer)

@@ -3,6 +3,8 @@ import importlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import RLock
 from typing import Any
 from uuid import uuid4
@@ -35,7 +37,7 @@ from lnbits.core.crud.extensions import (
     get_wasm_invocations as get_wasm_invocations_crud,
 )
 from lnbits.core.crud.scheduler import delete_namespace_schedules
-from lnbits.core.helpers import migrate_extension_database
+from lnbits.core.helpers import clear_extension_module_cache, migrate_extension_database
 from lnbits.core.services.scheduler import scheduler
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
@@ -47,8 +49,10 @@ from lnbits.utils.error import safe_error_message
 
 from ..models.extensions import (
     Extension,
+    ExtensionConfig,
     ExtensionMeta,
     ExtensionPermission,
+    ExtensionRelease,
     InstallableExtension,
     WasmInvocation,
     WasmInvocationStats,
@@ -192,6 +196,7 @@ async def install_extension(
     skip_download: bool | None = False,
     granted_permissions: list[ExtensionPermission] | None = None,
     allow_admin_policy_overrides: bool = False,
+    stop_background_work: bool = True,
 ) -> Extension:
 
     ext_info.meta = ext_info.meta or ExtensionMeta()
@@ -242,10 +247,36 @@ async def install_extension(
     else:
         await update_installed_extension(ext_info)
 
-    if installed_ext:
+    if installed_ext and stop_background_work:
         await stop_extension_background_work(ext_info.id)
 
     return Extension.from_installable_ext(ext_info)
+
+
+async def auto_update_extensions(*, reload_active: bool = False) -> None:
+    if (
+        reload_active and settings.lnbits_autoupdate_extensions_interval_hours == 0
+    ) or settings.lnbits_extensions_deactivate_all:
+        return
+
+    for ext in await get_installed_extensions():
+        if not settings.lnbits_running:
+            return
+        try:
+            release = await ext.find_latest_compatible_release()
+            if release:
+                extension = await _auto_update_extension(
+                    ext, release, reload_active=reload_active
+                )
+                if reload_active and ext.active:
+                    try:
+                        await activate_extension(extension)
+                    except (Exception, asyncio.CancelledError):
+                        await deactivate_extension(ext.id)
+                        raise
+                logger.info(f"Updated extension {ext.id} to {release.version}.")
+        except Exception:
+            logger.warning(f"Could not automatically update extension '{ext.id}'.")
 
 
 async def check_extensions_limit(installed_ext: InstallableExtension | None = None):
@@ -775,3 +806,96 @@ async def _ensure_wasm_extension_schedules(ext):
         await scheduler.stop_namespace(f"extension:{ext.code}")
         raise
     return
+
+
+async def _auto_update_extension(
+    ext: InstallableExtension, release: ExtensionRelease, *, reload_active: bool
+) -> Extension:
+    updated = ext.model_copy(deep=True)
+    if updated.meta is None:
+        raise ValueError("Installed extension metadata is missing.")
+    release = release.model_copy(deep=True)
+    payment = ext.find_existing_payment(release.pay_link)
+    if payment:
+        release.payment_hash = payment.payment_hash
+    elif (
+        release.pay_link
+        and updated.meta.installed_release
+        and updated.meta.installed_release.pay_link == release.pay_link
+    ):
+        release.payment_hash = updated.meta.installed_release.payment_hash
+    updated.version = release.version
+    updated.meta.installed_release = release
+
+    # Stage downloads so cancellation cannot discard the installed release's archive.
+    zip_path = updated.zip_path
+    with TemporaryDirectory(dir=zip_path.parent) as backup_dir:
+        downloaded = Path(backup_dir, "update.zip")
+        await updated.download_archive(archive_path=downloaded)
+        backup = Path(backup_dir, "installed.zip")
+        if zip_path.is_file():
+            zip_path.replace(backup)
+        installing = False
+        try:
+            downloaded.replace(zip_path)
+            current = await get_installed_extension(ext.id)
+            if not current or current.meta != ext.meta:
+                raise ValueError("Installed extension changed during update.")
+            # Downloads can outlast an admin changing activation or permission grants.
+            updated.active = ext.active = current.active
+            updated.permissions = current.permissions
+            permissions = _validate_extension_update(updated)
+            if (
+                not settings.lnbits_running
+                or (
+                    reload_active
+                    and settings.lnbits_autoupdate_extensions_interval_hours == 0
+                )
+                or settings.lnbits_extensions_deactivate_all
+            ):
+                raise ValueError("Extension auto-update stopped before installation.")
+            installing = True
+            return await _install_extension_update(updated, permissions, reload_active)
+        except (Exception, asyncio.CancelledError):
+            zip_path.unlink(missing_ok=True)
+            if backup.is_file():
+                backup.replace(zip_path)
+            if installing:
+                await deactivate_extension(ext.id)
+            raise
+
+
+def _validate_extension_update(ext: InstallableExtension) -> list[ExtensionPermission]:
+    config = ext.load_archive_config()
+    if not ExtensionConfig.model_validate(config).is_version_compatible():
+        raise ValueError("Incompatible extension version")
+    ext.validate_archive(config)
+    if config.get("extension_type") != "wasm":
+        return []
+
+    requested = ExtensionPermission.list_from_config(config)
+    granted = {permission.id: permission.policies for permission in ext.permissions}
+    if any(
+        permission.id not in granted or permission.policies != granted[permission.id]
+        for permission in requested
+    ):
+        logger.info(f"Skipping extension '{ext.id}': permission approval required.")
+        raise ValueError("Extension update requires permission approval.")
+    return validate_wasm_extension_permissions(ext, requested, config)
+
+
+async def _install_extension_update(
+    updated: InstallableExtension,
+    permissions: list[ExtensionPermission],
+    reload_active: bool,
+) -> Extension:
+    if reload_active and updated.active:
+        await deactivate_extension(updated.id)
+    # Migrations must import the updated code before activation reloads routes.
+    clear_extension_module_cache(updated.module_name)
+    return await install_extension(
+        updated,
+        skip_download=True,
+        granted_permissions=permissions,
+        stop_background_work=not reload_active,
+    )

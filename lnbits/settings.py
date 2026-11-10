@@ -87,6 +87,8 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: list[str] = Field(default=[])
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
+    lnbits_autoupdate_extensions_on_startup: bool = Field(default=True)
+    lnbits_autoupdate_extensions_interval_hours: int = Field(default=24, ge=0)
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
