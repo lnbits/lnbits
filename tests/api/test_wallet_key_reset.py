@@ -8,6 +8,7 @@ from lnbits.core.crud.wallets import (
     delete_wallet,
     force_delete_wallet,
     get_wallets,
+    reset_all_wallet_keys,
 )
 from lnbits.core.db import db
 from lnbits.core.models.wallets import (
@@ -23,7 +24,7 @@ RESET_URL = "/admin/api/v1/wallets/reset-keys"
 
 
 @pytest.fixture
-async def reset_wallets(http_client, from_user, admin_user, settings):
+async def reset_wallets(http_client, from_user, admin_user, settings, request):
     created = []
     owners = [from_user.id, admin_user.id, settings.super_user]
     for deleted in (False, True):
@@ -40,6 +41,9 @@ async def reset_wallets(http_client, from_user, admin_user, settings):
             created.append(wallet)
             if deleted:
                 await delete_wallet(wallet.user, wallet.id)
+
+    for _ in range(getattr(request, "param", 0)):
+        created.append(await create_wallet(user_id=from_user.id))
 
     before = await db.fetchall("SELECT * FROM wallets ORDER BY id")
     try:
@@ -219,3 +223,35 @@ async def test_bulk_key_reset_failure_clears_rotated_wallet_cache(
         for field in ("adminkey", "inkey"):
             assert cache.get(f"auth:x-api-key:{old[field]}") is None
     assert len(rotated) == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("reset_wallets", [1000], indirect=True)
+async def test_bulk_key_reset_fetches_batches_of_1000(reset_wallets, mocker):
+    before, _ = reset_wallets
+    fetch = mocker.spy(db, "fetchall")
+
+    assert await reset_all_wallet_keys() == len(before)
+    assert [len(batch) for batch in fetch.spy_return_list] == [
+        1000,
+        len(before) - 1000,
+        0,
+    ]
+    after = await db.fetchall("SELECT * FROM wallets ORDER BY id")
+    for old, new in zip(before, after, strict=True):
+        assert old["id"] == new["id"]
+        assert old["adminkey"] != new["adminkey"]
+        assert old["inkey"] != new["inkey"]
+
+
+@pytest.mark.anyio
+async def test_bulk_key_reset_shutdown_is_not_reported_as_success(
+    http_client, superuser_token, reset_wallets, mocker
+):
+    before, _ = reset_wallets
+    mocker.patch("lnbits.core.crud.wallets.settings", lnbits_running=False)
+    response = await http_client.post(
+        RESET_URL, headers={"Authorization": f"Bearer {superuser_token}"}
+    )
+    assert response.status_code == 500
+    assert await db.fetchall("SELECT * FROM wallets ORDER BY id") == before
