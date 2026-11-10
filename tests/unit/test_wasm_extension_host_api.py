@@ -689,8 +689,21 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
 ):
     storage_mock = mocker.patch(
         "lnbits.core.wasm_ext.api.host.storage_get_public_row",
-        mocker.AsyncMock(return_value={"id": "tip-1", "wallet_id": "wallet-1"}),
+        mocker.AsyncMock(
+            return_value={
+                "id": "tip-1",
+                "wallet_id": "wallet-1",
+                "__lnbits_owner_id__": "owner-1",
+            }
+        ),
     )
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(user="user-1", source_wallet_id="wallet-1")
+        ),
+    )
+    mocker.patch("lnbits.core.wasm_ext.api.host.sha256s", return_value="owner-1")
     payment = SimpleNamespace(
         payment_hash="hash",
         payment_request="lnbc1demo",
@@ -722,7 +735,9 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
     )
 
     assert response.payment_hash == "hash"
-    storage_mock.assert_awaited_once_with("demoext", "tips", "tip-1")
+    storage_mock.assert_awaited_once_with(
+        "demoext", "tips", "tip-1", include_owner=True
+    )
     create_mock.assert_awaited_once()
     assert create_mock.await_args is not None
     wallet_id, invoice = create_mock.await_args.args
@@ -733,6 +748,13 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
         "extra_demoext": {"note": "thanks"},
     }
     assert invoice.extension == "demoext"
+
+    assert create_mock.await_args.kwargs["extension_context"] == {
+        "extension_id": "demoext",
+        "owner_id": "owner-1",
+        "wallet_id": "wallet-1",
+        "source_id": "tip-1",
+    }
 
 
 @pytest.mark.anyio

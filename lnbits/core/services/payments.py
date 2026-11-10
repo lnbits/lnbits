@@ -149,7 +149,10 @@ async def pay_offer(
 
 
 async def create_payment_request(
-    wallet_id: str, invoice_data: CreateInvoice
+    wallet_id: str,
+    invoice_data: CreateInvoice,
+    *,
+    extension_context: dict | None = None,
 ) -> Payment:
     """
     Create a lightning invoice or a fiat payment request.
@@ -157,13 +160,21 @@ async def create_payment_request(
     if invoice_data.fiat_provider:
         if invoice_data.is_fiat_subscription():
             raise ValueError("Cannot create direct fiat subscription payments.")
-        return await create_fiat_invoice(wallet_id, invoice_data)
+        return await create_fiat_invoice(
+            wallet_id, invoice_data, extension_context=extension_context
+        )
 
-    return await create_wallet_invoice(wallet_id, invoice_data)
+    return await create_wallet_invoice(
+        wallet_id, invoice_data, extension_context=extension_context
+    )
 
 
 async def create_fiat_invoice(
-    wallet_id: str, invoice_data: CreateInvoice, conn: Connection | None = None
+    wallet_id: str,
+    invoice_data: CreateInvoice,
+    conn: Connection | None = None,
+    *,
+    extension_context: dict | None = None,
 ) -> Payment:
     if invoice_data.amount is None:
         raise ValueError("Invoice amount is required.")
@@ -195,7 +206,9 @@ async def create_fiat_invoice(
     if not invoice_data.memo:
         invoice_data.memo = settings.lnbits_site_title + f" ({fiat_provider_name})"
 
-    internal_payment = await create_wallet_invoice(wallet_id, invoice_data)
+    internal_payment = await create_wallet_invoice(
+        wallet_id, invoice_data, extension_context=extension_context
+    )
 
     fiat_provider = await get_fiat_provider(fiat_provider_name)
     if not fiat_provider:
@@ -235,7 +248,9 @@ async def create_fiat_invoice(
     return internal_payment
 
 
-async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
+async def create_wallet_invoice(
+    wallet_id: str, data: CreateInvoice, *, extension_context: dict | None = None
+) -> Payment:
     if data.amount is None:
         raise ValueError("Invoice amount is required.")
     if data.webhook:
@@ -273,6 +288,7 @@ async def create_wallet_invoice(wallet_id: str, data: CreateInvoice) -> Payment:
             expiry=data.expiry,
             extra=data.extra,
             extension=data.extension,
+            extension_context=extension_context,
             webhook=data.webhook,
             internal=data.internal,
             payment_hash=data.payment_hash,
@@ -314,6 +330,7 @@ async def create_invoice(
     internal: bool | None = False,
     payment_hash: str | None = None,
     extension: str | None = None,
+    extension_context: dict | None = None,
     labels: list[str] | None = None,
     external_id: str | None = None,
     conn: Connection | None = None,
@@ -405,6 +422,7 @@ async def create_invoice(
         memo=memo,
         extra=extra,
         extension=extension,
+        extension_context=extension_context,
         webhook=webhook,
         fee=invoice_response.fee_msat or 0,
         labels=labels,

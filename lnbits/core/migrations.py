@@ -1040,3 +1040,8 @@ async def m056_disable_public_registration(db: Connection):
     from lnbits.settings import settings
 
     settings.lnbits_allow_new_accounts = False
+
+
+async def m057_add_payment_extension_context(db: Connection):
+    # Keep trusted invoice routing separate from externally supplied extra data.
+    await db.execute("ALTER TABLE apipayments ADD COLUMN extension_context TEXT")
