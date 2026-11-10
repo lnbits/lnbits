@@ -5,11 +5,13 @@ from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
+from time import time
+from urllib.parse import urlsplit
 
 import httpx
 from loguru import logger
-from py_vapid import Vapid
-from pywebpush import WebPushException, webpush
+from py_vapid import Vapid, VapidException
+from pywebpush import WebPusher, WebPushException
 
 from lnbits.core.crud import (
     delete_webpush_subscriptions,
@@ -420,28 +422,47 @@ async def send_payment_push_notification(wallet: Wallet, payment: Payment):
 
 
 async def send_push_notification(subscription, title, body, url=""):
-    vapid = Vapid()
     try:
-        logger.debug("sending push notification")
-        webpush(
-            json.loads(subscription.data),
-            json.dumps({"title": title, "body": body, "url": url}),
-            (
-                vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8"))
-                if settings.lnbits_webpush_privkey
-                else None
-            ),
-            {"aud": "", "sub": "mailto:alan@lnbits.com"},
+        subscription_info = json.loads(subscription.data)
+        endpoint = subscription_info["endpoint"]
+        if not isinstance(endpoint, str):
+            raise ValueError("Invalid push endpoint")
+        # Keep pywebpush's encryption, but send only through the guarded transport.
+        encoded = WebPusher(subscription_info).encode(
+            json.dumps({"title": title, "body": body, "url": url}).encode("utf-8")
         )
-    except WebPushException as e:
-        if e.response and e.response.status_code == HTTPStatus.GONE:
-            # cleanup unsubscribed or expired push subscriptions
-            await delete_webpush_subscriptions(subscription.endpoint)
-        else:
-            logger.error(
-                f"failed sending push notification: "
-                f"{e.response.text if e.response else e}"
+        if not settings.lnbits_webpush_privkey:
+            raise ValueError("Missing web-push private key")
+        vapid = Vapid.from_pem(settings.lnbits_webpush_privkey.encode("utf-8"))
+        target = urlsplit(endpoint)
+        headers = vapid.sign(
+            {
+                "aud": f"{target.scheme}://{target.netloc}",
+                "sub": "mailto:alan@lnbits.com",
+                "exp": int(time()) + 12 * 60 * 60,
+            }
+        )
+        headers.update({"content-encoding": "aes128gcm", "ttl": "0"})
+        async with SafeHttpClient(
+            apply_callback_rules=False, follow_redirects=False, read_body=False
+        ) as client:
+            response = await client.post(
+                endpoint, content=encoded["body"], headers=headers
             )
+        if response.status_code == HTTPStatus.GONE:
+            await delete_webpush_subscriptions(subscription.endpoint)
+        elif not HTTPStatus.OK <= response.status_code <= HTTPStatus.ACCEPTED:
+            logger.warning(f"Push notification failed: HTTP {response.status_code}")
+    except (
+        WebPushException,
+        VapidException,
+        httpx.HTTPError,
+        httpx.InvalidURL,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as exc:
+        logger.warning(f"Push notification failed: {type(exc).__name__}")
 
 
 def _is_message_type_enabled(message_type: NotificationType) -> bool:

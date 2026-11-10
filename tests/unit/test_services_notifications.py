@@ -2,14 +2,12 @@ import asyncio
 import json
 import socket
 from http import HTTPStatus
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
-from pywebpush import WebPushException
 
 from lnbits.core.crud import (
     create_account,
@@ -926,7 +924,7 @@ async def test_send_payment_push_notification_for_outgoing_payment(
 
 @pytest.mark.anyio
 async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
-    settings: Settings, mocker: MockerFixture
+    settings: Settings, mocker: MockerFixture, safe_http_mock
 ):
     wallet = await _create_wallet()
     payment = await _create_payment(wallet, amount_msat=2_000, memo="Thanks")
@@ -952,19 +950,15 @@ async def test_send_payment_push_notification_and_cleanup_gone_subscriptions(
         f"https://{subscription.host}/wallet?usr={wallet.user}&wal={wallet.id}"
     )
 
-    original_privkey = settings.lnbits_webpush_privkey
-    try:
-        settings.lnbits_webpush_privkey = ""
-        exc = WebPushException("gone")
-        exc.response = SimpleNamespace(status_code=HTTPStatus.GONE, text="gone")
-        mocker.patch(
-            "lnbits.core.services.notifications.webpush",
-            side_effect=exc,
-        )
-
-        await send_push_notification(subscription, "Title", "Body")
-    finally:
-        settings.lnbits_webpush_privkey = original_privkey
+    mocker.patch.object(settings, "lnbits_webpush_privkey", "test-private-key")
+    mocker.patch(
+        "lnbits.core.services.notifications.WebPusher"
+    ).return_value.encode.return_value = {"body": b"encrypted"}
+    mocker.patch(
+        "lnbits.core.services.notifications.Vapid.from_pem"
+    ).return_value.sign.return_value = {}
+    safe_http_mock[1].side_effect = lambda request: httpx.Response(HTTPStatus.GONE)
+    await send_push_notification(subscription, "Title", "Body")
 
     assert await get_webpush_subscription(subscription.endpoint, wallet.user) is None
 

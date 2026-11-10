@@ -33,10 +33,13 @@ class FakeWebSocket:
         self.sent: list[str] = []
         self.closed = False
 
-    def send(self, message: str):
+    async def send(self, message: str):
         self.sent.append(message)
 
-    def close(self):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
         self.closed = True
 
 
@@ -71,7 +74,7 @@ class MockHTTPResponse:
 
 @pytest.mark.anyio
 async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
-    mocker: MockerFixture, safe_http_mock
+    mocker: MockerFixture, safe_http_mock, settings
 ):
     event = mocker.Mock()
     event.to_message.return_value = "nostr-message"
@@ -80,10 +83,11 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
     dm.to_event.return_value = event
     mocker.patch("lnbits.core.services.nostr.EncryptedDirectMessage", return_value=dm)
 
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
     ws_one = FakeWebSocket()
     ws_two = FakeWebSocket()
-    mocker.patch(
-        "lnbits.core.services.nostr.create_connection",
+    connect = mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect",
         side_effect=[ws_one, RuntimeError("boom"), ws_two],
     )
     result = await send_nostr_dm(
@@ -93,6 +97,12 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
         ["wss://relay-1", "wss://broken", "wss://relay-2"],
     )
 
+    assert connect.call_count == 3
+    assert all(
+        call.kwargs["host"] == "93.184.216.34" for call in connect.call_args_list
+    )
+    assert all(call.kwargs["proxy"] is None for call in connect.call_args_list)
+    safe_http_mock[0].assert_awaited()
     assert ws_one.sent == ["nostr-message"]
     assert ws_two.sent == ["nostr-message"]
     assert ws_one.closed is True
@@ -500,7 +510,7 @@ async def test_senders_validate_relays_before_using_them(
     resolver.side_effect = resolve
     unsafe_relay = "ws://internal.example.com"
     if target == "nip04":
-        connect = mocker.patch("lnbits.core.services.nostr.create_connection")
+        connect = mocker.patch("lnbits.utils.safe_http._NoRedirectConnect")
         await send_nostr_dm(
             sender.secret_key().to_hex(),
             receiver.public_key().to_hex(),
@@ -525,3 +535,36 @@ async def test_senders_validate_relays_before_using_them(
     assert client.add_relay.await_count == (1 if target == "nip17_inbox" else 0)
     client.send_event_to.assert_not_awaited()
     client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("failure", ["send", "close", "cancel"])
+async def test_nip04_closes_connections_on_failure(safe_http_mock, mocker, failure):
+    keys = Keys.generate()
+    first = mocker.AsyncMock()
+    second = mocker.AsyncMock()
+    first.__aenter__.return_value = first
+    second.__aenter__.return_value = second
+    if failure == "send":
+        first.send.side_effect = RuntimeError("send failed")
+    elif failure == "close":
+        second.__aexit__.side_effect = RuntimeError("close failed")
+    else:
+        second.send.side_effect = asyncio.CancelledError()
+    mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect", side_effect=[first, second]
+    )
+    operation = send_nostr_dm(
+        keys.secret_key().to_hex(),
+        keys.public_key().to_hex(),
+        "hello",
+        ["wss://first.example", "wss://second.example"],
+    )
+    if failure == "cancel":
+        with pytest.raises(asyncio.CancelledError):
+            await operation
+    else:
+        assert (await operation)["kind"] == 4
+        second.send.assert_awaited_once()
+    first.__aexit__.assert_awaited_once()
+    second.__aexit__.assert_awaited_once()

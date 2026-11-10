@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 from datetime import timedelta
 
 import httpx
@@ -15,14 +16,13 @@ from nostr_sdk import (
     gift_wrap,
 )
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from websocket import WebSocket, create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,
 )
-from lnbits.utils.safe_http import SafeHttpClient, validate_url
+from lnbits.utils.safe_http import SafeHttpClient, safe_websocket, validate_url
 
 
 async def send_nostr_dm(
@@ -42,21 +42,21 @@ async def send_nostr_dm(
     dm_event.sign(private_key_hex=from_private_key_hex)
     notification = dm_event.to_message()
 
-    ws_connections: list[WebSocket] = []
-    for relay in relays:
-        try:
-            await _validate_relay_url(relay)
-            ws = create_connection(relay, timeout=2)
-            ws.send(notification)
-            ws_connections.append(ws)
-        except Exception as e:
-            logger.warning(f"Error sending Nostr notification: {type(e).__name__}")
-    await asyncio.sleep(1)
-    for ws in ws_connections:
-        try:
-            ws.close()
-        except Exception as e:
-            logger.debug(f"Failed to close websocket connection: {e}")
+    try:
+        async with AsyncExitStack() as connections:
+            for relay in relays:
+                try:
+                    ws = await connections.enter_async_context(
+                        safe_websocket(relay, apply_callback_rules=False)
+                    )
+                    await ws.send(notification)
+                except Exception as e:
+                    logger.warning(
+                        f"Error sending Nostr notification: {type(e).__name__}"
+                    )
+            await asyncio.sleep(1)
+    except Exception as e:
+        logger.debug(f"Failed to close Nostr connection: {type(e).__name__}")
 
     return dm_event.to_dict()
 
@@ -160,7 +160,7 @@ async def _validate_relay_url(relay: str) -> None:
     url = httpx.URL(relay)
     if url.scheme not in {"ws", "wss"}:
         raise ValueError("Invalid Nostr relay URL")
-    # Preflight only: the WebSocket clients still resolve DNS when connecting.
+    # Preflight only: the NIP-17 SDK still resolves DNS when connecting.
     await validate_url(
         url.copy_with(scheme="https" if url.scheme == "wss" else "http"),
         apply_callback_rules=False,
