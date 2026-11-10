@@ -351,7 +351,7 @@ class LauncherSettingsTests(unittest.TestCase):
             self.assertNotIn("SPARK_API_KEY", restored)
             self.assertNotIn("LNBITS_DESKTOP_PHOENIX_TERMS", restored)
             self.assertEqual(
-                restored["LNBITS_DATA_FOLDER"], str(Path(folder) / "chosen")
+                restored["LNBITS_DATA_FOLDER"], str((Path(folder) / "chosen").resolve())
             )
             values["LNBITS_DESKTOP_FUNDING"] = "none"
             desktop.save_launcher_settings(values)
