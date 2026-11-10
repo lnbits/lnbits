@@ -79,25 +79,14 @@ async def update_wallet(
 
 async def reset_all_wallet_keys(conn: Connection | None = None) -> int:
     wallets = await (conn or db).fetchall(
-        'SELECT id, "user", wallet_type, adminkey, inkey FROM wallets',
-        model=BaseWallet,
+        "SELECT * FROM wallets",
+        model=Wallet,
     )
-    now = int(time())
     for wallet in wallets:
-        await (conn or db).execute(
-            f"""
-            UPDATE wallets SET adminkey = :adminkey, inkey = :inkey,
-            updated_at = {db.timestamp_placeholder('now')}
-            WHERE id = :id
-            """,  # noqa: S608
-            {
-                "id": wallet.id,
-                "adminkey": uuid4().hex,
-                "inkey": uuid4().hex,
-                "now": now,
-            },
-        )
         clear_wallet_cache(wallet)
+        wallet.adminkey = uuid4().hex
+        wallet.inkey = uuid4().hex
+        await update_wallet(wallet, conn)
     return len(wallets)
 
 
