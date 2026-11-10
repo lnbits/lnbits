@@ -13,9 +13,17 @@ import sys
 import time
 import traceback
 import webbrowser
+from functools import partial
 from pathlib import Path
 
-from funding import PROVIDERS, Funding, load_profile, protect_settings, save_private
+from funding import (
+    PROVIDERS,
+    Funding,
+    configure_app,
+    load_profile,
+    protect_settings,
+    save_private,
+)
 
 LAUNCHER_SETTINGS = (
     "HOST",
@@ -146,6 +154,14 @@ def worker(environment, stop, ready):
             sys.exit(1)
 
 
+def create_desktop_app(environment):
+    from lnbits.app import create_app
+
+    app = create_app()
+    configure_app(app, environment)
+    return app
+
+
 def run_server(environment, stop, ready):
     import uvicorn
 
@@ -156,9 +172,11 @@ def run_server(environment, stop, ready):
         parents=True, exist_ok=True
     )
     settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
+
     server = uvicorn.Server(
         uvicorn.Config(
-            "lnbits.__main__:app",
+            partial(create_desktop_app, environment),
+            factory=True,
             host=environment["HOST"],
             port=int(environment["PORT"]),
             loop="asyncio",

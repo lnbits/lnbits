@@ -44,6 +44,12 @@ The daemon binds to `127.0.0.1` and requires a random API password/key generated
 for each launch. Connection settings are authoritative for the managed LNbits
 worker, so stale saved backend settings cannot override the selected daemon.
 Change the managed port/provider in the launcher, rather than LNbits admin.
+After database initialization, the launcher saves the selected provider's connection
+settings and existing seed for the superuser's Funding page. A changed seed requires
+backup confirmation again; an unchanged seed retains its confirmation. The inactive
+provider's settings are preserved. A synchronization failure stops startup before
+requests are accepted. This desktop-only step does not run for Neither, Docker, or
+normal server startup, and never generates or rewrites a seed file.
 
 Closing the launcher stops LNbits first, then the daemon. LNbits' own restart
 keeps the daemon running. A daemon failure stops LNbits and reports an error;

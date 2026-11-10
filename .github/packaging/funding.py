@@ -12,6 +12,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from embit.bip39 import mnemonic_from_bytes, mnemonic_is_valid
@@ -90,6 +91,86 @@ def protect_settings(environment):
             setattr(settings, name, value)
             if name not in readonly_variables:
                 readonly_variables.append(name)
+
+
+def configure_app(app, environment):
+    """Sync managed funding after core startup, before accepting requests."""
+    if environment.get("LNBITS_DESKTOP_FUNDING") not in PROVIDERS:
+        return
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def lifespan(application):
+        error = None
+        async with original_lifespan(application) as state:
+            try:
+                await sync_settings(environment)
+            except Exception as exc:
+                # Let core finish its normal shutdown before failing startup.
+                error = exc
+            else:
+                yield state
+        if error is not None:
+            raise error
+
+    app.router.lifespan_context = lifespan
+
+
+async def sync_settings(environment):
+    """Persist only this launcher's configuration; never generate or write seeds."""
+    provider = environment.get("LNBITS_DESKTOP_FUNDING")
+    if provider not in PROVIDERS:
+        return
+
+    from lnbits.core.crud.settings import get_settings_field, set_settings_field
+    from lnbits.settings import FundingSourcesSettings, settings
+
+    if not settings.lnbits_admin_ui:
+        return
+    prefix = "SPARK_L2_" if provider == "spark" else "PHOENIXD_"
+    values = {
+        key.lower(): value
+        for key, value in environment.items()
+        if key.startswith(prefix) and key.lower() in FundingSourcesSettings.model_fields
+    }
+    seed_field = prefix.lower() + "mnemonic"
+    seed = values.get(seed_field)
+    seed_file = (
+        Path(environment["LNBITS_DATA_FOLDER"]) / "funding" / provider / "seed.dat"
+    )
+    try:
+        saved_seed = seed_file.read_text().strip()
+    except OSError:
+        raise ValueError(
+            "Cannot read the bundled funding seed. Restore your backup."
+        ) from None
+    if (
+        not seed
+        or not mnemonic_is_valid(seed)
+        or seed != saved_seed
+        or environment.get("LNBITS_BACKEND_WALLET_CLASS") != PROVIDERS[provider]
+    ):
+        raise ValueError(
+            "Bundled funding configuration does not match its saved wallet."
+        )
+
+    try:
+        previous = await get_settings_field(seed_field)
+        if previous is None or previous.value != seed:
+            # Clear acknowledgement before changing the saved seed, so even an
+            # interrupted save cannot confirm a different wallet's backup.
+            confirmed_field = seed_field + "_backup_confirmed"
+            await set_settings_field(confirmed_field, False)
+            setattr(settings, confirmed_field, False)
+        for field, value in values.items():
+            await set_settings_field(field, value)
+        # Select the backend only after all its connection settings are saved.
+        await set_settings_field("lnbits_backend_wallet_class", PROVIDERS[provider])
+    except Exception:
+        # Database exceptions can contain bound credentials; do not log them.
+        raise RuntimeError(
+            "Cannot save bundled funding settings. Startup stopped."
+        ) from None
 
 
 class Funding:
