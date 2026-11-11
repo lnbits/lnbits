@@ -231,12 +231,23 @@ remain in the parent. Supported actions include:
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `context`, `api`                                                 | Obtain UI context and call this extension's registered API routes                                  |
 | `ui.notify`                                                      | Display a browser notification/toast; separate from delivery to a user's notification channels     |
+| `ui.download_csv`                                                | Download a bounded CSV table after parent confirmation; validate filenames and escape formulas     |
+| `ui.print_document`                                              | Print bounded text and table cells after parent confirmation; no extension HTML or scripts         |
 | `navigation.replace`, `navigation.open_new_tab`                  | Parent-mediated navigation; opening an external tab requires confirmation                          |
 | `storage.session.get`, `storage.session.set`                     | Transient session state                                                                            |
 | `ui.scan_qr`                                                     | Parent camera UI, with `ui.camera.scan_qr` and user approval                                       |
 | `permissions.request*`                                           | User permission dialogs, including background-payment and wallet-watch grants                      |
 | `payment.subscribe`, `payment.unsubscribe`                       | Payment updates for hashes accepted by the parent, including hashes returned by approved API calls |
 | `websocket.subscribe`, `websocket.unsubscribe`, `websocket.send` | Parent-managed extension channels                                                                  |
+
+The `context` response includes a read-only `theme` snapshot: `name`, the actual
+`dark` boolean, a `gradient` flag, and an allowlisted `colors` map of Quasar CSS
+colors. The parent sends `lnbits-extension:event` messages with `event: "ui.theme"`
+and the same snapshot in `data` when its theme changes. These notifications do
+not require a subscription or expose parent DOM access. Use the allowlisted
+`_lnbits/bundle.min.css` for LNbits theme styles, apply the supplied colors to
+`--q-*` properties, and set Quasar's dark mode from `theme.dark` rather than the
+iframe's OS preference.
 
 The bridge is not a generic browser-to-core RPC or an arbitrary URL proxy.
 External widgets in some repositories execute on another site's page and have
@@ -376,6 +387,12 @@ Both invoice methods accept one optional hex field, `unhashed_description` or
 instead of the memo, which LNURL-pay (LUD-06) requires: pass the hex-encoded
 metadata string as `unhashed_description` so the hash matches the payer's
 check. When either field is set, the memo is not stored.
+
+For public invoices with a nonempty `unhashed_description`, the host verifies
+the returned BOLT11 description hash against the decoded metadata bytes. An
+invalid invoice or a missing or mismatched hash is rejected before the invoice
+is returned to the extension. Components that omit both fields retain ordinary
+memo invoices.
 
 Tagged invoice events require the immutable `extension_context` written by the
 core WASM invoice APIs. Caller-supplied `extension`, `extra.tag`, or source IDs
