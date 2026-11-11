@@ -1045,3 +1045,23 @@ async def m056_disable_public_registration(db: Connection):
 async def m057_add_payment_extension_context(db: Connection):
     # Keep trusted invoice routing separate from externally supplied extra data.
     await db.execute("ALTER TABLE apipayments ADD COLUMN extension_context TEXT")
+
+
+async def m058_clear_extensions_reviews_url(db: Connection):
+    # Preserve first-start superuser setup when no admin settings exist yet.
+    await db.execute("""
+        INSERT INTO system_settings (id, value, tag)
+        SELECT 'lnbits_extensions_reviews_url', '""', 'core'
+        WHERE EXISTS (
+            SELECT 1 FROM system_settings WHERE id = 'super_user' AND tag = 'core'
+        )
+        ON CONFLICT (id, tag) DO UPDATE SET value = '""'
+    """)
+    await db.execute("""
+        UPDATE system_settings SET value = '""'
+        WHERE id = 'lnbits_extensions_reviews_url' AND tag = 'core'
+    """)
+    # Apply the one-time reset before first-start settings are persisted, too.
+    from lnbits.settings import settings
+
+    settings.lnbits_extensions_reviews_url = ""
