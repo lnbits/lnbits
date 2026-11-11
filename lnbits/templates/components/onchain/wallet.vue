@@ -154,8 +154,13 @@
           ></q-linear-progress>
           <q-banner v-if="syncError" class="q-mt-md" dense
             >Could not finish checking the blockchain. Showing the last known
-            balances and activity.</q-banner
-          >
+            balances and activity.
+            <div
+              v-if="syncErrorMessage"
+              class="text-caption q-mt-xs"
+              v-text="syncErrorMessage"
+            ></div
+          ></q-banner>
         </q-card-section>
       </q-card>
 

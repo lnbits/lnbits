@@ -27,6 +27,7 @@ window.app.component('lnbits-onchain-wallet', {
       lastStateVersion: null,
       disposed: false,
       syncError: false,
+      syncErrorMessage: null,
 
       config: {sats_denominated: true},
 
@@ -251,6 +252,7 @@ window.app.component('lnbits-onchain-wallet', {
         this.liveUpdates = null
         this.scan.scanning = false
         this.syncError = false
+        this.syncErrorMessage = null
         this.lastSynced = null
         this.lastStateVersion = null
         this.stateLoaded = false
@@ -518,6 +520,7 @@ window.app.component('lnbits-onchain-wallet', {
           return
         this.scan.scanning = data.scanning
         this.syncError = !!data.error
+        this.syncErrorMessage = data.error || null
         this.lastSynced = data.checked_at
           ? moment.unix(data.checked_at).format('HH:mm')
           : null
@@ -594,7 +597,10 @@ window.app.component('lnbits-onchain-wallet', {
         }
         return data
       } catch (error) {
-        if (!this.disposed && this.isConfigured) this.syncError = true
+        if (!this.disposed && this.isConfigured) {
+          this.syncError = true
+          this.syncErrorMessage = null
+        }
       } finally {
         this.stateLoading = false
         this.liveUpdates?.update()
@@ -619,6 +625,7 @@ window.app.component('lnbits-onchain-wallet', {
       } catch (error) {
         if (this.disposed || !this.isConfigured) return
         this.syncError = true
+        this.syncErrorMessage = null
         LNbits.utils.notifyApiError(error)
       }
     },
