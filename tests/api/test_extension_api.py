@@ -825,9 +825,10 @@ async def test_extension_api_activate_uninstall_install_invoice_and_cleanup(mock
 
 
 @pytest.mark.anyio
-async def test_extension_api_review_endpoints(mocker):
+async def test_extension_api_review_endpoints(mocker, settings):
     ext_id = f"review_{uuid4().hex[:8]}"
-    reviews_base = "https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r"
+    reviews_base = "https://reviews.example.com/api/v1/test"
+    settings.lnbits_extensions_reviews_url = reviews_base
     tags_url = f"{reviews_base}/tags"
     reviews_url = f"{reviews_base}/reviews/{ext_id}?offset=0&limit=5"
     create_review_url = f"{reviews_base}/reviews"
