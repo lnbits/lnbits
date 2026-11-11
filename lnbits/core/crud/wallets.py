@@ -412,6 +412,7 @@ async def init_onchain_wallet_state(
     meta.backup_confirmed = False
     meta.sync_checked_at = 0
     meta.sync_failed_at = 0
+    meta.sync_rate_limited_at = 0
     meta.sync_error = None
     meta.sync_checkpoint = None
     # One conditional write stores setup and recovery material together and

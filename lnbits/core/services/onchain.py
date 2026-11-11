@@ -52,6 +52,7 @@ from lnbits.core.services.blockexplorer import (
     TXID,
     Explorer,
     ExplorerNotAllowedError,
+    ExplorerRateLimitedError,
     explorer_client,
 )
 from lnbits.core.services.wallets import get_wallet_addresses
@@ -76,6 +77,12 @@ KEY_RECORD = "onchain_key"
 SCAN_SLOTS = asyncio.Semaphore(4)
 SCAN_MAX_AGE = 120
 SCAN_RETRY_DELAY = 60
+SCAN_RATE_LIMIT_DELAY = 600
+SCAN_RATE_LIMIT_ERROR = (
+    "The blockchain explorer is rate limiting requests. Balances and activity "
+    f"refresh automatically in about {SCAN_RATE_LIMIT_DELAY // 60} minutes, or "
+    "select a different explorer in wallet settings."
+)
 
 
 class OnchainKeyStatus(BaseModel):
@@ -354,16 +361,35 @@ async def scan_address(
     )
 
 
+def scan_cooldown(meta: OnchainMeta, now: float) -> int:
+    """Seconds before a failed scan may retry; longer after throttling."""
+    if not meta.sync_error:
+        return 0
+    if meta.sync_rate_limited_at:
+        retry_at = meta.sync_rate_limited_at + SCAN_RATE_LIMIT_DELAY
+    else:
+        retry_at = meta.sync_failed_at + SCAN_RETRY_DELAY
+    return max(0, int(retry_at - now))
+
+
 def scan_skip_reason(
-    status: dict, now: float, max_age: int = SCAN_MAX_AGE
+    status: dict, now: float, max_age: int | None = SCAN_MAX_AGE
 ) -> str | None:
+    """Why a scan should not run now; ``max_age=None`` skips only throttling."""
     if status.get("onchain_sync_lease_until", 0) > now:
         return "another scan holds the wallet lease"
     meta = OnchainMeta.model_validate_json(status.get("onchain_meta", "{}"))
     if meta.sync_error:
-        if now - meta.sync_failed_at < SCAN_RETRY_DELAY:
-            return f"retry cooldown is active ({SCAN_RETRY_DELAY}s)"
-    elif meta.sync_checked_at and now - meta.sync_checked_at <= max_age:
+        cooldown = scan_cooldown(meta, now)
+        # Throttling protects a shared explorer budget, so an explicit refresh
+        # honours it too. Other failures wait only for the short retry delay.
+        if cooldown and (max_age is not None or meta.sync_rate_limited_at):
+            return f"retry cooldown is active ({cooldown}s)"
+    elif (
+        max_age is not None
+        and meta.sync_checked_at
+        and now - meta.sync_checked_at <= max_age
+    ):
         return f"last successful scan is within {max_age}s"
     return None
 
@@ -603,9 +629,14 @@ async def _finish_scan(
     conn: Connection | None = None,
     *,
     checkpoint: ScanCheckpoint | None = None,
+    rate_limited: bool = False,
 ) -> bool:
     now = int(time.time())
-    state: dict = {"sync_error": error, "sync_failed_at": now if error else 0}
+    state: dict = {
+        "sync_error": error,
+        "sync_failed_at": now if error else 0,
+        "sync_rate_limited_at": now if error and rate_limited else 0,
+    }
     if error is None:
         state["sync_checked_at"] = now
         if checkpoint is not None:
@@ -621,14 +652,12 @@ async def _finish_scan(
 async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> None:
     now = int(time.time())
     lease = now + 1800
-    expected_meta = None
-    if max_age is not None:
-        status = await get_onchain_sync_status(wallet_id)
-        reason = scan_skip_reason(status, now, max_age)
-        if reason:
-            logger.info(f"Onchain scan skipped for wallet {wallet_id}: {reason}.")
-            return
-        expected_meta = status.get("onchain_meta")
+    status = await get_onchain_sync_status(wallet_id)
+    expected_meta = status.get("onchain_meta") if max_age is not None else None
+    reason = scan_skip_reason(status, now, max_age)
+    if reason:
+        logger.info(f"Onchain scan skipped for wallet {wallet_id}: {reason}.")
+        return
     if not await acquire_onchain_scan_lease(
         wallet_id, lease, now, expected_meta=expected_meta
     ):
@@ -641,6 +670,7 @@ async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> Non
     logger.info(f"Onchain scan started for wallet {wallet_id}.")
     error = None
     checkpoint = None
+    rate_limited = False
     outcome = "success"
     reason = ""
     try:
@@ -655,6 +685,11 @@ async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> Non
         outcome = "cancelled"
         error = "Update interrupted. Retry to refresh the blockchain snapshot."
         raise
+    except ExplorerRateLimitedError:
+        outcome = "rate-limited"
+        rate_limited = True
+        reason = "explorer asked us to back off"
+        error = SCAN_RATE_LIMIT_ERROR
     except Exception as exc:
         outcome = "failed"
         reason = type(exc).__name__
@@ -666,7 +701,13 @@ async def _scan_with_lease(wallet_id: str, *, max_age: int | None = None) -> Non
         )
     finally:
         try:
-            saved = await _finish_scan(wallet_id, lease, error, checkpoint=checkpoint)
+            saved = await _finish_scan(
+                wallet_id,
+                lease,
+                error,
+                checkpoint=checkpoint,
+                rate_limited=rate_limited,
+            )
             if not saved and outcome == "success":
                 outcome = "aborted"
                 reason = "wallet or scan lease changed before status could be saved"

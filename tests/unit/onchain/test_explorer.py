@@ -379,3 +379,67 @@ async def test_mempool_pending_limit_does_not_drop_cached_transactions(
         ]
         history = await provider.history("address", previous=previous)
     assert history == (pending[:50] if dropped else pending)
+
+
+@pytest.mark.parametrize(
+    ("retry_after", "attempt", "expected"),
+    [
+        ("2", 0, 2),
+        ("3600", 3, blockexplorer.MAX_RATE_LIMIT_WAIT),
+        ("soon", 0, blockexplorer.RATE_LIMIT_BACKOFF),
+        ("\u00b2", 0, blockexplorer.RATE_LIMIT_BACKOFF),
+        (None, 2, blockexplorer.RATE_LIMIT_BACKOFF * 4),
+    ],
+)
+def test_rate_limit_wait_is_bounded(retry_after, attempt, expected):
+    assert blockexplorer._rate_limit_wait(retry_after, attempt) == expected
+
+
+@pytest.mark.anyio
+async def test_mempool_rate_limit_backs_off_then_retries(monkeypatch):
+    statuses = [429, 429, 200]
+    sleeps = []
+
+    async def sleep(seconds):
+        sleeps.append(seconds)
+
+    def respond(request):
+        return httpx.Response(statuses.pop(0), json={"fastestFee": 1})
+
+    monkeypatch.setattr(blockexplorer.asyncio, "sleep", sleep)
+    client = httpx.AsyncClient(
+        base_url="https://mempool.space/", transport=httpx.MockTransport(respond)
+    )
+    async with blockexplorer.MempoolExplorer(
+        OnchainConfig(), "Mainnet", client
+    ) as provider:
+        assert await provider.fees() == {"fastestFee": 1}
+    assert sleeps == [
+        blockexplorer.RATE_LIMIT_BACKOFF,
+        blockexplorer.RATE_LIMIT_BACKOFF * 2,
+    ]
+
+
+@pytest.mark.anyio
+async def test_mempool_rate_limit_stops_after_retries(monkeypatch):
+    attempts = []
+    sleeps = []
+
+    async def sleep(seconds):
+        sleeps.append(seconds)
+
+    def respond(request):
+        attempts.append(request)
+        return httpx.Response(429, headers={"Retry-After": "1"}, json={})
+
+    monkeypatch.setattr(blockexplorer.asyncio, "sleep", sleep)
+    client = httpx.AsyncClient(
+        base_url="https://mempool.space/", transport=httpx.MockTransport(respond)
+    )
+    async with blockexplorer.MempoolExplorer(
+        OnchainConfig(), "Mainnet", client
+    ) as provider:
+        with pytest.raises(blockexplorer.ExplorerRateLimitedError, match="rate limit"):
+            await provider.fees()
+    assert len(attempts) == blockexplorer.RATE_LIMIT_RETRIES + 1
+    assert sleeps == [1] * blockexplorer.RATE_LIMIT_RETRIES

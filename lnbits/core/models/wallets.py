@@ -300,6 +300,7 @@ class OnchainMeta(BaseModel):
     backup_confirmed: bool = False
     sync_checked_at: int = 0
     sync_failed_at: int = 0
+    sync_rate_limited_at: int = 0
     sync_error: str | None = None
     sync_checkpoint: ScanCheckpoint | None = None
 
