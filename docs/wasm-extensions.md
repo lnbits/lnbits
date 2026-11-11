@@ -352,6 +352,12 @@ the caller does not choose an arbitrary wallet. Guest metadata is nested under
 amounts are in millisatoshis, whereas invoice APIs also accept currency-specific
 amounts. Do not assume all numeric amounts represent sats.
 
+Both invoice methods accept one optional hex field, `unhashed_description` or
+`description_hash` (32-byte SHA-256). The invoice then commits to that hash
+instead of the memo, which LNURL-pay (LUD-06) requires: pass the hex-encoded
+metadata string as `unhashed_description` so the hash matches the payer's
+check. When either field is set, the memo is not stored.
+
 For settlement-driven state changes, verify status/pending state, payment hash,
 amount, wallet, source, and the extension's stored invoice binding. Store enough
 information before invoice creation to cope with settlement arriving before

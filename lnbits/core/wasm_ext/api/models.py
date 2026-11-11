@@ -180,7 +180,42 @@ class StorageDeleteResponse(BaseModel):
     ok: bool = True
 
 
-class CreateInvoiceRequest(BaseModel):
+class InvoiceDescriptionHash(BaseModel):
+    """Optional BOLT11 description hash, e.g. for LNURL-pay metadata."""
+
+    description_hash: str | None = Field(
+        None,
+        min_length=64,
+        max_length=64,
+        description="Hex SHA-256 committed to instead of the memo.",
+    )
+    unhashed_description: str | None = Field(
+        None,
+        max_length=16384,
+        description="Hex bytes whose SHA-256 becomes the description hash.",
+    )
+
+    @field_validator("description_hash", "unhashed_description")
+    @classmethod
+    def validate_hex(cls, value):
+        if value is None:
+            return None
+        try:
+            bytes.fromhex(value)
+        except ValueError as exc:
+            raise ValueError("must be a hex string.") from exc
+        return value.lower()
+
+    @model_validator(mode="after")
+    def validate_single_description_hash(self):
+        if self.description_hash and self.unhashed_description:
+            raise ValueError(
+                "Set either description_hash or unhashed_description, not both."
+            )
+        return self
+
+
+class CreateInvoiceRequest(InvoiceDescriptionHash):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     amount: float = Field(..., gt=0)
     currency: str = Field("sat", min_length=1, max_length=8)
@@ -189,7 +224,7 @@ class CreateInvoiceRequest(BaseModel):
     extra: dict[str, str] = Field(default_factory=dict)
 
 
-class CreateInvoicePublicRequest(BaseModel):
+class CreateInvoicePublicRequest(InvoiceDescriptionHash):
     source_id: str = Field(
         ...,
         min_length=1,
