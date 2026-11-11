@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from lnbits.core.crud import create_wallet, get_payment, update_payment
 from lnbits.core.db import core_app_extra
@@ -18,13 +19,17 @@ from lnbits.core.wasm_ext.wasm.events import (
     dispatch_wasm_invoice_paid,
 )
 from lnbits.helpers import sha256s
+from lnbits.wallets.fake import FakeWallet
 from tests.unit.test_wasm_extension_events import _payment as _event_payment
 from tests.unit.test_wasm_extension_events import _wasm_extension
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("shared", [False, True])
-async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, shared):
+@pytest.mark.parametrize("metadata", [None, '[["text/plain","Fortune ⚡"]]'])
+async def test_public_invoice_binds_owner_and_survives_wallet_change(
+    mocker, shared, metadata
+):
     wallet = _wallet(shared=shared)
     owner = sha256s(wallet.user)
     row = {"wallet_id": wallet.id, OWNER_ID_FIELD: owner}
@@ -36,6 +41,11 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
         "lnbits.core.crud.wallets.get_wallet", mocker.AsyncMock(return_value=wallet)
     )
     payment = _payment("tips")
+    if metadata is not None:
+        invoice = await FakeWallet().create_invoice(
+            21, unhashed_description=metadata.encode("utf-8")
+        )
+        payment.payment_request = invoice.payment_request
     create = mocker.patch(
         "lnbits.core.services.payments.create_payment_request",
         mocker.AsyncMock(return_value=payment),
@@ -56,8 +66,11 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
             currency="sat",
             memo="Tip",
             extra={"owner_id": "victim"},
+            **({"unhashed_description": metadata} if metadata is not None else {}),
         )
     )
+    expected = metadata.encode("utf-8").hex() if metadata is not None else None
+    assert create.await_args.args[1].unhashed_description == expected
     payment.extension_context = create.await_args.kwargs["extension_context"]
     payment.wallet_id = wallet.source_wallet_id
     assert payment.extension_context == {
@@ -81,6 +94,77 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
     )
     source_lookup.assert_not_awaited()
     wallet_lookup.assert_not_awaited()
+
+
+@pytest.mark.parametrize("metadata", [None, "a" * 4096, "⚡" * 1365 + "a"])
+def test_public_invoice_metadata_accepts_utf8_byte_boundary(metadata):
+    request = CreateInvoicePublicRequest(
+        source_id="row-1",
+        amount=21,
+        currency="sat",
+        memo="",
+        unhashed_description=metadata,
+    )
+    assert request.unhashed_description == metadata
+
+
+@pytest.mark.parametrize("metadata", ["", "a" * 4097, "⚡" * 1365 + "ab", "😀" * 1025])
+def test_public_invoice_metadata_rejects_oversize_utf8(metadata):
+    with pytest.raises(ValidationError):
+        CreateInvoicePublicRequest(
+            source_id="row-1",
+            amount=21,
+            currency="sat",
+            memo="",
+            unhashed_description=metadata,
+        )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("backend_metadata", [None, b"different metadata", b"invalid"])
+async def test_public_invoice_rejects_invalid_description_commitment(
+    mocker, backend_metadata
+):
+    wallet = _wallet()
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_public_row",
+        mocker.AsyncMock(
+            return_value={"wallet_id": wallet.id, OWNER_ID_FIELD: sha256s(wallet.user)}
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet", mocker.AsyncMock(return_value=wallet)
+    )
+    invoice = await FakeWallet().create_invoice(
+        21, memo="Plain description", unhashed_description=backend_metadata
+    )
+    payment = _payment("tips")
+    payment.payment_request = (
+        "invalid" if backend_metadata == b"invalid" else invoice.payment_request
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.create_payment_request",
+        mocker.AsyncMock(return_value=payment),
+    )
+    api = ExtensionHostAPI(
+        "tips",
+        [
+            {
+                "id": "wallet.create_invoice_public",
+                "policies": [{"table": "jars", "wallet_field": "wallet_id"}],
+            }
+        ],
+    )
+    with pytest.raises(ValueError, match="Funding backend returned"):
+        await api.wallet_create_invoice_public(
+            CreateInvoicePublicRequest(
+                source_id="row-1",
+                amount=21,
+                currency="sat",
+                memo="",
+                unhashed_description='[["text/plain","Fortune ⚡"]]',
+            )
+        )
 
 
 @pytest.mark.anyio

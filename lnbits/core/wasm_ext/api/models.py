@@ -199,7 +199,20 @@ class CreateInvoicePublicRequest(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str = Field(..., min_length=1, max_length=8)
     memo: str = Field("", max_length=512)
+    unhashed_description: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=4096,
+        description="LNURL metadata (up to 4096 UTF-8 bytes) for the description hash.",
+    )
     extra: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("unhashed_description")
+    @classmethod
+    def validate_unhashed_description_size(cls, value: str | None) -> str | None:
+        if value is not None and len(value.encode("utf-8")) > 4096:
+            raise ValueError("Invoice metadata must not exceed 4096 UTF-8 bytes.")
+        return value
 
     @field_validator("extra")
     @classmethod

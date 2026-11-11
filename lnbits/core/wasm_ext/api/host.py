@@ -4,8 +4,11 @@ import json
 import secrets
 import time
 from collections.abc import Iterable, Mapping
+from hashlib import sha256
 from typing import Any
 
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.core.models.users import Account, UserNotifications
@@ -450,6 +453,11 @@ class ExtensionHostAPI:
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                unhashed_description=(
+                    request.unhashed_description.encode("utf-8").hex()
+                    if request.unhashed_description is not None
+                    else None
+                ),
                 extra={
                     "tag": self.extension_id,
                     "source_id": request.source_id,
@@ -464,6 +472,20 @@ class ExtensionHostAPI:
                 "source_id": request.source_id,
             },
         )
+        if request.unhashed_description is not None:
+            try:
+                invoice = bolt11_decode(payment.payment_request or payment.bolt11)
+            except (Bolt11Exception, ValueError) as exc:
+                raise ValueError(
+                    "Funding backend returned an invalid invoice."
+                ) from exc
+            expected_hash = sha256(
+                request.unhashed_description.encode("utf-8")
+            ).hexdigest()
+            if invoice.description_hash != expected_hash:
+                raise ValueError(
+                    "Funding backend returned an incorrect description hash."
+                )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
             payment_request=payment.payment_request or payment.bolt11,
