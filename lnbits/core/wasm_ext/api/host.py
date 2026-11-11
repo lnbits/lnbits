@@ -386,6 +386,8 @@ class ExtensionHostAPI:
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                description_hash=request.description_hash,
+                unhashed_description=request.unhashed_description,
                 extra=request.extra,
                 extension=self.extension_id,
             ),
@@ -450,6 +452,8 @@ class ExtensionHostAPI:
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                description_hash=request.description_hash,
+                unhashed_description=request.unhashed_description,
                 extra={
                     "tag": self.extension_id,
                     "source_id": request.source_id,
