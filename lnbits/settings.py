@@ -92,7 +92,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
-        default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
+        default="",
         description="""
             URL for the paid reviews.
             Regular users can view this URL (not secret).
@@ -1243,7 +1243,7 @@ class EnvSettings(LNbitsSettings):
             return
         if not os.path.isdir(settings.lnbits_data_folder):
             os.mkdir(settings.lnbits_data_folder)
-        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key_v1")
         if auth_key_file.is_file():
             with open(auth_key_file) as file:
                 self.auth_secret_key = file.readline()

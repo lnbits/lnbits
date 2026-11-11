@@ -370,7 +370,9 @@ async def build_all_installed_extensions_list(  # noqa: C901
         if ext_id in settings.lnbits_installed_extensions_ids:
             continue
 
-        ext_releases = await InstallableExtension.get_extension_releases(ext_id)
+        ext_releases = await InstallableExtension.get_extension_releases(
+            ext_id, include_payment_info=False
+        )
         ext_releases = sorted(
             ext_releases, key=lambda r: version_parse(r.version), reverse=True
         )

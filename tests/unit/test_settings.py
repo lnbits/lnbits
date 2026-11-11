@@ -537,7 +537,7 @@ def test_set_cli_settings_updates_runtime_settings(settings: Settings):
 @pytest.mark.parametrize(
     "field,filename",
     [
-        ("auth_secret_key", ".lnbits_auth_key"),
+        ("auth_secret_key", ".lnbits_auth_key_v1"),
         ("totp_encryption_key", ".lnbits_totp_key"),
     ],
 )
@@ -567,7 +567,7 @@ def test_secret_key_file_lifecycle(settings, tmp_path, monkeypatch, field, filen
 @pytest.mark.parametrize(
     "field,filename",
     [
-        ("auth_secret_key", ".lnbits_auth_key"),
+        ("auth_secret_key", ".lnbits_auth_key_v1"),
         ("totp_encryption_key", ".lnbits_totp_key"),
     ],
 )

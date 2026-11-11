@@ -818,12 +818,14 @@ async def _auto_update_extension(
     payment = ext.find_existing_payment(release.pay_link)
     if payment:
         release.payment_hash = payment.payment_hash
+        release.cost_sats = payment.amount
     elif (
         release.pay_link
         and updated.meta.installed_release
         and updated.meta.installed_release.pay_link == release.pay_link
     ):
         release.payment_hash = updated.meta.installed_release.payment_hash
+        release.cost_sats = updated.meta.installed_release.cost_sats
     updated.version = release.version
     updated.meta.installed_release = release
 
