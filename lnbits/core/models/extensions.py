@@ -791,7 +791,9 @@ class InstallableExtension(BaseModel):
             return None
         latest = None
         latest_version = Version(installed.version)
-        for release in await self.get_extension_releases(self.id):
+        for release in await self.get_extension_releases(
+            self.id, include_payment_info=False
+        ):
             if (
                 release.source_repo != installed.source_repo
                 or not release.is_version_compatible
@@ -1072,7 +1074,9 @@ class InstallableExtension(BaseModel):
         return extension_list
 
     @classmethod
-    async def get_extension_releases(cls, ext_id: str) -> list[ExtensionRelease]:
+    async def get_extension_releases(
+        cls, ext_id: str, *, include_payment_info: bool = True
+    ) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
         for url, manifest_type in _extension_manifest_sources(
             include_builder=True, deduplicate=False
@@ -1102,7 +1106,8 @@ class InstallableExtension(BaseModel):
                         )
                         explicit_release.apply_config(config)
                     explicit_release.manifest_type = manifest_type
-                    await explicit_release.check_payment_requirements()
+                    if include_payment_info:
+                        await explicit_release.check_payment_requirements()
                     extension_releases.append(explicit_release)
 
             except Exception as e:

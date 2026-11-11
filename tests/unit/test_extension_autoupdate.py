@@ -128,10 +128,13 @@ async def test_autoupdate_latest_compatible_preserves_state_and_paid_access(
     ctx = update_context
     settings.lnbits_autoupdate_extensions_interval_hours = interval
     ctx.ext.active = active
+    ctx.ext.meta.installed_release.cost_sats = 100
     if active:
         ctx.ext.meta.payments = [
             ReleasePaymentInfo(
-                pay_link=ctx.release.pay_link, payment_hash="existing-payment"
+                amount=200,
+                pay_link=ctx.release.pay_link,
+                payment_hash="existing-payment",
             )
         ]
     if not active:
@@ -164,6 +167,7 @@ async def test_autoupdate_latest_compatible_preserves_state_and_paid_access(
     assert (ctx.ext.id in settings.lnbits_deactivated_extensions) is (not active)
     assert "payment_hash=existing-payment" in ctx.download.call_args.args[0]
     assert saved.meta.installed_release.payment_hash == "existing-payment"
+    assert saved.meta.installed_release.cost_sats == (200 if active else 100)
     assert saved.meta.payments == ctx.ext.meta.payments
     assert ctx.ext.installed_version == "1.0.0"
     ctx.deactivate.assert_not_awaited()
