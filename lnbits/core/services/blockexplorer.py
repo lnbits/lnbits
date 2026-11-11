@@ -1,6 +1,7 @@
 import asyncio
 import math
 import re
+from http import HTTPStatus
 
 import httpx
 from embit.transaction import Transaction as EmbitTransaction
@@ -30,6 +31,10 @@ from lnbits.utils.electrum import (
 TXID = re.compile(r"^[0-9a-f]{64}$")
 NETWORKS = {"main": "Mainnet", "test": "Testnet", "test4": "Testnet4"}
 _WALLET_TXID = re.compile(r"^[0-9a-f]{64}$")
+# Explorers throttle per client, so back off instead of failing a whole scan.
+RATE_LIMIT_RETRIES = 3
+RATE_LIMIT_BACKOFF = 5
+MAX_RATE_LIMIT_WAIT = 60
 
 
 class BlockExplorerWalletSession:
@@ -223,6 +228,14 @@ class ExplorerNotAllowedError(ValueError):
         )
 
 
+class ExplorerRateLimitedError(ValueError):
+    def __init__(self):
+        super().__init__(
+            "The blockchain explorer is rate limiting requests. Retry later or "
+            "select a different explorer in wallet settings."
+        )
+
+
 class MempoolExplorer:
     def __init__(
         self,
@@ -350,11 +363,19 @@ class MempoolExplorer:
     async def _request(
         self, method: str, path: str, *, content: str | None = None
     ) -> httpx.Response:
-        # Recheck long-running scans when an administrator revokes approval.
-        validate_mempool_endpoint(self.endpoint)
-        return await self.client.request(
-            method, path, content=content, follow_redirects=False
-        )
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            # Recheck long-running scans when an administrator revokes approval.
+            validate_mempool_endpoint(self.endpoint)
+            response = await self.client.request(
+                method, path, content=content, follow_redirects=False
+            )
+            if response.status_code != HTTPStatus.TOO_MANY_REQUESTS:
+                return response
+            if attempt < RATE_LIMIT_RETRIES:
+                await asyncio.sleep(
+                    _rate_limit_wait(response.headers.get("Retry-After"), attempt)
+                )
+        raise ExplorerRateLimitedError()
 
 
 class LnbitsExplorer(BlockExplorerWalletSession):
@@ -505,6 +526,14 @@ def validate_mempool_endpoint(endpoint: str) -> None:
     # Exact base URLs only: approving a host does not approve other ports or paths.
     if endpoint.rstrip("/") not in settings.lnbits_onchain_explorer_urls:
         raise ExplorerNotAllowedError()
+
+
+def _rate_limit_wait(retry_after: str | None, attempt: int) -> int:
+    # Honour the explorer's hint when it is a bounded number of seconds.
+    hint = (retry_after or "").strip()
+    if hint.isdecimal():
+        return min(MAX_RATE_LIMIT_WAIT, int(hint))
+    return min(MAX_RATE_LIMIT_WAIT, RATE_LIMIT_BACKOFF * 2**attempt)
 
 
 def _client() -> ElectrumClient:

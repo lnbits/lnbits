@@ -28,6 +28,7 @@ from lnbits.core.models.wallets import NewHotWallet, OnchainMeta, OnchainWallet
 from lnbits.core.services.blockexplorer import (
     TXID,
     ExplorerNotAllowedError,
+    ExplorerRateLimitedError,
     explorer_client,
 )
 from lnbits.core.services.onchain import (
@@ -208,6 +209,8 @@ async def api_tx_broadcast(
         return tx_id
     except ExplorerNotAllowedError as exc:
         raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
+    except ExplorerRateLimitedError as exc:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(
             400, "Broadcast failed. Check the transaction status before retrying."
@@ -362,6 +365,8 @@ async def sign_hot_wallet_payment(
         return await run_in_threadpool(sign_payment, wallet, encrypted, data)
     except ExplorerNotAllowedError as exc:
         raise HTTPException(HTTPStatus.FORBIDDEN, str(exc)) from exc
+    except ExplorerRateLimitedError as exc:
+        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, str(exc)) from exc
     except Exception as exc:
         # Native library/encryption errors must not disclose key material.
         raise HTTPException(
