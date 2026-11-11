@@ -1243,7 +1243,7 @@ class EnvSettings(LNbitsSettings):
             return
         if not os.path.isdir(settings.lnbits_data_folder):
             os.mkdir(settings.lnbits_data_folder)
-        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key_v1")
         if auth_key_file.is_file():
             with open(auth_key_file) as file:
                 self.auth_secret_key = file.readline()
