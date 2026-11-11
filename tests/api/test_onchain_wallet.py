@@ -23,7 +23,11 @@ from lnbits.core.models import CreatePayment
 from lnbits.core.models.onchain import ScanCheckpoint
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services import create_user_account, onchain, update_wallet_balance
-from lnbits.core.services.blockexplorer import MempoolExplorer, mempool_url
+from lnbits.core.services.blockexplorer import (
+    ExplorerRateLimitedError,
+    MempoolExplorer,
+    mempool_url,
+)
 from lnbits.core.views import onchain_api, wallet_api
 from lnbits.settings import settings
 from lnbits.utils.onchain import wallet_descriptor
@@ -544,6 +548,40 @@ async def test_scan_checkpoint_advances_only_after_complete_stable_scan(
             call.kwargs["checkpoint"] is None
             for call in provider.history.await_args_list
         )
+
+
+@pytest.mark.anyio
+async def test_rate_limited_scan_cools_down_and_reports_message(
+    http_client, onchain_wallet, monkeypatch
+):
+    wallet, _, headers = onchain_wallet
+    await add_watch(http_client, headers)
+    now = 1000
+    monkeypatch.setattr(onchain, "time", SimpleNamespace(time=lambda: now))
+    scans = []
+
+    async def rate_limited(wallet_id):
+        scans.append(wallet_id)
+        raise ExplorerRateLimitedError()
+
+    monkeypatch.setattr(onchain, "_scan", rate_limited)
+    await onchain.scan_wallet(wallet.id)
+    assert scans == [wallet.id]
+    state = await onchain.get_wallet_state(wallet.id)
+    assert state["error"] == onchain.SCAN_RATE_LIMIT_ERROR
+    assert not state["sync_due"]
+    stored = await get_onchain_wallet(wallet.id)
+    assert stored and stored.onchain_meta.sync_rate_limited_at == now
+
+    # Neither conditional nor explicit refreshes hammer the explorer meanwhile.
+    now += onchain.SCAN_RATE_LIMIT_DELAY - 1
+    await onchain.scan_wallet(wallet.id, max_age=0)
+    await onchain.scan_wallet(wallet.id)
+    assert scans == [wallet.id]
+
+    now += 1
+    await onchain.scan_wallet(wallet.id)
+    assert scans == [wallet.id, wallet.id]
 
 
 @pytest.mark.anyio
