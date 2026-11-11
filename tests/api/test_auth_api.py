@@ -253,3 +253,54 @@ async def test_auth_api_first_install_uses_secure_cookie_when_enabled(
         await update_account(restored_superuser)
         settings.first_install = original_first_install
         settings.auth_https_only = original_auth_https_only
+
+
+@pytest.mark.anyio
+async def test_first_install_middleware_rejects_malformed_host_header_bypass(
+    app, settings: Settings
+):
+    original_first_install = settings.first_install
+
+    async def _send_raw_get(
+        path: str, host_header: bytes
+    ) -> tuple[int, dict[bytes, bytes]]:
+        messages: list[dict] = []
+
+        async def receive() -> dict:
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message: dict) -> None:
+            messages.append(message)
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode("ascii"),
+            "query_string": b"",
+            "headers": [(b"host", host_header)],
+            "client": ("127.0.0.1", 12345),
+            "server": ("127.0.0.1", 5000),
+        }
+        await app(scope, receive, send)
+        start = next(m for m in messages if m["type"] == "http.response.start")
+        headers = {k.lower(): v for k, v in start.get("headers", [])}
+        return start["status"], headers
+
+    try:
+        settings.first_install = True
+        for poisoned_host in (
+            b"example.com/static?",
+            b"example.com/first_install#",
+            b"example.com/api/v1/auth/first_install?",
+        ):
+            status_code, resp_headers = await _send_raw_get(
+                "/api/v1/currencies", poisoned_host
+            )
+            assert status_code == 307
+            assert resp_headers.get(b"location") == b"/first_install"
+    finally:
+        settings.first_install = original_first_install
