@@ -237,6 +237,17 @@ remain in the parent. Supported actions include:
 | `payment.subscribe`, `payment.unsubscribe`                       | Payment updates for hashes accepted by the parent, including hashes returned by approved API calls |
 | `websocket.subscribe`, `websocket.unsubscribe`, `websocket.send` | Parent-managed extension channels                                                                  |
 
+Persistent receipts can use `storage.local.get`, `storage.local.set` and
+`storage.local.remove` with the `ui.storage.local` permission. Keys are limited
+to 128 ASCII letters, digits or `._:-`; values are strings of at most 1024 UTF-8
+bytes. The parent scopes entries by extension, account (or anonymous visitor)
+and page path. Each extension/account namespace permits 128 entries and 64 KiB
+of serialized data; entries expire 180 days after their last write. Query strings
+do not change the scope. Storage requires browser Web Crypto and local storage;
+handle unavailable storage as an optional-feature failure. Browser receipts are
+bearer tokens, never proof of payment: recheck settlement on the server before
+revealing paid content. This grants no access to other parent local-storage keys.
+
 The `context` response includes a read-only `theme` snapshot: `name`, the actual
 `dark` boolean, a `gradient` flag, and an allowlisted `colors` map of Quasar CSS
 colors. The parent sends `lnbits-extension:event` messages with `event: "ui.theme"`
@@ -326,7 +337,9 @@ save the second user's settings. Generate distinct IDs and locate configuration
 through an owner-scoped query.
 
 Private storage supports get, upsert, delete, and pagination. Pages are limited
-to 1,000 rows, with equality filters, search, and one sort key. Pagination is not
+to 1,000 rows, with equality filters, search, and one sort key. A page limit of
+zero returns the scoped total without loading record payloads; the same read
+permission and owner/public-source restrictions apply. Pagination is not
 a transactionally consistent snapshot. Large scans must fit the invocation's
 storage-call and response budgets.
 
@@ -369,6 +382,27 @@ the caller does not choose an arbitrary wallet. Guest metadata is nested under
 `extra_<extension-id>`. Check the actual event fields and units: settled payment
 amounts are in millisatoshis, whereas invoice APIs also accept currency-specific
 amounts. Do not assume all numeric amounts represent sats.
+
+`wallet.invoice_status` exposes `invoice-status(payment-hash, source-id)` to
+owner-scoped invocations with that permission. The host checks an incoming
+payment's immutable extension, owner, wallet and source binding before querying
+the backend. It rejects unrelated invoices and legacy invoices without a trusted
+binding. Pending payments reconcile through core's existing payment service.
+Only `paid`, `pending`, `failed` and `amount-msat` are returned; no keys, preimages,
+provider identifiers or arbitrary wallet history are exposed.
+
+`wallet.create_fiat_invoice_public` permits `create-fiat-invoice-public` from an
+owner-scoped invocation. Its policies specify `table`, `wallet_field` and
+`provider_field`; both wallet and provider come from that owner's stored source
+row. Core verifies wallet ownership, receive permission and the user's enabled
+provider allowlist. Requests contain only source, amount, ISO currency and memo.
+The host delegates to `create_payment_request`, preserving existing fiat limits,
+fees, provider handling and settlement. Responses contain only payment hash,
+HTTPS checkout URL, millisatoshi amount and provider name. `list-fiat-providers`
+uses the same permission and lists allowed names for an authenticated user.
+No provider credentials/options, spending permission or new authentication mode
+are introduced. Public routes resolve the source owner through their existing
+`ownerContext` policy; they do not accept a caller-supplied owner.
 
 For settlement-driven state changes, verify status/pending state, payment hash,
 amount, wallet, source, and the extension's stored invoice binding. Store enough
