@@ -21,6 +21,7 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "scheduler.user",
     "scheduler.extension",
     "wallet.create_invoice_public",
+    "wallet.create_fiat_invoice_public",
     "websocket.publish",
 }
 _OWNER_ID_FIELD = "__lnbits_owner_id__"
@@ -170,6 +171,10 @@ def _permission_grant_is_subset(
             user_scope=requested.id == "scheduler.user",
             allow_job_limit_override=allow_admin_policy_overrides,
         )
+    if requested.id == "wallet.create_fiat_invoice_public":
+        return _public_fiat_invoice_sources(granted.policies).issubset(
+            _public_fiat_invoice_sources(requested.policies)
+        )
     checker = {
         "http.request": _http_request_grant_is_subset,
         "extension.api.request": _extension_api_grant_is_subset,
@@ -185,6 +190,8 @@ def _validate_requested_permission_policies(
     event_handlers: set[str],
 ) -> None:
     for permission in permissions:
+        if permission.id == "wallet.create_fiat_invoice_public":
+            _public_fiat_invoice_sources(permission.policies)
         if permission.id in {"scheduler.user", "scheduler.extension"}:
             try:
                 policies = SchedulePolicy.parse_policies(
@@ -483,3 +490,25 @@ def _schedule_grant_is_subset(
         ):
             return False
     return True
+
+
+def _public_fiat_invoice_sources(
+    policies: list[Any] | None,
+) -> set[tuple[str, str, str]]:
+    if not isinstance(policies, list) or not policies:
+        raise ValueError("Public fiat invoices require source policies.")
+    sources = set()
+    for policy in policies:
+        if not isinstance(policy, dict) or set(policy) != {
+            "table",
+            "wallet_field",
+            "provider_field",
+        }:
+            raise ValueError("Invalid public fiat invoice source policy.")
+        fields = tuple(
+            policy[key] for key in ("table", "wallet_field", "provider_field")
+        )
+        if not all(isinstance(value, str) and value for value in fields):
+            raise ValueError("Invalid public fiat invoice source fields.")
+        sources.add(fields)
+    return sources

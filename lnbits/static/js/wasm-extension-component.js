@@ -604,6 +604,88 @@ window.WasmExtensionComponent = {
       window.sessionStorage.setItem(key, value)
       return {ok: true}
     },
+    async localBridgeStorage(message) {
+      if (!this.hasBridgePermission('ui.storage.local')) {
+        throw new Error('Persistent extension storage is not permitted.')
+      }
+      const key = message.key
+      if (typeof key !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(key)) {
+        throw new Error('Invalid extension storage key.')
+      }
+      const scope = () =>
+        JSON.stringify([
+          this.bridge.extensionId,
+          this.g?.user?.id || null,
+          this.$route.path
+        ])
+      const initialScope = scope()
+      const namespace = JSON.stringify([
+        this.bridge.extensionId,
+        this.g?.user?.id || null
+      ])
+      const digest = await window.crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(namespace)
+      )
+      if (
+        scope() !== initialScope ||
+        !this.hasBridgePermission('ui.storage.local')
+      ) {
+        throw new Error('Extension storage context changed.')
+      }
+      const storageKey =
+        'lnbits.ext.local.' +
+        this.bridge.extensionId +
+        '.' +
+        Array.from(new Uint8Array(digest), b =>
+          b.toString(16).padStart(2, '0')
+        ).join('')
+      const entryKey = JSON.stringify([this.$route.path, key])
+      const now = Date.now()
+      const ttl = 180 * 24 * 60 * 60 * 1000
+      const bytes = value => new TextEncoder().encode(value).length
+      const entries = Object.create(null)
+      const raw = window.localStorage.getItem(storageKey)
+      if (raw && raw.length <= 65536) {
+        try {
+          const stored = JSON.parse(raw)
+          if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+            for (const [name, record] of Object.entries(stored).slice(0, 128)) {
+              if (
+                record &&
+                typeof record.value === 'string' &&
+                bytes(record.value) <= 1024 &&
+                Number.isSafeInteger(record.expires) &&
+                record.expires > now &&
+                record.expires <= now + ttl
+              ) {
+                entries[name] = record
+              }
+            }
+          }
+        } catch (_) {
+          /* Discard malformed optional browser state. */
+        }
+      }
+      if (message.action === 'storage.local.set') {
+        if (typeof message.value !== 'string' || bytes(message.value) > 1024) {
+          throw new Error('Extension storage value is too large or invalid.')
+        }
+        entries[entryKey] = {value: message.value, expires: now + ttl}
+      } else if (message.action === 'storage.local.remove') {
+        delete entries[entryKey]
+      }
+      const encoded = JSON.stringify(entries)
+      if (Object.keys(entries).length > 128 || bytes(encoded) > 65536) {
+        throw new Error('Extension storage quota exceeded.')
+      }
+      if (Object.keys(entries).length)
+        window.localStorage.setItem(storageKey, encoded)
+      else window.localStorage.removeItem(storageKey)
+      return message.action === 'storage.local.get'
+        ? {value: entries[entryKey]?.value || ''}
+        : {ok: true}
+    },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
       const path = String(message.path || '')
@@ -1489,6 +1571,20 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.openNewTab(message)
+          })
+          return
+        }
+
+        if (
+          [
+            'storage.local.get',
+            'storage.local.set',
+            'storage.local.remove'
+          ].includes(message.action)
+        ) {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.localBridgeStorage(message)
           })
           return
         }

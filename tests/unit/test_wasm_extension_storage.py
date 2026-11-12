@@ -18,6 +18,8 @@ from lnbits.core.migrations import (
     m048_add_wasm_runtime_limits_to_installed_extensions,
 )
 from lnbits.core.models.extensions import ExtensionPermission, WasmInvocation
+from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
+from lnbits.core.wasm_ext.api.models import StoragePaginatedRequest
 from lnbits.core.wasm_ext.storage import crud as storage_crud
 from lnbits.core.wasm_ext.storage.crud import (
     OWNER_ID_FIELD,
@@ -283,6 +285,37 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
             limit=50,
             offset=0,
         )
+        for owner, published, expected in [
+            ("owner-1", True, 1),
+            ("owner-2", True, 0),
+            ("owner-1", False, 0),
+        ]:
+            api = ExtensionHostAPI(
+                ext_id, ["ext.storage.read"], context="event", owner_id=owner
+            )
+            count_page = await api.storage_get_paginated(
+                StoragePaginatedRequest(
+                    table="notes",
+                    filters={"published": published},
+                    limit=0,
+                    search=None,
+                    sort_by=None,
+                    offset=0,
+                )
+            )
+            assert count_page.total == expected
+            assert json.loads(count_page.rows_json) == []
+        with pytest.raises(ValueError):
+            StoragePaginatedRequest(
+                table="notes", limit=-1, search=None, sort_by=None, offset=0
+            )
+        without_owner = ExtensionHostAPI(ext_id, ["ext.storage.read"], context="event")
+        with pytest.raises(PermissionError, match="owner context"):
+            await without_owner.storage_get_paginated(
+                StoragePaginatedRequest(
+                    table="notes", limit=0, search=None, sort_by=None, offset=0
+                )
+            )
         await storage_delete_row(ext_id, "notes", "note-1", "owner-2")
         still_owned = await storage_get_row(ext_id, "notes", "note-1", "owner-1")
         await storage_delete_row(ext_id, "notes", "note-1", "owner-1")
