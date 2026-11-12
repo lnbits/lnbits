@@ -111,7 +111,7 @@ class StoragePaginatedRequest(BaseModel):
     search_fields: list[str] = Field(default_factory=list)
     sort_by: str | None = Field(None, min_length=1, max_length=128)
     descending: bool = False
-    limit: int = Field(25, ge=1, le=1000)
+    limit: int = Field(25, ge=0, le=1000)
     offset: int = Field(0, ge=0)
 
     @model_validator(mode="before")
@@ -199,7 +199,20 @@ class CreateInvoicePublicRequest(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str = Field(..., min_length=1, max_length=8)
     memo: str = Field("", max_length=512)
+    unhashed_description: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=4096,
+        description="LNURL metadata (up to 4096 UTF-8 bytes) for the description hash.",
+    )
     extra: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("unhashed_description")
+    @classmethod
+    def validate_unhashed_description_size(cls, value: str | None) -> str | None:
+        if value is not None and len(value.encode("utf-8")) > 4096:
+            raise ValueError("Invoice metadata must not exceed 4096 UTF-8 bytes.")
+        return value
 
     @field_validator("extra")
     @classmethod
@@ -217,6 +230,36 @@ class CreateInvoiceResponse(BaseModel):
     payment_hash: str
     payment_request: str
     checking_id: str
+
+
+class InvoiceStatusRequest(BaseModel):
+    payment_hash: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    source_id: str = Field(..., min_length=1, max_length=512)
+
+
+class InvoiceStatusResponse(BaseModel):
+    paid: bool
+    pending: bool
+    failed: bool
+    amount_msat: int
+
+
+class CreateFiatInvoicePublicRequest(BaseModel):
+    source_id: str = Field(..., min_length=1, max_length=512)
+    amount: float = Field(..., gt=0, allow_inf_nan=False)
+    currency: str = Field(..., pattern=r"^[A-Z]{3}$")
+    memo: str = Field(default="", max_length=512)
+
+
+class CreateFiatInvoiceResponse(BaseModel):
+    payment_hash: str
+    payment_request: str
+    amount_msat: int
+    fiat_provider: str
+
+
+class ListFiatProvidersResponse(BaseModel):
+    providers: list[str]
 
 
 class UserWalletSummary(BaseModel):

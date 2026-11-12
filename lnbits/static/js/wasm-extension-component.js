@@ -190,6 +190,8 @@ window.WasmExtensionComponent = {
         routeParams: {}
       },
       bridgePort: null,
+      themeObserver: null,
+      lastTheme: '',
       cameraPrompt: {
         extensionName: '',
         reject: null,
@@ -248,7 +250,17 @@ window.WasmExtensionComponent = {
     this.handleWindowMessage = event => this.onWindowMessage(event)
     window.addEventListener('message', this.handleWindowMessage)
   },
+  mounted() {
+    this.themeObserver = new MutationObserver(() => this.publishTheme())
+    for (const element of [document.documentElement, document.body]) {
+      this.themeObserver.observe(element, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+      })
+    }
+  },
   unmounted() {
+    this.themeObserver?.disconnect()
     window.removeEventListener('message', this.handleWindowMessage)
     this.rejectCameraPrompt('Camera scan cancelled.')
     this.rejectBackgroundPaymentPrompt(
@@ -279,10 +291,44 @@ window.WasmExtensionComponent = {
         routeParams: {}
       }
     },
+    currentTheme() {
+      const style = window.getComputedStyle(document.body)
+      const colors = {}
+      for (const name of [
+        'primary',
+        'secondary',
+        'accent',
+        'positive',
+        'negative',
+        'info',
+        'warning',
+        'dark',
+        'dark-page'
+      ]) {
+        const value = style.getPropertyValue(`--q-${name}`).trim()
+        if (value.length <= 128 && CSS.supports('color', value))
+          colors[name] = value
+      }
+      return {
+        dark: Boolean(this.$q.dark.isActive),
+        name: String(document.body.dataset.theme || ''),
+        gradient: document.body.classList.contains('gradient-bg'),
+        colors
+      }
+    },
+    publishTheme() {
+      if (!this.bridgePort) return
+      const theme = this.currentTheme()
+      const signature = JSON.stringify(theme)
+      if (signature === this.lastTheme) return
+      this.lastTheme = signature
+      this.sendBridgeEvent({event: 'ui.theme', data: theme})
+    },
     plainBridgeContext() {
       return {
         extensionId: String(this.bridge.extensionId || ''),
         public: Boolean(this.bridge.public),
+        theme: this.currentTheme(),
         routeParams: this.plainValue(this.bridge.routeParams || {}),
         query: this.plainValue(this.bridge.query || {})
       }
@@ -557,6 +603,88 @@ window.WasmExtensionComponent = {
       }
       window.sessionStorage.setItem(key, value)
       return {ok: true}
+    },
+    async localBridgeStorage(message) {
+      if (!this.hasBridgePermission('ui.storage.local')) {
+        throw new Error('Persistent extension storage is not permitted.')
+      }
+      const key = message.key
+      if (typeof key !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(key)) {
+        throw new Error('Invalid extension storage key.')
+      }
+      const scope = () =>
+        JSON.stringify([
+          this.bridge.extensionId,
+          this.g?.user?.id || null,
+          this.$route.path
+        ])
+      const initialScope = scope()
+      const namespace = JSON.stringify([
+        this.bridge.extensionId,
+        this.g?.user?.id || null
+      ])
+      const digest = await window.crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(namespace)
+      )
+      if (
+        scope() !== initialScope ||
+        !this.hasBridgePermission('ui.storage.local')
+      ) {
+        throw new Error('Extension storage context changed.')
+      }
+      const storageKey =
+        'lnbits.ext.local.' +
+        this.bridge.extensionId +
+        '.' +
+        Array.from(new Uint8Array(digest), b =>
+          b.toString(16).padStart(2, '0')
+        ).join('')
+      const entryKey = JSON.stringify([this.$route.path, key])
+      const now = Date.now()
+      const ttl = 180 * 24 * 60 * 60 * 1000
+      const bytes = value => new TextEncoder().encode(value).length
+      const entries = Object.create(null)
+      const raw = window.localStorage.getItem(storageKey)
+      if (raw && raw.length <= 65536) {
+        try {
+          const stored = JSON.parse(raw)
+          if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+            for (const [name, record] of Object.entries(stored).slice(0, 128)) {
+              if (
+                record &&
+                typeof record.value === 'string' &&
+                bytes(record.value) <= 1024 &&
+                Number.isSafeInteger(record.expires) &&
+                record.expires > now &&
+                record.expires <= now + ttl
+              ) {
+                entries[name] = record
+              }
+            }
+          }
+        } catch (_) {
+          /* Discard malformed optional browser state. */
+        }
+      }
+      if (message.action === 'storage.local.set') {
+        if (typeof message.value !== 'string' || bytes(message.value) > 1024) {
+          throw new Error('Extension storage value is too large or invalid.')
+        }
+        entries[entryKey] = {value: message.value, expires: now + ttl}
+      } else if (message.action === 'storage.local.remove') {
+        delete entries[entryKey]
+      }
+      const encoded = JSON.stringify(entries)
+      if (Object.keys(entries).length > 128 || bytes(encoded) > 65536) {
+        throw new Error('Extension storage quota exceeded.')
+      }
+      if (Object.keys(entries).length)
+        window.localStorage.setItem(storageKey, encoded)
+      else window.localStorage.removeItem(storageKey)
+      return message.action === 'storage.local.get'
+        ? {value: entries[entryKey]?.value || ''}
+        : {ok: true}
     },
     async callApi(message) {
       const method = String(message.method || 'GET').toUpperCase()
@@ -1248,6 +1376,147 @@ window.WasmExtensionComponent = {
           : JSON.stringify(message.data ?? {})
       subscription.socket.send(data)
     },
+    exportTable(message) {
+      const {columns, rows} = message
+      if (
+        !Array.isArray(columns) ||
+        columns.length < 1 ||
+        columns.length > 50 ||
+        !columns.every(
+          value => typeof value === 'string' && value.length <= 200
+        ) ||
+        !Array.isArray(rows) ||
+        rows.length > 10000 ||
+        !rows.every(
+          row =>
+            Array.isArray(row) &&
+            row.length === columns.length &&
+            row.every(value =>
+              ['string', 'number', 'boolean'].includes(typeof value)
+            )
+        )
+      )
+        throw new Error('Invalid export table.')
+      const table = {columns, rows: rows.map(row => row.map(String))}
+      if (new TextEncoder().encode(JSON.stringify(table)).length > 1048576) {
+        throw new Error('Export must not exceed 1 MiB.')
+      }
+      return table
+    },
+    csvDocument(message) {
+      const filename = message.filename
+      if (
+        typeof filename !== 'string' ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}\.csv$/.test(filename)
+      ) {
+        throw new Error('Invalid CSV filename.')
+      }
+      const table = this.exportTable(message)
+      const cell = value => {
+        let text = String(value)
+        // Spreadsheet formula injection also applies after leading whitespace.
+        if (/^[\s\u0000-\u001f]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text))
+          text = "'" + text
+        return '"' + text.replaceAll('"', '""') + '"'
+      }
+      return {
+        filename,
+        text: [table.columns, ...table.rows]
+          .map(row => row.map(cell).join(','))
+          .join('\r\n')
+      }
+    },
+    printDocument(message) {
+      const table = this.exportTable(message)
+      if (
+        typeof message.title !== 'string' ||
+        message.title.length > 200 ||
+        !Array.isArray(message.lines) ||
+        message.lines.length > 50 ||
+        !message.lines.every(
+          line => typeof line === 'string' && line.length <= 2000
+        )
+      ) {
+        throw new Error('Invalid print document.')
+      }
+      return {...table, title: message.title, lines: message.lines}
+    },
+    async confirmDocumentAction(label) {
+      if (this.documentActionPending)
+        throw new Error('An export prompt is already open.')
+      this.documentActionPending = true
+      try {
+        return await new Promise(resolve => {
+          window.Quasar.Dialog.create({
+            title: label,
+            message: `${this.bridge.extensionId} requests this action.`,
+            cancel: true,
+            persistent: true
+          })
+            .onOk(() => resolve(true))
+            .onCancel(() => resolve(false))
+        })
+      } finally {
+        this.documentActionPending = false
+      }
+    },
+    async downloadCsv(message) {
+      const data = this.csvDocument(message)
+      if (!(await this.confirmDocumentAction('Download CSV?')))
+        return {cancelled: true}
+      const url = URL.createObjectURL(
+        new Blob([data.text], {type: 'text/csv;charset=utf-8'})
+      )
+      const link = document.createElement('a')
+      link.href = url
+      link.download = data.filename
+      document.body.appendChild(link)
+      try {
+        link.click()
+      } finally {
+        link.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+      return {ok: true}
+    },
+    async printExtensionDocument(message) {
+      const data = this.printDocument(message)
+      if (!(await this.confirmDocumentAction('Print invoice?')))
+        return {cancelled: true}
+      const frame = document.createElement('iframe')
+      // No extension HTML, scripts, URLs, or styles are accepted for printing.
+      frame.setAttribute('sandbox', 'allow-same-origin allow-modals')
+      frame.setAttribute('title', 'Invoice print preview')
+      frame.style.position = 'fixed'
+      frame.style.width = '1px'
+      frame.style.height = '1px'
+      frame.style.opacity = '0'
+      document.body.appendChild(frame)
+      try {
+        const doc = frame.contentDocument
+        doc.title = data.title
+        const add = (tag, text, parent = doc.body) => {
+          const element = doc.createElement(tag)
+          element.textContent = text
+          parent.appendChild(element)
+          return element
+        }
+        add('h1', data.title)
+        data.lines.forEach(line => add('p', line))
+        const table = add('table', '')
+        const header = add('tr', '', table)
+        data.columns.forEach(value => add('th', value, header))
+        data.rows.forEach(row => {
+          const tr = add('tr', '', table)
+          row.forEach(value => add('td', value, tr))
+        })
+        frame.contentWindow.focus()
+        frame.contentWindow.print()
+      } finally {
+        window.setTimeout(() => frame.remove(), 1000)
+      }
+      return {ok: true}
+    },
     async handleBridgeRequest(message, reply) {
       if (!message || message.type !== 'lnbits-extension:request') return
 
@@ -1265,6 +1534,18 @@ window.WasmExtensionComponent = {
             ok: true,
             data: await this.callApi(message)
           })
+          return
+        }
+
+        if (
+          message.action === 'ui.download_csv' ||
+          message.action === 'ui.print_document'
+        ) {
+          const data =
+            message.action === 'ui.download_csv'
+              ? await this.downloadCsv(message)
+              : await this.printExtensionDocument(message)
+          this.sendResponse(reply, message.id, {ok: true, data})
           return
         }
 
@@ -1290,6 +1571,20 @@ window.WasmExtensionComponent = {
           this.sendResponse(reply, message.id, {
             ok: true,
             data: await this.openNewTab(message)
+          })
+          return
+        }
+
+        if (
+          [
+            'storage.local.get',
+            'storage.local.set',
+            'storage.local.remove'
+          ].includes(message.action)
+        ) {
+          this.sendResponse(reply, message.id, {
+            ok: true,
+            data: await this.localBridgeStorage(message)
           })
           return
         }
@@ -1405,6 +1700,7 @@ window.WasmExtensionComponent = {
 
       this.closeBridgePort()
       this.bridgePort = port
+      this.lastTheme = ''
       this.bridgePort.addEventListener('message', portEvent => {
         this.handleBridgeRequest(portEvent.data, response => {
           port.postMessage(response)

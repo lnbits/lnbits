@@ -4,8 +4,12 @@ import json
 import secrets
 import time
 from collections.abc import Iterable, Mapping
+from hashlib import sha256
 from typing import Any
+from urllib.parse import urlsplit
 
+from bolt11 import Bolt11Exception
+from bolt11 import decode as bolt11_decode
 from loguru import logger
 
 from lnbits.core.models.users import Account, UserNotifications
@@ -30,6 +34,8 @@ from .background_payments import (
     invoice_amount_msat,
 )
 from .models import (
+    CreateFiatInvoicePublicRequest,
+    CreateFiatInvoiceResponse,
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
     CreateInvoiceResponse,
@@ -37,6 +43,9 @@ from .models import (
     ExtensionApiRequest,
     HttpRequest,
     HttpResponse,
+    InvoiceStatusRequest,
+    InvoiceStatusResponse,
+    ListFiatProvidersResponse,
     ListUserWalletsResponse,
     LogRequest,
     LogResponse,
@@ -450,6 +459,11 @@ class ExtensionHostAPI:
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                unhashed_description=(
+                    request.unhashed_description.encode("utf-8").hex()
+                    if request.unhashed_description is not None
+                    else None
+                ),
                 extra={
                     "tag": self.extension_id,
                     "source_id": request.source_id,
@@ -464,10 +478,167 @@ class ExtensionHostAPI:
                 "source_id": request.source_id,
             },
         )
+        if request.unhashed_description is not None:
+            try:
+                invoice = bolt11_decode(payment.payment_request or payment.bolt11)
+            except (Bolt11Exception, ValueError) as exc:
+                raise ValueError(
+                    "Funding backend returned an invalid invoice."
+                ) from exc
+            expected_hash = sha256(
+                request.unhashed_description.encode("utf-8")
+            ).hexdigest()
+            if invoice.description_hash != expected_hash:
+                raise ValueError(
+                    "Funding backend returned an incorrect description hash."
+                )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
             payment_request=payment.payment_request or payment.bolt11,
             checking_id=payment.checking_id,
+        )
+
+    @extension_api_method(
+        method_id="wallet.invoice_status",
+        namespace="wallet",
+        name="Check extension invoice",
+        host_name="invoice_status",
+        sdk_name="invoiceStatus",
+        description="Check an invoice bound to this extension, owner and source.",
+        required_permission="wallet.invoice_status",
+    )
+    async def wallet_invoice_status(
+        self, request: InvoiceStatusRequest
+    ) -> InvoiceStatusResponse:
+        from lnbits.core.crud.payments import get_standalone_payment
+        from lnbits.core.services.payments import update_pending_payment
+
+        owner_id = self._require_owner_id()
+        payment = await get_standalone_payment(request.payment_hash, incoming=True)
+        binding = payment.extension_context if payment else None
+        if (
+            not payment
+            or not payment.is_in
+            or payment.payment_hash != request.payment_hash
+            or payment.extension != self.extension_id
+            or not isinstance(binding, dict)
+            or binding.get("extension_id") != self.extension_id
+            or binding.get("owner_id") != owner_id
+            or binding.get("wallet_id") != payment.wallet_id
+            or binding.get("source_id") != request.source_id
+        ):
+            raise PermissionError("Invoice is not available to this extension source.")
+        # Authorize before consulting a backend. Mutable guest rows/extra are not proof.
+        if payment.pending:
+            payment = await update_pending_payment(payment)
+        return InvoiceStatusResponse(
+            paid=payment.success,
+            pending=payment.pending,
+            failed=payment.failed,
+            amount_msat=payment.amount,
+        )
+
+    @extension_api_method(
+        method_id="wallet.list_fiat_providers",
+        namespace="wallet",
+        name="List allowed fiat providers",
+        host_name="list_fiat_providers",
+        sdk_name="listFiatProviders",
+        description="List enabled fiat provider names allowed for the current user.",
+        required_permission="wallet.create_fiat_invoice_public",
+    )
+    async def wallet_list_fiat_providers(
+        self, request: EmptyRequest
+    ) -> ListFiatProvidersResponse:
+        from lnbits.settings import settings
+
+        if not self.user_id:
+            raise PermissionError("Listing providers requires an authenticated user.")
+        return ListFiatProvidersResponse(
+            providers=settings.get_fiat_providers_for_user(self.user_id)
+        )
+
+    @extension_api_method(
+        method_id="wallet.create_fiat_invoice_public",
+        namespace="wallet",
+        name="Create public fiat checkout",
+        host_name="create_fiat_invoice_public",
+        sdk_name="createFiatInvoicePublic",
+        description="Create a checkout using a stored source's wallet and provider.",
+        required_permission="wallet.create_fiat_invoice_public",
+    )
+    async def wallet_create_fiat_invoice_public(
+        self, request: CreateFiatInvoicePublicRequest
+    ) -> CreateFiatInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.models.payments import CreateInvoice
+        from lnbits.core.services.payments import create_payment_request
+        from lnbits.settings import settings
+
+        from .permissions import _public_fiat_invoice_sources
+
+        owner_id = self._require_owner_id()
+        policies = _public_fiat_invoice_sources(
+            self.permission_policies.get("wallet.create_fiat_invoice_public")
+        )
+        row = None
+        wallet_id = provider = None
+        for table, wallet_field, provider_field in sorted(policies):
+            row = await storage_get_row(
+                self.extension_id, table, request.source_id, owner_id=owner_id
+            )
+            if row:
+                wallet_id, provider = row.get(wallet_field), row.get(provider_field)
+                break
+        if not row:
+            raise PermissionError("Fiat invoice source was not found.")
+        if not isinstance(wallet_id, str) or not wallet_id:
+            raise PermissionError("Fiat invoice source has no valid wallet.")
+        wallet = await get_wallet(wallet_id)
+        if (
+            not wallet
+            or sha256s(wallet.user) != owner_id
+            or not wallet.can_receive_payments
+            or not isinstance(provider, str)
+            or provider not in settings.get_fiat_providers_for_user(wallet.user)
+        ):
+            raise PermissionError("Fiat invoice wallet or provider is not available.")
+        payment = await create_payment_request(
+            wallet.id,
+            CreateInvoice(
+                amount=request.amount,
+                unit=request.currency,
+                memo=request.memo,
+                fiat_provider=provider,
+                extension=self.extension_id,
+                extra={"tag": self.extension_id, "source_id": request.source_id},
+            ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": owner_id,
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": request.source_id,
+            },
+        )
+        checkout = payment.extra.get("fiat_payment_request")
+        if not isinstance(checkout, str):
+            raise ValueError("Fiat provider returned no checkout URL.")
+        url = urlsplit(checkout)
+        if (
+            len(checkout) > 4096
+            or any(ord(char) < 33 or ord(char) == 127 for char in checkout)
+            or "\\" in checkout
+            or url.scheme != "https"
+            or not url.hostname
+            or url.username is not None
+            or url.password is not None
+        ):
+            raise ValueError("Fiat provider returned an invalid checkout URL.")
+        return CreateFiatInvoiceResponse(
+            payment_hash=payment.payment_hash,
+            payment_request=checkout,
+            amount_msat=payment.amount,
+            fiat_provider=provider,
         )
 
     @extension_api_method(
