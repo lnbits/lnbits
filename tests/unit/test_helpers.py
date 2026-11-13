@@ -300,6 +300,11 @@ def test_template_renderer_supports_legacy_and_request_first_signatures():
     modern = renderer.TemplateResponse(req, "error.html", dict(ctx), status_code=400)
     assert modern.status_code == 400
 
+    modern_kw = renderer.TemplateResponse(
+        request=req, name="error.html", context=dict(ctx), status_code=401
+    )
+    assert modern_kw.status_code == 401
+
     legacy_call: Any = renderer.TemplateResponse
     legacy_two_arg = legacy_call("error.html", dict(ctx))
     assert legacy_two_arg.status_code == 200
@@ -312,3 +317,6 @@ def test_template_renderer_supports_legacy_and_request_first_signatures():
 
     with pytest.raises(ValueError, match='context must include a "request" key'):
         legacy_call("error.html", {"err": "no-req"})
+
+    with pytest.raises(ValueError, match='context must include a "request" key'):
+        legacy_call(name="error.html", context={"err": "no-req"})
