@@ -1,8 +1,10 @@
 import hashlib
+from typing import Any
 
 import jwt
 import pytest
 from fastapi import FastAPI
+from starlette.requests import Request
 
 from lnbits.helpers import (
     camel_to_snake,
@@ -31,6 +33,7 @@ from lnbits.helpers import (
     sha256s,
     snake_to_camel,
     static_url_for,
+    template_renderer,
     url_for,
     version_parse,
 )
@@ -277,3 +280,43 @@ def test_path_and_case_helpers():
     assert is_snake_case("SnakeCase") is False
     assert lowercase_first_letter("Hello") == "hello"
     assert sha256s("hello") == hashlib.sha256(b"hello").hexdigest()
+
+
+def test_template_renderer_supports_legacy_and_request_first_signatures():
+    req = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/ext/",
+            "headers": [],
+            "query_string": b"",
+            "server": ("127.0.0.1", 5000),
+            "scheme": "http",
+        }
+    )
+    renderer = template_renderer()
+    ctx = {"request": req, "err": "bad", "status_code": 400, "message": "bad"}
+
+    modern = renderer.TemplateResponse(req, "error.html", dict(ctx), status_code=400)
+    assert modern.status_code == 400
+
+    modern_kw = renderer.TemplateResponse(
+        request=req, name="error.html", context=dict(ctx), status_code=401
+    )
+    assert modern_kw.status_code == 401
+
+    legacy_call: Any = renderer.TemplateResponse
+    legacy_two_arg = legacy_call("error.html", dict(ctx))
+    assert legacy_two_arg.status_code == 200
+
+    legacy_pos = legacy_call("error.html", dict(ctx), 418)
+    assert legacy_pos.status_code == 418
+
+    legacy_kw = legacy_call(name="error.html", context=dict(ctx), status_code=422)
+    assert legacy_kw.status_code == 422
+
+    with pytest.raises(ValueError, match='context must include a "request" key'):
+        legacy_call("error.html", {"err": "no-req"})
+
+    with pytest.raises(ValueError, match='context must include a "request" key'):
+        legacy_call(name="error.html", context={"err": "no-req"})

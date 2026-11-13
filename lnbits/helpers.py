@@ -93,6 +93,7 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
 
     # backwards compatibility for extensions (tpos)
     t.env.globals["LNBITS_DENOMINATION"] = settings.lnbits_denomination
+    _bind_legacy_template_response(t)
 
     return t
 
@@ -397,3 +398,32 @@ def daystart_timestamp(dt: datetime | None = None) -> int:
     dt = dt or datetime.now(timezone.utc)
     day_start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
     return int(day_start.timestamp())
+
+
+def _normalize_template_response_args(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    if args:
+        first, *rest = args
+        if isinstance(first, str):
+            context = rest[0] if rest else kwargs.pop("context", None)
+            if not isinstance(context, dict) or "request" not in context:
+                raise ValueError('context must include a "request" key')
+            return (context["request"], first, context, *rest[1:]), kwargs
+        return args, kwargs
+    if "request" not in kwargs:
+        context = kwargs.get("context")
+        if not isinstance(context, dict) or "request" not in context:
+            raise ValueError('context must include a "request" key')
+        return args, {"request": context["request"], **kwargs}
+    return args, kwargs
+
+
+def _bind_legacy_template_response(templates: Jinja2Templates) -> None:
+    base_template_response = templates.TemplateResponse
+
+    def _compat_template_response(*args: Any, **kwargs: Any) -> Any:
+        norm_args, norm_kwargs = _normalize_template_response_args(args, kwargs)
+        return base_template_response(*norm_args, **norm_kwargs)
+
+    templates.__dict__["TemplateResponse"] = _compat_template_response
