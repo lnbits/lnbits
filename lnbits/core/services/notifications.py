@@ -512,7 +512,7 @@ async def _post_webhook(payment: Payment) -> int:
         response = await client.post(
             payment.webhook,
             headers={"User-Agent": settings.user_agent},
-            json=payment.model_dump_json(),
+            json=payment.model_dump(mode="json"),
         )
         response.raise_for_status()
         return response.status_code
