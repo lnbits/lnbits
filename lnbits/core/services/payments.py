@@ -453,12 +453,13 @@ async def update_pending_payment(
 ) -> Payment:
     if payment.is_in and payment.success:
         return payment
-    if payment.is_in and payment.is_expired:
+    # An expired invoice may have settled while LNbits was offline.
+    status = await check_payment_status(payment)
+    if payment.is_in and payment.is_expired and not status.success:
         return await _update_incoming_payment_status(
             payment, PaymentFailedStatus(), conn=conn, expired=True
         )
 
-    status = await check_payment_status(payment)
     if payment.is_in and (status.success or status.failed):
         return await _update_incoming_payment_status(payment, status, conn=conn)
     if status.failed:
@@ -499,10 +500,18 @@ async def check_pending_payments():
         if not page.data:
             break
         for payment in page.data:
-            payment = await update_pending_payment(payment)
-            # Resolved payments leave the results; skip only those still pending.
-            if payment.status == PaymentState.PENDING:
+            try:
+                payment = await update_pending_payment(payment)
+            except Exception as exc:
+                logger.warning(
+                    f"Task: error checking pending payment {payment.checking_id}: "
+                    f"{type(exc).__name__}"
+                )
                 offset += 1
+            else:
+                # Resolved payments leave the results; skip only those still pending.
+                if payment.status == PaymentState.PENDING:
+                    offset += 1
             count += 1
             prefix = f"payment ({count}/{total})"
             logger.debug(f"{prefix} {payment.status} {payment.checking_id}")
