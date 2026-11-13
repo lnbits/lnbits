@@ -17,16 +17,6 @@ from lnbits.core.models.extensions import (
     PayToEnableInfo,
     ReleasePaymentInfo,
 )
-from lnbits.core.models.extensions_builder import (
-    ActionFields,
-    ClientDataFields,
-    DataField,
-    DataFields,
-    ExtensionData,
-    OwnerDataFields,
-    PublicPageFields,
-    SettingsFields,
-)
 from lnbits.wallets import get_funding_source, set_funding_source
 
 # https://github.com/lightning/bolts/blob/master/bolt12/offers-test.json
@@ -105,29 +95,6 @@ async def get_user_token_headers(client: AsyncClient, user_id: str) -> dict[str,
         "Authorization": f"Bearer {response.json()['access_token']}",
         "Content-type": "application/json",
     }
-
-
-def make_extension_data(ext_id: str = "demoext") -> ExtensionData:
-    return ExtensionData(
-        id=ext_id,
-        name="Demo Extension",
-        stub_version="0.1.0",
-        short_description="Generated extension",
-        owner_data=DataFields(
-            name="OwnerData",
-            fields=[DataField(name="wallet_id", type="wallet")],
-        ),
-        client_data=DataFields(
-            name="ClientData",
-            fields=[DataField(name="amount", type="int")],
-        ),
-        settings_data=SettingsFields(name="SettingsData", fields=[]),
-        public_page=PublicPageFields(
-            owner_data_fields=OwnerDataFields(),
-            client_data_fields=ClientDataFields(),
-            action_fields=ActionFields(),
-        ),
-    )
 
 
 def make_extension_release(ext_id: str, version: str = "1.0.0") -> ExtensionRelease:

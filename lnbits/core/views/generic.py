@@ -1,6 +1,4 @@
-from hashlib import sha256
 from http import HTTPStatus
-from pathlib import Path
 
 from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
@@ -17,7 +15,6 @@ from lnbits.decorators import (
     check_admin_ui,
     check_blockexplorer_access,
     check_blockexplorer_public,
-    check_extension_builder,
     check_first_install,
     check_user_exists,
 )
@@ -39,48 +36,6 @@ async def favicon():
 async def robots():
     data = "User-agent: *\nDisallow: /"
     return HTMLResponse(content=data, media_type="text/plain")
-
-
-@generic_router.get(
-    "/extensions/builder/preview/{ext_id}/{resource}",
-    name="extensions builder",
-    dependencies=[Depends(check_extension_builder)],
-)
-async def extensions_builder_preview(
-    ext_id: str,
-    resource: str | None = None,
-    page_name: str | None = None,
-    user: User = Depends(check_user_exists),
-) -> FileResponse:
-    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
-
-    file_name = "index"
-    if page_name == "public_page":
-        file_name = "public_page"
-
-    resource_path = Path(
-        settings.extension_builder_working_dir_path,
-        "extension_builder_stub",
-        ext_id,
-        working_dir_name,
-        ext_id,
-        "static",
-    )
-
-    file_ext = ".vue" if resource == "template" else ".js"
-    file_full_path = Path(resource_path, file_name + file_ext)
-
-    if not file_full_path.is_file():
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
-    response = FileResponse(file_full_path.absolute().as_posix())
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    )
-
-    return response
 
 
 @generic_router.get("/service-worker.js")
@@ -113,12 +68,6 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/admin/extensions/wasm", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm/limits", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm/{ext_id}", dependencies=admin_ui_checks)
-@generic_router.get(
-    "/extensions/builder", dependencies=[Depends(check_extension_builder)]
-)
-@generic_router.get(
-    "/extensions/builder/preview", dependencies=[Depends(check_extension_builder)]
-)
 async def index(
     request: Request,
     ext_id: str | None = None,

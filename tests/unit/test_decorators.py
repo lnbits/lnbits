@@ -19,7 +19,6 @@ from lnbits.decorators import (
     check_access_token,
     check_admin_ui,
     check_api_write_access,
-    check_extension_builder,
     check_first_install,
     check_user_exists,
     optional_acl_token_payload,
@@ -306,22 +305,6 @@ async def test_check_admin_ui_and_first_install(settings: Settings):
     finally:
         settings.lnbits_admin_ui = original_admin_ui
         settings.first_install = original_first_install
-
-
-@pytest.mark.anyio
-async def test_check_extension_builder_requires_admin_when_disabled_for_users(
-    settings: Settings, user_alan: User
-):
-    settings.lnbits_extensions_builder_activate_non_admins = False
-
-    with pytest.raises(
-        HTTPException, match="Extension Builder is disabled for non admin users."
-    ):
-        await check_extension_builder(user_alan)
-
-    admin_user = user_alan.model_copy(deep=True)
-    admin_user.admin = True
-    await check_extension_builder(admin_user)
 
 
 def test_extension_id_from_request_path_handles_wasm_routes():

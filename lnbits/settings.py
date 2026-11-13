@@ -89,7 +89,6 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_extensions_deactivate_all: bool = Field(default=False)
     lnbits_autoupdate_extensions_on_startup: bool = Field(default=True)
     lnbits_autoupdate_extensions_interval_hours: int = Field(default=24, ge=0)
-    lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
         default="",
@@ -104,13 +103,6 @@ class ExtensionsSettings(LNbitsSettings):
         ]
     )
     lnbits_wasm_extensions_manifests: list[str] = Field(default=DEFAULT_WASM_MANIFESTS)
-    lnbits_extensions_builder_manifest_url: str = Field(
-        default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
-    )
-
-    @property
-    def extension_builder_working_dir_path(self) -> Path:
-        return Path(settings.lnbits_data_folder, "extensions_builder")
 
 
 class WasmRuntimeLimits(LNbitsSettings):
@@ -1511,7 +1503,6 @@ class PublicSettings(BaseModel):
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
     default_accounting_currency: str = Field(alias="defaultAccountingCurrency")
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
-    ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
     email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
@@ -1600,7 +1591,6 @@ class PublicSettings(BaseModel):
                 settings.lnbits_default_accounting_currency or "USD"
             ),
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
-            extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
             emailConfigured=settings.is_email_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),

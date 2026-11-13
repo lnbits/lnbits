@@ -284,11 +284,6 @@ async def test_explicit_wasm_release_loads_install_permissions(
     mocker.patch.object(settings, "lnbits_extensions_manifests", [])
     mocker.patch.object(settings, "lnbits_wasm_extensions_manifests", [manifest_url])
     mocker.patch.object(
-        settings,
-        "lnbits_extensions_builder_manifest_url",
-        "https://extensions.example/builder.json",
-    )
-    mocker.patch.object(
         InstallableExtension,
         "fetch_manifest",
         mocker.AsyncMock(side_effect=fetch_manifest),

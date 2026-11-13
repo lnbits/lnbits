@@ -1078,9 +1078,7 @@ class InstallableExtension(BaseModel):
         cls, ext_id: str, *, include_payment_info: bool = True
     ) -> list[ExtensionRelease]:
         extension_releases: list[ExtensionRelease] = []
-        for url, manifest_type in _extension_manifest_sources(
-            include_builder=True, deduplicate=False
-        ):
+        for url, manifest_type in _extension_manifest_sources(deduplicate=False):
             try:
                 manifest = await cls.fetch_manifest(url)
                 for r in manifest.repos:
@@ -1270,7 +1268,7 @@ def _archive_config_name(names: list[str]) -> str | None:
 
 
 def _extension_manifest_sources(
-    *, include_builder: bool = False, deduplicate: bool = True
+    *, deduplicate: bool = True
 ) -> list[tuple[str, ExtensionManifestType]]:
     sources = [
         *(
@@ -1282,13 +1280,6 @@ def _extension_manifest_sources(
             for url in settings.lnbits_wasm_extensions_manifests
         ),
     ]
-    if include_builder:
-        sources.append(
-            (
-                settings.lnbits_extensions_builder_manifest_url,
-                ExtensionManifestType.PYTHON,
-            )
-        )
     if not deduplicate:
         return sources
     unique_sources: dict[str, ExtensionManifestType] = {}

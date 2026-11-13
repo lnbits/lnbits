@@ -48,13 +48,12 @@ def _extension_config_payload() -> dict:
 async def test_release_prices_are_only_fetched_for_interactive_requests(
     settings: Settings, mocker: MockerFixture, tmp_path, monkeypatch, lookup
 ):
-    settings.lnbits_extensions_manifests = []
+    manifest_url = "https://example.com/extensions.json"
+    settings.lnbits_extensions_manifests = [manifest_url]
     settings.lnbits_wasm_extensions_manifests = []
     ext = make_installable_extension("paidext")
     assert ext.meta and ext.meta.installed_release
-    ext.meta.installed_release.source_repo = (
-        settings.lnbits_extensions_builder_manifest_url
-    )
+    ext.meta.installed_release.source_repo = manifest_url
     pay_link = "https://example.com/pay"
     manifest = Manifest.model_validate(
         {

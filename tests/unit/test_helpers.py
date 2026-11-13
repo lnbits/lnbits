@@ -5,8 +5,6 @@ import pytest
 from fastapi import FastAPI
 
 from lnbits.helpers import (
-    camel_to_snake,
-    camel_to_words,
     check_callback_url,
     create_access_token,
     decrypt_internal_message,
@@ -16,20 +14,16 @@ from lnbits.helpers import (
     filter_dict_keys,
     get_api_routes,
     get_db_vendor_name,
-    is_camel_case,
     is_lnbits_version_ok,
-    is_snake_case,
     is_valid_email_address,
     is_valid_external_id,
     is_valid_label,
     is_valid_pubkey,
     is_valid_username,
-    lowercase_first_letter,
     normalize_endpoint,
     normalize_path,
     path_segments,
     sha256s,
-    snake_to_camel,
     static_url_for,
     url_for,
     version_parse,
@@ -257,7 +251,7 @@ def test_get_api_routes_extracts_v1_paths():
     }
 
 
-def test_path_and_case_helpers():
+def test_path_and_hash_helpers():
     assert path_segments("/wallet/path") == ["wallet", "path"]
     assert normalize_path(None) == "/"
     assert normalize_endpoint("example.com/") == "https://example.com"
@@ -267,13 +261,4 @@ def test_path_and_case_helpers():
         == "http://example.com"
     )
 
-    assert camel_to_words("CamelCaseName") == "Camel Case Name"
-    assert camel_to_snake("CamelCaseName") == "camel_case_name"
-    assert snake_to_camel("snake_case_name") == "snakeCaseName"
-    assert snake_to_camel("snake_case_name", capitalize_first=True) == "SnakeCaseName"
-    assert is_camel_case("CamelCase1") is True
-    assert is_camel_case("camelCase") is False
-    assert is_snake_case("snake_case_1") is True
-    assert is_snake_case("SnakeCase") is False
-    assert lowercase_first_letter("Hello") == "hello"
     assert sha256s("hello") == hashlib.sha256(b"hello").hexdigest()
