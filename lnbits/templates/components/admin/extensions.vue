@@ -169,27 +169,6 @@
           <q-item tag="label" v-ripple>
             <q-item-section>
               <q-item-label>
-                <span v-text="$t('misc_disable_extensions_builder')"></span>
-              </q-item-label>
-              <q-item-label caption>
-                <span
-                  v-text="$t('misc_disable_extensions_builder_label')"
-                ></span>
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_extensions_builder_activate_non_admins"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>
                 <span v-text="$t('misc_hide_api')"></span>
               </q-item-label>
               <q-item-label caption>
@@ -216,18 +195,6 @@
             label="WASM invocation retention"
             :suffix="$t('days')"
             hint="Set to 0 to disable automatic cleanup."
-          ></q-input>
-        </div>
-        <div class="col-12 col-md-6">
-          <p>
-            <span v-text="$t('extension_builder_manifest_url')"></span>
-          </p>
-          <q-input
-            dense
-            filled
-            v-model="formData.lnbits_extensions_builder_manifest_url"
-            :label="$t('extension_builder_manifest_url')"
-            :hint="$t('extension_builder_manifest_url_hint')"
           ></q-input>
         </div>
         <div class="col-12 col-md-6 q-pb-md">

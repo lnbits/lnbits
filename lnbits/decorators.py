@@ -621,16 +621,6 @@ async def check_admin_ui() -> None:
         )
 
 
-async def check_extension_builder(
-    user: Annotated[User, Depends(check_user_exists)],
-) -> None:
-    if not settings.lnbits_extensions_builder_activate_non_admins and not user.admin:
-        raise HTTPException(
-            HTTPStatus.FORBIDDEN,
-            "Extension Builder is disabled for non admin users.",
-        )
-
-
 async def check_first_install():
     if not settings.first_install:
         raise HTTPException(
