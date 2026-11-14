@@ -179,6 +179,11 @@ async def _handle_stripe_subscription_invoice_paid(event: dict):
     if not payment_options.wallet_id:
         raise ValueError("Stripe invoice.paid event missing 'wallet_id' in metadata.")
 
+    existing_payment = await get_standalone_payment(f"fiat_stripe_{invoice.get('id')}")
+    if existing_payment:
+        await check_fiat_status(existing_payment)
+        return
+
     memo = " | ".join(
         [i.get("description", "") for i in invoice.get("lines", {}).get("data", [])]
         + [payment_options.memo or "", invoice.get("customer_email", "")]
@@ -268,6 +273,17 @@ async def _handle_paypal_subscription_payment(resource: dict):
     payment_options = _deserialize_paypal_metadata(custom_id)
     if not payment_options.wallet_id:
         raise ValueError("PayPal subscription event missing wallet_id.")
+
+    # Only the sale id is unique per payment; the billing agreement id is shared
+    # by every renewal of the subscription.
+    sale_id = resource.get("id")
+    if sale_id:
+        existing_payment = await get_standalone_payment(
+            f"fiat_paypal_subscription_{sale_id}"
+        )
+        if existing_payment:
+            await check_fiat_status(existing_payment)
+            return
 
     memo = payment_options.memo or ""
     extra = {
