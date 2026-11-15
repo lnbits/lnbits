@@ -69,20 +69,6 @@ async def api_wallet_lightning_address_callback(
     return await wallet_lightning_address_callback(username, request, amount)
 
 
-async def _handle(lnurl: str) -> LnurlResponseModel:
-    try:
-        if "@" in lnurl:  # lower case lightning addresses
-            lnurl = lnurl.lower()
-        res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
-        if isinstance(res, LnurlErrorResponse):
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
-    except LnurlException as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-    return res
-
-
 @lnurl_router.get(
     "/api/v1/lnurlscan/{code}",
     dependencies=[Depends(require_base_invoice_key)],
@@ -172,6 +158,20 @@ async def api_payments_pay_lnurl(
     )
 
     return payment
+
+
+async def _handle(lnurl: str) -> LnurlResponseModel:
+    try:
+        if "@" in lnurl:  # lower case lightning addresses
+            lnurl = lnurl.lower()
+        res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
+        if isinstance(res, LnurlErrorResponse):
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
+    except LnurlException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return res
 
 
 async def _core_first_lightning_address_response(

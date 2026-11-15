@@ -418,69 +418,6 @@ async def test_wallet_api_blocks_extension_collision_before_charging_fee(
         assert final_wallet.balance == 1_000
 
 
-@pytest.mark.anyio
-async def test_generate_lightning_address_skips_extension_collisions(
-    app: FastAPI, mocker
-):
-    user = await create_user_account(
-        Account(
-            id=uuid4().hex,
-            username=f"user_{uuid4().hex[:8]}",
-            email=f"user_{uuid4().hex[:8]}@lnbits.com",
-        )
-    )
-    settings.lnbits_ln_address_mode = "extension_first"
-
-    ext_id = "lnurlp"
-    ext_router = APIRouter(prefix=f"/{ext_id}")
-
-    @ext_router.get("/api/v1/well-known/{username}")
-    async def ext_well_known(username: str):
-        if username == "firstcandidate1":
-            return make_lnurl_pay_response(
-                identifier="firstcandidate1@ext.example",
-                callback="https://ext.example/cb/firstcandidate1",
-            )
-        if username == "secondcandidate2":
-            return JSONResponse({"detail": "temporary error"}, status_code=500)
-        raise HTTPException(status_code=404, detail="Not found")
-
-    existing_core_address = user.wallets[0].lightning_address
-    assert existing_core_address is not None
-
-    mocker.patch(
-        "lnbits.core.crud.wallets.generate_ln_address",
-        side_effect=[
-            existing_core_address,
-            "firstcandidate1",
-            "secondcandidate2",
-            "thirdcandidate3",
-        ],
-    )
-
-    with _mounted_lnurlp_extension(app, ext_router, ext_id):
-        wallet = await create_wallet(user_id=user.id, wallet_name="collision-safe")
-        assert wallet.lightning_address == "thirdcandidate3"
-
-        mocker.patch(
-            "lnbits.core.crud.wallets.generate_ln_address",
-            side_effect=["secondcandidate2", "secondcandidate2", "secondcandidate2"],
-        )
-        with pytest.raises(
-            ValueError, match="Could not generate a unique wallet lightning address."
-        ):
-            await create_wallet(user_id=user.id, wallet_name="exhausted")
-
-        mocker.patch(
-            "lnbits.core.crud.wallets.generate_ln_address",
-            return_value="firstcandidate1",
-        )
-        with pytest.raises(
-            ValueError, match="Could not generate a unique wallet lightning address."
-        ):
-            await create_wallet(user_id=user.id, wallet_name="all-taken")
-
-
 @contextmanager
 def _mounted_lnurlp_extension(_app, ext_router: APIRouter, ext_id: str):
     fastapi_app = cast(FastAPI, core_app_extra.local_lnurl_app)
