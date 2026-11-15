@@ -295,11 +295,26 @@ async def get_wallets_count():
 async def generate_lightning_address_local_part(
     conn: Connection | None = None,
 ) -> str:
+    from lnbits.core.services.lightning_address import (
+        ExtensionLnAddressStatus,
+        check_extension_lightning_address,
+    )
+
+    unavailable_streak = 0
     for _ in range(100):
         local_part = generate_ln_address()
         if await get_wallet_id_by_ln_address(local_part, conn):
             continue
-        return local_part
+        ext_status = await check_extension_lightning_address(local_part)
+        if ext_status == ExtensionLnAddressStatus.AVAILABLE:
+            return local_part
+        unavailable_streak = (
+            unavailable_streak + 1
+            if ext_status == ExtensionLnAddressStatus.UNAVAILABLE
+            else 0
+        )
+        if unavailable_streak >= 3:
+            break
     raise ValueError("Could not generate a unique wallet lightning address.")
 
 
