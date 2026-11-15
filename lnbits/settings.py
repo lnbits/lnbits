@@ -790,6 +790,22 @@ class RevolutFiatProvider(LNbitsSettings):
     revolut_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
 
 
+class NanoFiatProvider(LNbitsSettings):
+    # Non-Lightning settlement in Nano (XNO): feeless, issuer-free, read-only.
+    # No key or seed is held by LNbits; payments are verified by reading a
+    # confirmed block from the public node URL below.
+    nano_enabled: bool = Field(default=False)
+    nano_node_url: str = Field(default="https://rpc.nano.to")
+    # The single address that receives payments (operator-owned, checksum-checked).
+    nano_payto_address: str | None = Field(default=None)
+    # Require the node to report the block as confirmed before crediting.
+    nano_confirmations_required: bool = Field(default=True)
+    # Path to the restart-proof claim ledger; defaults under the data folder.
+    nano_ledger_path: str | None = Field(default=None)
+
+    nano_limits: FiatProviderLimits = Field(default_factory=FiatProviderLimits)
+
+
 class LightningSettings(LNbitsSettings):
     lightning_invoice_expiry: int = Field(default=3600, gt=0)
 
@@ -833,6 +849,7 @@ class FiatProvidersSettings(
     PayPalFiatProvider,
     SquareFiatProvider,
     RevolutFiatProvider,
+    NanoFiatProvider,
 ):
     lnbits_allow_fiat_wallets: bool = False
 
@@ -855,6 +872,8 @@ class FiatProvidersSettings(
             return self.square_enabled
         if provider == "revolut":
             return self.revolut_enabled
+        if provider == "nano":
+            return self.nano_enabled
         return False
 
     def get_fiat_providers_for_user(self, user_id: str) -> list[str]:
@@ -885,6 +904,12 @@ class FiatProvidersSettings(
             or user_id in self.revolut_limits.allowed_users
         ):
             allowed_providers.append("revolut")
+
+        if self.nano_enabled and (
+            not self.nano_limits.allowed_users
+            or user_id in self.nano_limits.allowed_users
+        ):
+            allowed_providers.append("nano")
 
         return allowed_providers
 

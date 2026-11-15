@@ -8,6 +8,7 @@ from loguru import logger
 from lnbits.fiat.base import FiatProvider
 from lnbits.settings import settings
 
+from .nano import NanoWallet
 from .paypal import PayPalWallet
 from .revolut import RevolutWallet
 from .square import SquareWallet
@@ -21,6 +22,7 @@ class FiatProviderType(Enum):
     paypal = "PayPalWallet"
     square = "SquareWallet"
     revolut = "RevolutWallet"
+    nano = "NanoWallet"
 
 
 async def get_fiat_provider(name: str) -> FiatProvider | None:
@@ -55,6 +57,7 @@ fiat_providers: dict[str, FiatProvider] = {}
 
 
 __all__ = [
+    "NanoWallet",
     "PayPalWallet",
     "RevolutWallet",
     "SquareWallet",
