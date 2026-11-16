@@ -264,8 +264,7 @@ async def check_account_id_exists(
     cache_key: str | None = None
     if access_token:
         cache_key = f"auth:access_token:{sha256s(access_token)}"
-    elif usr:
-        cache_key = f"auth:user_id:{sha256s(usr.hex)}"
+    # User-ID authentication must see newly configured passwords on every request.
 
     async with db.connect() as conn:
         if cache_key and settings.auth_authentication_cache_minutes > 0:
@@ -301,6 +300,13 @@ async def check_account_id_exists(
     return account_id
 
 
+def check_passwordless_account(account: Account) -> None:
+    if account.has_password:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "This account requires password login."
+        )
+
+
 async def check_account_exists(
     r: Request,
     access_token: Annotated[str | None, Depends(check_access_token)],
@@ -333,6 +339,8 @@ async def _check_account_exists(
                 raise HTTPException(
                     HTTPStatus.FORBIDDEN, "User id only access for admins is forbidden."
                 )
+            if account:
+                check_passwordless_account(account)
         else:
             raise HTTPException(
                 HTTPStatus.UNAUTHORIZED, "Missing user ID or access token."

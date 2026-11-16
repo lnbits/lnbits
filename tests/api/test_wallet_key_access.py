@@ -161,22 +161,23 @@ async def test_wallet_keys_require_current_endpoint_write_access(
 @pytest.mark.anyio
 async def test_wallet_keys_with_user_id_authentication(
     http_client: AsyncClient,
-    wallet_key_user: User,
     settings: Settings,
 ):
+    user = await create_user_account()
+    user.wallets.append(await create_wallet(user_id=user.id, wallet_name="Second"))
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     for path, wallet_field in (
         ("/api/v1/wallets", None),
         ("/api/v1/wallet/paginated", "data"),
         ("/api/v1/auth", "wallets"),
     ):
-        response = await http_client.get(path, params={"usr": wallet_key_user.id})
+        response = await http_client.get(path, params={"usr": user.id})
         assert response.status_code == 200
         result = response.json()
         wallets = result[wallet_field] if wallet_field else result
         assert len(wallets) == 2
         for wallet in wallets:
-            stored = wallet_key_user.get_wallet(wallet["id"])
+            stored = user.get_wallet(wallet["id"])
             assert stored
             assert wallet["adminkey"] == stored.adminkey
             assert wallet["inkey"] == stored.inkey
