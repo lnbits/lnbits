@@ -1,31 +1,19 @@
-from unittest.mock import AsyncMock
+import pytest
 
-from pytest_mock.plugin import MockerFixture
+from lnbits.core.services import websocket_manager, websocket_updater
 
 
-def test_websocket_api_connects_and_updates(test_client):
+@pytest.mark.anyio
+async def test_websocket_api_receives_only_server_updates(test_client):
     with test_client.websocket_connect("/api/v1/ws/demo-item") as websocket:
-        response = test_client.post("/api/v1/ws/demo-item", params={"data": "hello"})
-        assert response.status_code == 200
-        assert response.json() == {"sent": True, "data": "hello"}
+        response = test_client.post("/api/v1/ws/demo-item", params={"data": "post"})
+        assert response.status_code == 404
+
+        response = test_client.get("/api/v1/ws/demo-item/get")
+        assert response.status_code == 404
+
+        websocket.portal.call(websocket_manager.send, "demo-item", "hello")
         assert websocket.receive_text() == "hello"
 
-        response = test_client.get("/api/v1/ws/demo-item/world")
-        assert response.status_code == 200
-        assert response.json() == {"sent": True, "data": "world"}
+        websocket.portal.call(websocket_updater, "demo-item", "world")
         assert websocket.receive_text() == "world"
-
-
-def test_websocket_api_reports_send_failures(test_client, mocker: MockerFixture):
-    mocker.patch(
-        "lnbits.core.views.websocket_api.websocket_manager.send",
-        AsyncMock(side_effect=RuntimeError("boom")),
-    )
-
-    post_response = test_client.post("/api/v1/ws/demo-item", params={"data": "oops"})
-    assert post_response.status_code == 200
-    assert post_response.json() == {"sent": False, "data": "oops"}
-
-    get_response = test_client.get("/api/v1/ws/demo-item/oops")
-    assert get_response.status_code == 200
-    assert get_response.json() == {"sent": False, "data": "oops"}

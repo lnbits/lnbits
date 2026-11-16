@@ -45,21 +45,3 @@ async def extension_websocket_connect(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     await wasm_extension_websocket_hub.listen(conn)
-
-
-@websocket_router.post("/{item_id}")
-async def websocket_update_post(item_id: str, data: str):
-    try:
-        await websocket_manager.send(item_id, data)
-        return {"sent": True, "data": data}
-    except Exception:
-        return {"sent": False, "data": data}
-
-
-@websocket_router.get("/{item_id}/{data}")
-async def websocket_update_get(item_id: str, data: str):
-    try:
-        await websocket_manager.send(item_id, data)
-        return {"sent": True, "data": data}
-    except Exception:
-        return {"sent": False, "data": data}
