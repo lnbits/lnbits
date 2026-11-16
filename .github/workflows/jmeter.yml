@@ -9,6 +9,9 @@ on:
         default: "3.10"
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   jmeter:
     runs-on: ubuntu-24.04

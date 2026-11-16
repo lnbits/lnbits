@@ -16,6 +16,9 @@ on:
         type: string
         default: "3.13"
 
+permissions:
+  contents: read
+
 jobs:
   make:
     name: ${{ inputs.make }} (${{ inputs.python-version }})

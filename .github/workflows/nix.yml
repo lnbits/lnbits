@@ -28,6 +28,9 @@ on:
       - 'nix/**'
       - '.github/workflows/nix.yml'
 
+permissions:
+  contents: read
+
 jobs:
   nix:
     runs-on: ubuntu-24.04

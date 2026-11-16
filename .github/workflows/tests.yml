@@ -23,6 +23,9 @@ on:
       CODECOV_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ${{ inputs.os-version }}

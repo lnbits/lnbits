@@ -17,6 +17,9 @@ on:
       DOCKER_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   push_to_dockerhub:
     runs-on: ubuntu-24.04

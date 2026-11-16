@@ -8,6 +8,9 @@ on:
         type: string
         default: "3.10"
 
+permissions:
+  contents: read
+
 jobs:
   make:
     name: migration (${{ inputs.python-version }})

@@ -8,9 +8,16 @@ on:
   schedule:
     - cron: '0 12 * * 5'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # upload the CodeQL results
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

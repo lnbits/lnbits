@@ -8,6 +8,9 @@ on:
         type: string
         default: "3.10"
 
+permissions:
+  contents: read
+
 jobs:
   poetry:
     name: run poetry install to check lock file
