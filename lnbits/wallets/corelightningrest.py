@@ -62,7 +62,7 @@ class CoreLightningRestWallet(Wallet):
         # 210: Payment timed out without a payment in progress.
         self.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
 
-        self.cert = settings.corelightning_rest_cert or False
+        self.cert = settings.corelightning_rest_cert or True
         self.client = httpx.AsyncClient(verify=self.cert, headers=headers)
         self.last_pay_index = 0
         self.statuses = {
