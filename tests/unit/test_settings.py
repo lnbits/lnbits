@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
@@ -20,6 +23,35 @@ from lnbits.settings import (
     list_parse_fallback,
     set_cli_settings,
 )
+
+
+@pytest.mark.parametrize("debug", ["true", "false"])
+def test_settings_import_does_not_log_credentials_without_admin_ui(tmp_path, debug):
+    secrets = {
+        "LND_REST_MACAROON": "test-private-macaroon",
+        "STRIKE_API_KEY": "test-private-api-key",
+        "CORELIGHTNING_REST_MACAROON": "test-private-cln-macaroon",
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", "import lnbits.settings"],
+        cwd=tmp_path,
+        env={
+            "PATH": os.environ.get("PATH", ""),
+            "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
+            "LNBITS_DATA_FOLDER": str(tmp_path),
+            "LNBITS_ADMIN_UI": "false",
+            "DEBUG": debug,
+            "LOGURU_LEVEL": "DEBUG",
+            **secrets,
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    )
+    output = result.stdout + result.stderr
+    assert all(secret not in output for secret in secrets.values())
+    assert "Environment Settings:" not in output
 
 
 @pytest.mark.parametrize(
