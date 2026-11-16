@@ -32,7 +32,8 @@ def test_settings_import_does_not_log_credentials_without_admin_ui(tmp_path, deb
         "STRIKE_API_KEY": "test-private-api-key",
         "CORELIGHTNING_REST_MACAROON": "test-private-cln-macaroon",
     }
-    result = subprocess.run(
+    # Execute only the fixed import command with synthetic credentials.
+    result = subprocess.run(  # noqa: S603
         [sys.executable, "-c", "import lnbits.settings"],
         cwd=tmp_path,
         env={
