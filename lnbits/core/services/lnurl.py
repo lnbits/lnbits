@@ -36,7 +36,7 @@ from loguru import logger
 from pydantic import TypeAdapter, ValidationError
 from starlette.routing import Match
 
-from lnbits.core.crud import update_wallet
+from lnbits.core.crud.wallets import update_wallet_stored_paylinks
 from lnbits.core.db import core_app_extra
 from lnbits.core.models import CreateLnurlPayment, Wallet
 from lnbits.core.models.lnurl import StoredPayLink
@@ -370,7 +370,7 @@ async def _store_paylink(
     for pl in wallet.stored_paylinks.links:
         if pl.lnurl == stored_paylink.lnurl:
             pl.last_used = int(time())
-            await update_wallet(wallet)
+            await update_wallet_stored_paylinks(wallet.id, wallet.stored_paylinks)
             logger.debug(
                 "Updated last used time for LNURL "
                 f"pay link {stored_paylink.lnurl} in wallet {wallet.id}."
@@ -380,7 +380,7 @@ async def _store_paylink(
     # if not already stored, append it
     if not any(stored_paylink.lnurl == pl.lnurl for pl in wallet.stored_paylinks.links):
         wallet.stored_paylinks.links.append(stored_paylink)
-        await update_wallet(wallet)
+        await update_wallet_stored_paylinks(wallet.id, wallet.stored_paylinks)
         logger.debug(
             f"Stored LNURL pay link {stored_paylink.lnurl} for wallet {wallet.id}."
         )

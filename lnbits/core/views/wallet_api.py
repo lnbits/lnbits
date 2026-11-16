@@ -18,6 +18,7 @@ from lnbits.core.crud.wallets import (
     get_onchain_wallet,
     get_wallets_paginated,
     update_onchain_wallet_config,
+    update_wallet_stored_paylinks,
 )
 from lnbits.core.models import CreateWallet, KeyType, Wallet, WalletTypeInfo
 from lnbits.core.models.lnurl import StoredPayLink, StoredPayLinks
@@ -180,9 +181,8 @@ async def api_put_stored_paylinks(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="You cannot modify this wallet"
         )
-    key_info.wallet.stored_paylinks.links = data.links
-    wallet = await update_wallet(key_info.wallet)
-    return wallet.stored_paylinks.links
+    await update_wallet_stored_paylinks(wallet_id, data)
+    return data.links
 
 
 @wallet_router.patch("")

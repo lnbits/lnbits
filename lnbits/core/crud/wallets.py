@@ -5,6 +5,7 @@ from typing import Literal
 from uuid import uuid4
 
 from lnbits.core.db import db
+from lnbits.core.models.lnurl import StoredPayLinks
 from lnbits.core.models.wallets import (
     BaseWallet,
     OnchainConfig,
@@ -75,6 +76,23 @@ async def update_wallet(
     wallet.updated_at = datetime.now(timezone.utc)
     await (conn or db).update("wallets", wallet)
     return wallet
+
+
+async def update_wallet_stored_paylinks(
+    wallet_id: str, stored_paylinks: StoredPayLinks, conn: Connection | None = None
+) -> None:
+    await (conn or db).execute(
+        f"""
+        UPDATE wallets SET stored_paylinks = :stored_paylinks,
+            updated_at = {db.timestamp_placeholder('now')}
+        WHERE id = :id AND deleted = false
+        """,  # noqa: S608
+        {
+            "id": wallet_id,
+            "stored_paylinks": stored_paylinks.model_dump_json(),
+            "now": datetime.now(timezone.utc).timestamp(),
+        },
+    )
 
 
 async def reset_all_wallet_keys(conn: Connection | None = None) -> int:

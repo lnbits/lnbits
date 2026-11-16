@@ -1,3 +1,4 @@
+import asyncio
 import ipaddress
 from typing import cast
 from uuid import uuid4
@@ -17,6 +18,7 @@ from pydantic import TypeAdapter, ValidationError
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
+from lnbits.core.crud.wallets import delete_wallet, update_wallet
 from lnbits.core.models import Account
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
 from lnbits.core.models.wallets import Wallet
@@ -367,7 +369,7 @@ async def test_fetch_lnurl_pay_request_converts_currency_and_stores_paylink(
 
 
 @pytest.mark.anyio
-async def test_store_paylink_appends_and_updates_existing():
+async def test_store_paylink_appends_and_updates_existing(app):
     wallet = await _create_wallet()
     pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
     action_response = LnurlPayActionResponse(
@@ -392,6 +394,58 @@ async def test_store_paylink_appends_and_updates_existing():
     assert stored_wallet is not None
     assert len(stored_wallet.stored_paylinks.links) == 1
     assert stored_wallet.stored_paylinks.links[0].last_used >= first_used
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("existing_link", [False, True])
+@pytest.mark.parametrize("change", ["keys", "delete"])
+async def test_lnurl_callback_preserves_wallet_changes(
+    app, mocker: MockerFixture, existing_link: bool, change: str
+):
+    wallet = await _create_wallet()
+    pay_response = make_lnurl_pay_response(min_sendable_msat=1, text="Test")
+    action_response = LnurlPayActionResponse(
+        pr=cast(LightningInvoice, LightningInvoice(TEST_BOLT11)), disposable=False
+    )
+    address = LnAddress("alice@example.com")
+    if existing_link:
+        await _store_paylink(pay_response, action_response, wallet, address)
+
+    entered, resume = asyncio.Event(), asyncio.Event()
+
+    async def callback(*args, **kwargs):
+        entered.set()
+        await resume.wait()
+        return action_response
+
+    mocker.patch(
+        "lnbits.core.services.lnurl._execute_pay_request", side_effect=callback
+    )
+    task = asyncio.create_task(
+        fetch_lnurl_pay_request(
+            CreateLnurlPayment(res=pay_response, lnurl=address, amount=1000), wallet
+        )
+    )
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=5)
+        current = await get_wallet(wallet.id)
+        assert current
+        if change == "keys":
+            current.adminkey, current.inkey = uuid4().hex, uuid4().hex
+            await update_wallet(current)
+        else:
+            await delete_wallet(wallet.user, wallet.id)
+    finally:
+        resume.set()
+        await asyncio.wait_for(task, timeout=5)
+
+    stored = await get_wallet(wallet.id, deleted=None)
+    assert stored
+    if change == "keys":
+        assert (stored.adminkey, stored.inkey) == (current.adminkey, current.inkey)
+        assert len(stored.stored_paylinks.links) == 1
+    else:
+        assert stored.deleted
 
 
 def _make_wallet() -> Wallet:
