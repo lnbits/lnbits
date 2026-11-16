@@ -196,6 +196,13 @@ class Wallet(BaseWallet):
 
         return False
 
+    def can_update_payments(self) -> bool:
+        return (
+            not self.is_lightning_shared_wallet
+            or self.can_receive_payments
+            or self.can_send_payments
+        )
+
     @property
     def source_wallet_id(self) -> str:
         """For shared wallets return the original wallet ID, else return own ID."""
