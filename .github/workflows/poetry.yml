@@ -20,5 +20,5 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - name: install poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
+          pipx install poetry
           poetry install
