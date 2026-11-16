@@ -21,15 +21,15 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           ref: ${{ inputs.tag_name || github.ref }}
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v4
+      - uses: astral-sh/setup-uv@v6.8.0
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: "24.x"
           cache: npm
@@ -53,7 +53,7 @@ jobs:
         run: uv run --no-sync python .github/packaging/smoke_sidecars.py dist/lnbits.exe
       - name: Test executable startup, assets and shutdown
         run: uv run --no-sync python .github/packaging/smoke.py dist/lnbits.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: LNbits-Windows-x86_64
           path: dist/lnbits.exe
@@ -66,7 +66,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.3.0
         with:
           name: LNbits-Windows-x86_64
           path: dist

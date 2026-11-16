@@ -28,7 +28,7 @@ jobs:
         node-version: ["24.x"]
     runs-on: ${{ matrix.os-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           persist-credentials: false
       - uses: $/.github/actions/prepare

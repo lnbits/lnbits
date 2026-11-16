@@ -47,7 +47,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           persist-credentials: false
 
@@ -65,7 +65,7 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Run pytest
-        uses: pavelzw/pytest-action@v2
+        uses: pavelzw/pytest-action@v2.2.0
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
@@ -80,7 +80,7 @@ jobs:
           report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@v7.1.1
         with:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}

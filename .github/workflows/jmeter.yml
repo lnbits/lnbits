@@ -16,7 +16,7 @@ jobs:
   jmeter:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           persist-credentials: false
 
@@ -62,7 +62,7 @@ jobs:
           cat data/logs/lnbits.log
 
       - name: upload jmeter test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         if: ${{ always() }}
         with:
           name: jmeter-extension-test-results
