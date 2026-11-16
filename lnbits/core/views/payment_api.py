@@ -341,7 +341,9 @@ async def api_update_payment_labels(
     data: UpdatePaymentLabels,
     key_type: BaseWalletTypeInfo = Depends(require_base_admin_key),
 ) -> SimpleStatus:
-    payment = await get_standalone_payment(payment_hash, wallet_id=key_type.wallet.id)
+    payment = await get_standalone_payment(
+        payment_hash, wallet_id=key_type.wallet.id, for_update=True
+    )
     if payment is None:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
     account = await get_account(key_type.wallet.user)
@@ -381,7 +383,7 @@ async def api_update_payment_extra(
     key_type: WalletTypeInfo = Depends(require_admin_key),
 ) -> Payment:
     payment = await get_standalone_payment(
-        data.payment_hash, wallet_id=key_type.wallet.id
+        data.payment_hash, wallet_id=key_type.wallet.id, for_update=True
     )
     if payment is None:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Payment does not exist.")
@@ -567,13 +569,15 @@ async def api_payments_settle(
 ) -> InvoiceResponse:
     payment_hash = sha256(bytes.fromhex(data.preimage)).hexdigest()
     payment = await get_standalone_payment(
-        payment_hash, incoming=True, wallet_id=key_type.wallet.id
+        payment_hash, incoming=True, wallet_id=key_type.wallet.id, for_update=True
     )
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Payment does not exist or does not belong to this wallet.",
         )
+    if not payment.extra.get("hold_invoice"):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Payment is not a hold invoice.")
     return await settle_hold_invoice(payment, data.preimage)
 
 
@@ -582,13 +586,15 @@ async def api_payments_cancel(
     data: CancelInvoice, key_type: WalletTypeInfo = Depends(require_admin_key)
 ) -> InvoiceResponse:
     payment = await get_standalone_payment(
-        data.payment_hash, incoming=True, wallet_id=key_type.wallet.id
+        data.payment_hash, incoming=True, wallet_id=key_type.wallet.id, for_update=True
     )
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Payment does not exist or does not belong to this wallet.",
         )
+    if not payment.extra.get("hold_invoice"):
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Payment is not a hold invoice.")
     return await cancel_hold_invoice(payment)
 
 
