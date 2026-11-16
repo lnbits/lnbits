@@ -67,9 +67,7 @@
               v-if="g.user && !g.isPublicPage && !$route.path.startsWith('/ext/')"
             ></lnbits-header-wallets>
             <!-- block page content from static extensions -->
-            <div
-              v-if="$route.path.startsWith('{{ normalize_path(request.path) }}')"
-            >
+            <div v-if="$route.path.startsWith(RENDERED_ROUTE)">
               {% block page %}{% endblock %}
             </div>
             <!-- vue router-view -->
@@ -86,7 +84,7 @@
       </q-layout>
     </div>
     <script type="text/javascript">
-      const RENDERED_ROUTE = '{{ normalize_path(request.path) }}'
+      const RENDERED_ROUTE = {{ normalize_path(request.path) | tojson }}
       const SETTINGS = {{ SETTINGS | tojson | safe }}
       const CURRENCIES = {{ CURRENCIES | tojson | safe }}
       // backwards compatibility for extensions (tpos)
@@ -112,7 +110,10 @@
     <!-- app init -->
     <script>
       window.app = Vue.createApp({
-        el: '#vue'
+        el: '#vue',
+        data() {
+          return {RENDERED_ROUTE}
+        }
       })
     </script>
     <!-- scripts from extensions -->
