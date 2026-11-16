@@ -56,11 +56,12 @@ async def test_password_accounts_reject_user_id_authentication(
 
 
 @pytest.mark.parametrize("token_source", ["cookie", "header"])
-async def test_password_login_session_allows_user_id_query(
-    http_client, user_alan, token_source
-):
+async def test_password_login_session_allows_user_id_query(http_client, token_source):
+    account = Account(id=uuid4().hex, username=f"session_{uuid4().hex[:8]}")
+    account.hash_password("secret1234")
+    user = await create_user_account(account)
     response = await http_client.post(
-        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+        "/api/v1/auth", json={"username": user.username, "password": "secret1234"}
     )
     assert response.status_code == 200
     headers = {}
@@ -68,10 +69,13 @@ async def test_password_login_session_allows_user_id_query(
         headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
         http_client.cookies.clear()
     response = await http_client.get(
-        "/api/v1/wallets", params={"usr": user_alan.id}, headers=headers
+        "/api/v1/wallets", params={"usr": user.id}, headers=headers
     )
     assert response.status_code == 200
-    assert response.json()[0]["adminkey"] == user_alan.wallets[0].adminkey
+    wallets = {wallet["id"]: wallet for wallet in response.json()}
+    wallet = user.wallets[0]
+    assert wallets[wallet.id]["adminkey"] == wallet.adminkey
+    assert wallets[wallet.id]["inkey"] == wallet.inkey
 
 
 @pytest.mark.parametrize("cache_minutes", [0, 5])
