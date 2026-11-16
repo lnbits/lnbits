@@ -26,6 +26,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
           python-version: "3.12"

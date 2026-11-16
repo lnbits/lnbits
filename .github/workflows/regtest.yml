@@ -29,6 +29,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: docker build
         if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}

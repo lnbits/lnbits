@@ -28,6 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ inputs.tag_name }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5

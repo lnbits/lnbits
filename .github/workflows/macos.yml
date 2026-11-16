@@ -45,6 +45,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag_name || github.ref }}
+          persist-credentials: false
       - name: Initialize release recovery path
         run: echo "MACOS_RELEASE_STATE=$RUNNER_TEMP/lnbits-release.json" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5

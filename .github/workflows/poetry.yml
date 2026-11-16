@@ -17,6 +17,8 @@ jobs:
     runs-on: "ubuntu-24.04"
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: set up python ${{ inputs.python-version }}
         uses: actions/setup-python@v4
         with:
