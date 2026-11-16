@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import shutil
 import zipfile
 from collections.abc import Mapping
@@ -28,13 +29,15 @@ from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
 
+EXTENSION_ID_PATTERN = r"^[A-Za-z0-9_-]+$"
+
 
 class ExtensionArchiveValidationError(ValueError):
     pass
 
 
 class ExplicitRelease(BaseModel):
-    id: str
+    id: str = Field(pattern=EXTENSION_ID_PATTERN)
     name: str
     version: str
     archive: str
@@ -59,7 +62,7 @@ class ExplicitRelease(BaseModel):
 
 
 class GitHubRelease(BaseModel):
-    id: str
+    id: str = Field(pattern=EXTENSION_ID_PATTERN)
     organisation: str
     repository: str
 
@@ -514,7 +517,7 @@ class ExtensionMeta(BaseModel):
 
 
 class InstallableExtension(BaseModel):
-    id: str
+    id: str = Field(pattern=EXTENSION_ID_PATTERN)
     name: str
     version: str
     active: bool | None = False
@@ -539,21 +542,29 @@ class InstallableExtension(BaseModel):
 
     @property
     def zip_path(self) -> Path:
+        ext_id = _validate_extension_id(self.id)
         extensions_data_dir = Path(settings.lnbits_data_folder, "zips")
         Path(extensions_data_dir).mkdir(parents=True, exist_ok=True)
-        return Path(extensions_data_dir, f"{self.id}.zip")
+        return Path(extensions_data_dir, f"{ext_id}.zip")
 
     @property
     def ext_dir(self) -> Path:
-        return Path(settings.lnbits_extensions_path, "extensions", self.id)
+        return Path(
+            settings.lnbits_extensions_path,
+            "extensions",
+            _validate_extension_id(self.id),
+        )
 
     @property
     def wasm_ext_dir(self) -> Path:
-        return Path(settings.wasm_extensions_dir, self.id)
+        return Path(settings.wasm_extensions_dir, _validate_extension_id(self.id))
 
     @property
     def ext_upgrade_dir(self) -> Path:
-        return Path(settings.lnbits_extensions_upgrade_path, f"{self.id}-{self.hash}")
+        return Path(
+            settings.lnbits_extensions_upgrade_path,
+            f"{_validate_extension_id(self.id)}-{self.hash}",
+        )
 
     @property
     def module_name(self) -> str:
@@ -1163,7 +1174,7 @@ class InstallableExtension(BaseModel):
 
 
 class CreateExtension(BaseModel):
-    ext_id: str
+    ext_id: str = Field(pattern=EXTENSION_ID_PATTERN)
     archive: str
     source_repo: str
     version: str
@@ -1302,3 +1313,9 @@ def _is_github_token_url(url: str) -> bool:
         and parsed_url.port is None
         and not parsed_url.userinfo
     )
+
+
+def _validate_extension_id(ext_id: str) -> str:
+    if not re.fullmatch(EXTENSION_ID_PATTERN, ext_id):
+        raise ValueError("Invalid extension id.")
+    return ext_id
