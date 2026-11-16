@@ -327,8 +327,8 @@ class CoreLightningWallet(Wallet):
             if "pays" not in r:
                 return PaymentPendingStatus()
             if not r["pays"]:
-                # no payment with this payment_hash is found
-                return PaymentFailedStatus()
+                # A running pay RPC may not have recorded its first attempt yet.
+                return PaymentPendingStatus()
 
             payment_resp = r["pays"][-1]
 
