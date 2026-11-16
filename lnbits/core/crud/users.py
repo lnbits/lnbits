@@ -78,6 +78,10 @@ async def update_account_credentials(
 
 async def delete_account(user_id: str, conn: Connection | None = None) -> None:
     await (conn or db).execute(
+        "DELETE FROM sso_identities WHERE user_id = :user",
+        {"user": user_id},
+    )
+    await (conn or db).execute(
         "DELETE from accounts WHERE id = :user",
         {"user": user_id},
     )
@@ -178,6 +182,11 @@ async def delete_accounts_no_wallets(
         """,  # noqa: S608
         {"delta": delta},
     )
+    await (conn or db).execute("""
+        DELETE FROM sso_identities WHERE NOT EXISTS (
+            SELECT accounts.id FROM accounts WHERE accounts.id = sso_identities.user_id
+        )
+        """)
 
 
 async def get_account_by_username(

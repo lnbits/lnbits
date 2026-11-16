@@ -1065,3 +1065,15 @@ async def m058_clear_extensions_reviews_url(db: Connection):
     from lnbits.settings import settings
 
     settings.lnbits_extensions_reviews_url = ""
+
+
+async def m059_sso_identities(db: Connection):
+    await db.execute("""
+        CREATE TABLE sso_identities (
+            provider TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            user_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+            PRIMARY KEY (provider, subject)
+        )
+    """)
+    await db.execute("CREATE INDEX idx_sso_identities_user ON sso_identities (user_id)")

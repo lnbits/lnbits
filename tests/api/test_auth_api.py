@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -6,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
 
 from lnbits.core.crud.users import get_account, update_account
+from lnbits.core.models.sso import VerifiedOpenID
 from lnbits.core.models.users import Account
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.auth_api import get_account_by_email
@@ -133,7 +133,10 @@ async def test_auth_api_sso_login_and_callback(http_client: AsyncClient, mocker)
     assert login_sso.state
 
     email = f"sso_{uuid4().hex[:8]}@lnbits.com"
-    callback_sso = _FakeSSO(userinfo=SimpleNamespace(email=email), state="")
+    callback_sso = _FakeSSO(
+        userinfo=VerifiedOpenID(id="github-user", email=email, email_verified=True),
+        state="",
+    )
     mocker.patch("lnbits.core.views.auth_api._new_sso", return_value=callback_sso)
 
     callback = await http_client.get(f"/api/v1/auth/{provider}/token")

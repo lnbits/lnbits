@@ -15,12 +15,14 @@ from fastapi_sso.sso.base import OpenID, SSOBase
 from loguru import logger
 
 from lnbits.core.crud.settings import set_settings_field
+from lnbits.core.crud.sso import get_account_by_sso, has_sso_identity, link_sso_identity
 from lnbits.core.crud.users import (
     get_two_factor_config,
     get_user_access_control_lists,
     update_user_access_control_list,
 )
 from lnbits.core.models.misc import SimpleItem
+from lnbits.core.models.sso import VerifiedOpenID
 from lnbits.core.models.users import (
     ApiTokenRequest,
     ApiTokenResponse,
@@ -442,7 +444,7 @@ async def handle_oauth_token(request: Request, provider: str) -> RedirectRespons
             user_id = decrypt_internal_message(provider_sso.state)
 
     request.session.pop("user", None)
-    return await _handle_sso_login(userinfo, user_id)
+    return await _handle_sso_login(userinfo, user_id, provider=provider)
 
 
 @auth_router.post("/logout")
@@ -598,6 +600,8 @@ async def update(
     if data.username:
         account.username = data.username
     if data.extra:
+        # Email verification is established by the SSO callback, not profile input.
+        data.extra.email_verified = account.extra.email_verified
         account.extra = data.extra
 
     await update_user_account(account)
@@ -660,31 +664,24 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
     return await _login_response(account)
 
 
-async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = None):
+async def _handle_sso_login(
+    userinfo: OpenID,
+    verified_user_id: str | None = None,
+    *,
+    provider: str,
+):
+    if not isinstance(userinfo, VerifiedOpenID) or not userinfo.email_verified:
+        raise HTTPException(
+            HTTPStatus.UNAUTHORIZED, "A verified email is required for SSO."
+        )
+    if not userinfo.id:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Missing SSO user ID.")
     email = userinfo.email
     if not email or not is_valid_email_address(email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
 
-    redirect_path = "/wallet"
-    account = await get_account_by_email(email, active_only=False)
-
-    if verified_user_id:
-        if account:
-            raise HTTPException(HTTPStatus.FORBIDDEN, "Email already used.")
-        account = await get_account(verified_user_id)
-        if not account:
-            raise HTTPException(HTTPStatus.FORBIDDEN, "Cannot verify user email.")
-        redirect_path = "/account"
-
-    if account:
-        account.extra = account.extra or UserExtra()
-        account.extra.email_verified = True
-        await update_account(account)
-    else:
-        account = Account(
-            id=uuid4().hex, email=email, extra=UserExtra(email_verified=True)
-        )
-        await create_user_account(account)
+    account = await _get_sso_account(provider, userinfo.id, email, verified_user_id)
+    redirect_path = "/account" if verified_user_id else "/wallet"
     login_response = await _login_response(account)
     response = RedirectResponse(
         (
@@ -885,3 +882,51 @@ async def _login_response(account: Account) -> JSONResponse:
     response = _auth_success_response(payload=payload)
     response.delete_cookie("two_factor_challenge")
     return response
+
+
+async def _get_sso_account(
+    provider: str, subject: str, email: str, verified_user_id: str | None
+) -> Account:
+    # Configurable providers also scope subjects to their discovery URL.
+    identity_provider = {
+        "oidc": f"oidc:{settings.oidc_discovery_url}",
+        "keycloak": f"keycloak:{settings.keycloak_discovery_url}",
+    }.get(provider, provider)
+    account = await get_account_by_sso(identity_provider, subject)
+
+    if verified_user_id:
+        if account and account.id != verified_user_id:
+            raise HTTPException(HTTPStatus.FORBIDDEN, "SSO identity already linked.")
+        email_account = await get_account_by_email(email, active_only=False)
+        if email_account and email_account.id != verified_user_id:
+            raise HTTPException(HTTPStatus.FORBIDDEN, "Email already used.")
+        account = await get_account(verified_user_id)
+        if not account:
+            raise HTTPException(HTTPStatus.FORBIDDEN, "Cannot verify user email.")
+        account.email = email
+    elif not account:
+        account = await get_account_by_email(email, active_only=False)
+        if account and (
+            not account.extra.email_verified or await has_sso_identity(account.id)
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                "Sign in to your existing account before linking this SSO identity.",
+            )
+
+    if account:
+        if not account.activated:
+            raise HTTPException(HTTPStatus.FORBIDDEN, "Account is deactivated.")
+        account.extra = account.extra or UserExtra()
+    else:
+        account = Account(
+            id=uuid4().hex,
+            email=email,
+            extra=UserExtra(email_verified=True, provider=provider),
+        )
+        await create_user_account(account)
+    await link_sso_identity(identity_provider, subject, account.id)
+    if account.email and account.email.lower() == email.lower():
+        account.extra.email_verified = True
+    await update_account(account)
+    return account
