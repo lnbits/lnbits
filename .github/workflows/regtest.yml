@@ -37,7 +37,7 @@ jobs:
         run: |
           docker build -t lnbits/lnbits .
 
-      - uses: ./.github/actions/prepare
+      - uses: $/.github/actions/prepare
         with:
           python-version: ${{ inputs.python-version }}
 

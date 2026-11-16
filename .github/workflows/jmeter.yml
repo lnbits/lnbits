@@ -20,7 +20,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/prepare
+      - uses: $/.github/actions/prepare
         with:
           python-version: ${{ inputs.python-version }}
 
