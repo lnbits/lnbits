@@ -67,6 +67,35 @@ from lnbits.core.views.extension_api import (
 from tests.helpers import make_extension_release, make_installable_extension
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize("ext_id", ["../data", "/outside-extension-root", "a\\b"])
+async def test_extension_install_rejects_unsafe_ids_before_lookup(
+    http_client, superuser_token, mocker, ext_id
+):
+    lookup = mocker.patch.object(InstallableExtension, "get_extension_release")
+    cleanup = mocker.patch.object(InstallableExtension, "clean_extension_files")
+    wasm_cleanup = mocker.patch.object(
+        InstallableExtension, "clean_wasm_extension_files"
+    )
+
+    response = await http_client.post(
+        "/api/v1/extension",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={
+            "ext_id": ext_id,
+            "source_repo": "https://example.com/manifest.json",
+            "archive": "https://example.com/ext.zip",
+            "version": "1.0.0",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"][0]["loc"] == ["body", "ext_id"]
+    lookup.assert_not_called()
+    cleanup.assert_not_called()
+    wasm_cleanup.assert_not_called()
+
+
 class _MockHTTPResponse:
     def __init__(
         self,
