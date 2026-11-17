@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 docker network inspect lnbits_default >/dev/null
 compose=(docker compose -p lnbits-nwc -f docker-compose.nwc.yml)
 
-# Pin the provider so upstream changes cannot silently change the test fixture.
-provider_commit=cb2d8423338d740bd7f8258ed3b8cd2cec24a6ea
+# Pin NWC Provider v1.2.2 so upstream changes cannot change the test fixture.
+provider_commit=b868247d1c60ecda7e530674e482ef89a06b618f
 mkdir -p data/nwcprovider
 curl --fail --silent --show-error --location --max-time 60 \
   "https://github.com/lnbits/nwcprovider/archive/$provider_commit.tar.gz" \

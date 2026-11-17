@@ -74,7 +74,7 @@ make test-regtest
 ```
 
 Each setup resets only the add-on's provider and relay data. Run it again before
-repeating the NWC suite. It uses a pinned NWC Provider revision, gives its test
+repeating the NWC suite. It pins NWC Provider v1.2.2, gives its test
 wallet a regtest balance, and writes the local pairing URL to the ignored
 `data/nwc.env` file.
 Its HTTP API and relay listen on localhost ports 5003 and 7777. These test
@@ -89,10 +89,6 @@ docker compose -p lnbits-nwc -f docker/regtest/docker-compose.nwc.yml down --vol
 Stop this add-on before resetting or stopping the normal stack. CI starts it
 only for the `NWCWallet` entry in the funding-source matrix and removes it
 afterward. NWC follows the same failure policy as the other funding sources.
-
-The pinned provider reports failed outgoing payments as settled. The two
-payment-cancellation checks are strict expected failures for NWC until that
-provider behavior is corrected. Other funding sources keep their existing checks.
 
 ## Existing funding sources
 

@@ -357,12 +357,6 @@ async def test_pay_hold_invoice_check_pending(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-@pytest.mark.xfail(
-    settings.lnbits_backend_wallet_class == "NWCWallet",
-    reason="Pinned NWC Provider reports failed payments as settled",
-    raises=AssertionError,
-    strict=True,
-)
 async def test_pay_hold_invoice_check_pending_and_fail(
     client, hold_invoice, adminkey_headers_from
 ):
@@ -399,12 +393,6 @@ async def test_pay_hold_invoice_check_pending_and_fail(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(is_fake, reason="this only works in regtest")
-@pytest.mark.xfail(
-    settings.lnbits_backend_wallet_class == "NWCWallet",
-    reason="Pinned NWC Provider reports failed payments as settled",
-    raises=AssertionError,
-    strict=True,
-)
 async def test_pay_hold_invoice_check_pending_and_fail_cancel_payment_task_in_meantime(
     client, hold_invoice, adminkey_headers_from
 ):
