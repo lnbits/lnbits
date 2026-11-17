@@ -1657,14 +1657,6 @@ settings.check_totp_encryption_key()
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
 
-# printing environment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
-    for key, value in settings.model_dump(
-        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
-    ).items():
-        logger.debug(f"{key}: {value}")
-
 
 def get_funding_source():
     """
