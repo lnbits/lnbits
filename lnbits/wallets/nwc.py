@@ -22,6 +22,7 @@ from lnbits.settings import settings
 from lnbits.utils.nostr import (
     decrypt_content,
     encrypt_content,
+    get_shared_x,
     json_dumps,
     sign_event,
     verify_event,
@@ -1573,9 +1574,7 @@ class NIP44Encryption:
         service_pubkey: PublicKey,
         account_private_key_hex: str,
     ) -> bytes:
-        return service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
-            1:
-        ]
+        return get_shared_x(service_pubkey, account_private_key_hex)
 
     @staticmethod
     def _hkdf_extract(*, ikm: bytes, salt: bytes) -> bytes:
