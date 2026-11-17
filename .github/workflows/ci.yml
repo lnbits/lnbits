@@ -84,20 +84,11 @@ jobs:
           - CoreLightningRestWallet
           - LNbitsWallet
           - EclairWallet
+          - NWCWallet
     with:
       custom-pytest: "uv run pytest tests/regtest"
       python-version: ${{ matrix.python-version }}
       backend-wallet-class: ${{ matrix.backend-wallet-class }}
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  regtest-nwc:
-    needs: [ lint ]
-    uses: ./.github/workflows/regtest.yml
-    with:
-      custom-pytest: "uv run pytest tests/regtest"
-      python-version: "3.13"
-      backend-wallet-class: NWCWallet
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 

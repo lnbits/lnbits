@@ -87,8 +87,8 @@ docker compose -p lnbits-nwc -f docker/regtest/docker-compose.nwc.yml down --vol
 ```
 
 Stop this add-on before resetting or stopping the normal stack. CI starts it
-only for the separate `regtest-nwc` job and removes it afterward. It is outside
-the existing backend matrix, so its failure cannot cancel those jobs.
+only for the `NWCWallet` entry in the funding-source matrix and removes it
+afterward. NWC follows the same failure policy as the other funding sources.
 
 The pinned provider reports failed outgoing payments as settled. The two
 payment-cancellation checks are strict expected failures for NWC until that
