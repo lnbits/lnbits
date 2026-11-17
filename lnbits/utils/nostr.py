@@ -18,6 +18,15 @@ def generate_keypair() -> tuple[str, str]:
     return private_key.hex(), public_key.hex()
 
 
+def get_shared_x(public_key: coincurve.PublicKey, private_key_hex: str) -> bytes:
+    """Return the raw ECDH x-coordinate used by NIP-04 and NIP-44."""
+    secret = bytes.fromhex(private_key_hex)
+    if len(secret) > 32:
+        raise ValueError("Invalid private key length")
+    private_key = PrivateKey(secret.rjust(32, b"\0"))
+    return private_key.ecdh(public_key.format()[1:].hex())
+
+
 def encrypt_content(
     content: str, service_pubkey: coincurve.PublicKey, account_private_key_hex: str
 ) -> str:
@@ -32,9 +41,7 @@ def encrypt_content(
     Returns:
         str: The encrypted content.
     """
-    shared = service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
-        1:
-    ]
+    shared = get_shared_x(service_pubkey, account_private_key_hex)
     # random iv (16B)
     iv = Random.new().read(AES.block_size)
     aes = AES.new(shared, AES.MODE_CBC, iv)
@@ -65,9 +72,7 @@ def decrypt_content(
     Returns:
         str: The decrypted content.
     """
-    shared = service_pubkey.multiply(bytes.fromhex(account_private_key_hex)).format()[
-        1:
-    ]
+    shared = get_shared_x(service_pubkey, account_private_key_hex)
     # extract iv and content
     encrypted_content_b64, iv_b64 = content.split("?iv=")
     encrypted_content = base64.b64decode(encrypted_content_b64.encode("ascii"))
