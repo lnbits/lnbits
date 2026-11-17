@@ -569,6 +569,9 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     factor_account.email = f"{factor_account.id}@example.com"
     await update_account(factor_account)
     await enroll(http_client, factor_account)
+    # SSO is available only to accounts without a password.
+    factor_account.password_hash = None
+    await update_account(factor_account)
     response = await _handle_sso_login(
         OpenID.model_validate({"email": factor_account.email})
     )

@@ -679,6 +679,12 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
         redirect_path = "/account"
 
     if account:
+        if account.has_password:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                "SSO is disabled for accounts with a password. "
+                "Sign in with your username and password.",
+            )
         account.extra = account.extra or UserExtra()
         account.extra.email_verified = True
         await update_account(account)
