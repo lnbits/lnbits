@@ -44,6 +44,7 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_api_write_access,
+    check_passwordless_account,
     check_user_exists,
     optional_user_id,
 )
@@ -195,6 +196,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Admin users cannot login with user id only."
         )
+    check_passwordless_account(account)
     return await _login_response(account)
 
 
