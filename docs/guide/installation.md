@@ -449,7 +449,7 @@ kill_timeout = 30
 [env]
   HOST="127.0.0.1"
   PORT=5000
-  FORWARDED_ALLOW_IPS="*"
+  FORWARDED_ALLOW_IPS="${PUT_YOUR_PROXY_IPS_HERE}"
   LNBITS_BASEURL="https://mylnbits.lnbits.org/"
   LNBITS_DATA_FOLDER="/data"
 
@@ -461,6 +461,8 @@ kill_timeout = 30
   internal_port = 5000
 ...
 ```
+
+Set `PUT_YOUR_PROXY_IPS_HERE` to the proxy addresses or networks that connect to LNbits, separated by commas.
 
 Next, create a volume to store the sqlite database for LNbits. Be sure to choose the same region for the volume that you chose earlier.
 
@@ -822,6 +824,8 @@ service apache2 restart
 ```
 
 ## Nginx reverse proxy over HTTPS
+
+LNbits trusts forwarded headers from `127.0.0.1` by default. If the proxy connects from another address (including another container), set `FORWARDED_ALLOW_IPS` to that address or a comma-separated list of proxy addresses.
 
 ```sh
 apt-get install nginx certbot

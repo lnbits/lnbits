@@ -1191,7 +1191,7 @@ class EnvSettings(LNbitsSettings):
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
-    forwarded_allow_ips: str = Field(default="*")
+    forwarded_allow_ips: str = Field(default="127.0.0.1")
     # Deployment-supplied addresses hidden by container networking or NAT.
     lnbits_outbound_host_ips: list[str] = Field(default=[])
     lnbits_title: str = Field(default="LNbits API")
