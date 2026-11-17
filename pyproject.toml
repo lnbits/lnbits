@@ -15,7 +15,7 @@ dependencies = [
     "jinja2~=3.1.6",
     "lnurl~=2.0.2",
     "pydantic~=2.12.5",
-    "pydantic-settings~=2.12.0",
+    "pydantic-settings~=2.14.2",
     "pyqrcode~=1.2.1",
     "shortuuid~=1.0.13",
     "sse-starlette~=2.3.6",
@@ -35,7 +35,7 @@ dependencies = [
     "websocket-client~=1.9.0",
     "pycryptodomex~=3.23.0",
     "wallycore~=1.5.1",
-    "packaging~=25.0.0",
+    "packaging~=26.3",
     "bolt11~=2.1.1",
     "pyjwt~=2.15.1",
     "itsdangerous~=2.2.0",
@@ -51,7 +51,9 @@ dependencies = [
     "nostr-sdk~=0.44.0",
     "bcrypt~=5.0.0",
     "jsonpath-ng~=1.7.0",
-    "pillow~=12.3.0",
+    # pillow 13 (security fixes) requires python 3.11+
+    "pillow~=12.3.0; python_version < '3.11'",
+    "pillow~=13.0.0; python_version >= '3.11'",
     "python-dotenv~=1.2.1",
     "greenlet~=3.3.0",
     "urllib3>=2.7.0",
@@ -72,7 +74,7 @@ migration = ["psycopg2-binary~=2.9.11"]
 
 [dependency-groups]
 dev = [
-  "black~=26.3.1",
+  "black~=26.10.1",
   "mypy~=1.17.1",
   "types-protobuf~=6.32.1.20251210",
   "pre-commit~=4.5.1",
@@ -82,7 +84,7 @@ dev = [
   "openai~=2.14.0",
   "json5~=0.13.0",
   "asgi-lifespan~=2.1.0",
-  "anyio~=4.12.1",
+  "anyio~=4.14.2",
   "pytest~=9.0.2",
   "pytest-cov~=7.0.0",
   "playwright~=1.61.0",
