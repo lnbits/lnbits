@@ -1,3 +1,4 @@
+import weakref
 from typing import cast
 
 import pytest
@@ -32,6 +33,10 @@ class FakeWebSocket:
         self.sent.append(data)
 
 
+class ClientMessage(str):
+    pass
+
+
 @pytest.mark.anyio
 async def test_websocket_connection_manager_connect_and_send():
     manager = WebsocketConnectionManager()
@@ -47,11 +52,14 @@ async def test_websocket_connection_manager_connect_and_send():
 
 
 @pytest.mark.anyio
-async def test_websocket_connection_manager_listen_queues_messages_and_disconnects(
+async def test_websocket_connection_manager_discards_messages_and_disconnects(
     settings: Settings,
 ):
     manager = WebsocketConnectionManager()
-    websocket = FakeWebSocket(["hello", WebSocketDisconnect()])
+    messages = [ClientMessage("hello") for _ in range(1000)]
+    references = [weakref.ref(message) for message in messages]
+    websocket = FakeWebSocket([*messages, WebSocketDisconnect()])
+    del messages
     conn = await manager.connect("item-2", cast(WebSocket, websocket))
     original_running = settings.lnbits_running
     try:
@@ -60,7 +68,8 @@ async def test_websocket_connection_manager_listen_queues_messages_and_disconnec
     finally:
         settings.lnbits_running = original_running
 
-    assert conn.receive_queue.get_nowait() == "hello"
+    assert websocket.received == []
+    assert all(reference() is None for reference in references)
     assert manager.has_connection("item-2") is False
 
 

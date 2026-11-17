@@ -1,4 +1,3 @@
-from asyncio import Queue
 from dataclasses import dataclass
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -11,7 +10,6 @@ from lnbits.settings import settings
 class WebsocketConnection:
     item_id: str
     websocket: WebSocket
-    receive_queue: Queue[str]
 
 
 class WebsocketConnectionManager:
@@ -24,7 +22,6 @@ class WebsocketConnectionManager:
         conn = WebsocketConnection(
             item_id=item_id,
             websocket=websocket,
-            receive_queue=Queue(),
         )
         self.active_connections.append(conn)
         return conn
@@ -32,9 +29,9 @@ class WebsocketConnectionManager:
     async def listen(self, conn: WebsocketConnection) -> None:
         while settings.lnbits_running:
             try:
-                data = await conn.websocket.receive_text()
-                logger.debug(f"WS received data from {conn.item_id}: {data}")
-                conn.receive_queue.put_nowait(data)
+                # This endpoint only sends notifications. Drain incoming messages
+                # so disconnects are detected without retaining client payloads.
+                await conn.websocket.receive_text()
             except WebSocketDisconnect:
                 for _conn in self.active_connections:
                     if _conn.websocket == conn.websocket:
