@@ -10,6 +10,7 @@ from lnbits.core.models.extensions import (
     ExtensionManifestType,
     ExtensionMeta,
     ExtensionRelease,
+    GitHubRelease,
     InstallableExtension,
     Manifest,
     github_api_get,
@@ -516,3 +517,43 @@ async def test_github_api_get_rejects_untrusted_origin(
         await github_api_get("https://api.github.com.evil.example/", "Cannot fetch")
 
     client_factory.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_github_repo_manifest_entry_accepts_integer_star_count(
+    mocker: MockerFixture,
+):
+    # The GitHub API returns stargazers_count as a number. Declaring the field
+    # as str made Pydantic 2 reject it and silently dropped every extension
+    # listed through a "repos" manifest.
+    async def fake_github_api_get(url: str, error_msg: str | None):
+        if url.endswith("/releases/latest"):
+            return {
+                "name": "v1.0.0",
+                "tag_name": "v1.0.0",
+                "zipball_url": "https://api.github.com/repos/org/ext/zipball/v1.0.0",
+                "html_url": "https://github.com/org/ext/releases/tag/v1.0.0",
+            }
+        if url.endswith("/config.json"):
+            return _extension_config_payload()
+        return {
+            "stargazers_count": 42,
+            "html_url": "https://github.com/org/ext",
+            "default_branch": "main",
+        }
+
+    mocker.patch(
+        "lnbits.core.models.extensions.github_api_get",
+        side_effect=fake_github_api_get,
+    )
+
+    repo, release, _ = await InstallableExtension.fetch_github_repo_info("org", "ext")
+    assert repo.stargazers_count == 42
+    assert release.tag_name == "v1.0.0"
+
+    ext = await InstallableExtension.from_github_release(
+        GitHubRelease(id="ext", organisation="org", repository="ext")
+    )
+    assert ext is not None
+    assert ext.stars == 42
+    assert ext.version == "v1.0.0"
