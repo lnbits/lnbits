@@ -10,7 +10,6 @@ import pytest
 from coincurve import PrivateKey
 
 from lnbits.core.crud.settings import set_settings_field
-from lnbits.core.crud.sso import link_sso_identity
 from lnbits.core.crud.users import (
     get_account,
     get_two_factor_config,
@@ -547,12 +546,13 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     factor_account.email = f"{factor_account.id}@example.com"
     await update_account(factor_account)
     await enroll(http_client, factor_account)
-    await link_sso_identity("google", factor_account.id, factor_account.id)
+    # SSO is available only to accounts without a password.
+    factor_account.password_hash = None
+    await update_account(factor_account)
     response = await _handle_sso_login(
         VerifiedOpenID(
             id=factor_account.id, email=factor_account.email, email_verified=True
         ),
-        provider="google",
     )
     assert response.headers["location"] == "/2fa"
     cookies = response.headers.getlist("set-cookie")

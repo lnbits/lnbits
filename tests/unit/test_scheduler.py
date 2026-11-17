@@ -20,7 +20,6 @@ from lnbits.core.migrations import (
     m049_add_permissions_to_user_extensions,
     m054_create_scheduled_jobs,
     m055_create_scheduled_job_runs,
-    m059_sso_identities,
 )
 from lnbits.core.models.extensions import Extension, ExtensionPermission, UserExtension
 from lnbits.core.models.scheduler import (
@@ -926,7 +925,6 @@ async def schedule_accounts(schedule_db, mocker: MockerFixture):
     async with schedule_db.connect() as conn:
         await m001_initial(conn)
         await m044_add_activated_to_accounts(conn)
-        await m059_sso_identities(conn)
         await conn.execute("INSERT INTO accounts (id) VALUES ('alice'), ('bob')")
     mocker.patch.object(user_crud, "db", schedule_db)
     mocker.patch.object(service, "get_account", user_crud.get_account)

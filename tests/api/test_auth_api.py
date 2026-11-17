@@ -2,11 +2,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi.responses import RedirectResponse
+from fastapi_sso.sso.base import OpenID
 from httpx import AsyncClient
 
 from lnbits.core.crud.users import get_account, update_account
 from lnbits.core.models.sso import VerifiedOpenID
-from lnbits.core.models.users import Account
+from lnbits.core.models.users import Account, UserExtra
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.auth_api import get_account_by_email
 from lnbits.settings import Settings
@@ -147,6 +148,127 @@ async def test_auth_api_sso_login_and_callback(http_client: AsyncClient, mocker)
     assert account is not None
     assert account.email == email
     assert account.extra.email_verified is True
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("has_password", [False, True])
+@pytest.mark.parametrize("email_verified", [False, True])
+async def test_auth_api_sso_rejects_accounts_with_passwords(
+    http_client: AsyncClient, mocker, has_password, email_verified
+):
+    account = Account(
+        id=uuid4().hex,
+        username=f"user_{uuid4().hex[:8]}",
+        email=f"{uuid4().hex}@example.com",
+        extra=UserExtra(email_verified=email_verified),
+    )
+    if has_password:
+        account.hash_password("secret1234")
+    await create_user_account(account)
+    mocker.patch(
+        "lnbits.core.views.auth_api._new_sso",
+        return_value=_FakeSSO(
+            VerifiedOpenID(id="github-user", email=account.email, email_verified=True)
+        ),
+    )
+    http_client.cookies.clear()
+
+    response = await http_client.get("/api/v1/auth/github/token")
+
+    if has_password:
+        assert response.status_code == 403
+        assert "Sign in with your username and password" in response.json()["detail"]
+        assert (await http_client.get("/api/v1/auth")).status_code == 401
+        stored = await get_account(account.id)
+        assert stored and stored.extra.email_verified == email_verified
+        assert stored.password_hash == account.password_hash
+        login = await http_client.post(
+            "/api/v1/auth",
+            json={"username": account.username, "password": "secret1234"},
+        )
+        assert login.status_code == 200
+    else:
+        assert response.status_code == 307
+        assert response.headers["location"] == "/wallet"
+
+    assert (await http_client.get("/api/v1/auth")).json()["id"] == account.id
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("identity_class", [OpenID, VerifiedOpenID])
+async def test_auth_api_sso_requires_a_verified_provider_email(
+    http_client: AsyncClient, mocker, identity_class
+):
+    account = Account(id=uuid4().hex, email=f"{uuid4().hex}@example.com")
+    await create_user_account(account)
+    mocker.patch(
+        "lnbits.core.views.auth_api._new_sso",
+        return_value=_FakeSSO(identity_class(id="github-user", email=account.email)),
+    )
+    http_client.cookies.clear()
+
+    response = await http_client.get("/api/v1/auth/github/token")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "A verified email is required for SSO."
+    assert (await http_client.get("/api/v1/auth")).status_code == 401
+
+
+@pytest.mark.anyio
+async def test_auth_api_setting_a_password_disables_sso(
+    http_client: AsyncClient, mocker
+):
+    email = f"{uuid4().hex}@example.com"
+    mocker.patch(
+        "lnbits.core.views.auth_api._new_sso",
+        return_value=_FakeSSO(
+            VerifiedOpenID(id="github-user", email=email, email_verified=True)
+        ),
+    )
+    response = await http_client.get("/api/v1/auth/github/token")
+    assert response.status_code == 307
+    account = await get_account_by_email(email)
+    assert account
+    password = await http_client.put(
+        "/api/v1/auth/password",
+        json={
+            "user_id": account.id,
+            "username": f"user_{uuid4().hex[:8]}",
+            "password": "secret1234",
+            "password_repeat": "secret1234",
+        },
+    )
+    assert password.status_code == 200
+    http_client.cookies.clear()
+
+    response = await http_client.get("/api/v1/auth/github/token")
+
+    assert response.status_code == 403
+    assert "Sign in with your username and password" in response.json()["detail"]
+    assert (await http_client.get("/api/v1/auth")).status_code == 401
+
+
+@pytest.mark.anyio
+async def test_auth_api_sso_rejects_deactivated_accounts(
+    http_client: AsyncClient, mocker
+):
+    account = Account(
+        id=uuid4().hex, email=f"{uuid4().hex}@example.com", activated=False
+    )
+    await create_user_account(account)
+    mocker.patch(
+        "lnbits.core.views.auth_api._new_sso",
+        return_value=_FakeSSO(
+            VerifiedOpenID(id="github-user", email=account.email, email_verified=True)
+        ),
+    )
+    http_client.cookies.clear()
+
+    response = await http_client.get("/api/v1/auth/github/token")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Account is deactivated."
+    assert (await http_client.get("/api/v1/auth")).status_code == 401
 
 
 @pytest.mark.anyio
