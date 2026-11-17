@@ -54,7 +54,11 @@ async def test_forwarded_client_address(
         return {"client": request.client.host if request.client else None}
 
     transport = ASGITransport(
-        app=ProxyHeadersMiddleware(app, trusted_hosts=loaded.forwarded_allow_ips),
+        # Uvicorn and HTTPX use different ASGI type aliases.
+        app=ProxyHeadersMiddleware(
+            app,  # pyright: ignore[reportArgumentType]
+            trusted_hosts=loaded.forwarded_allow_ips,
+        ),  # pyright: ignore[reportArgumentType]
         client=(peer, 12345),
     )
     headers = {"X-Forwarded-For": forwarded_for} if forwarded_for else {}
