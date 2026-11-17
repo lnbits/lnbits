@@ -64,9 +64,9 @@ LNBITS_ADMIN_UI=true HOST=0.0.0.0 PORT=5000 AUTH_HTTPS_ONLY=false ./LNbits-lates
 ## Option 2: UV (recommended for developers)
 
 > [!IMPORTANT]
-> **Use the latest version of UV with Python 3.10 through 3.13.**
+> **Use the latest version of UV with Python 3.11 through 3.13.**
 
-Python 3.13 requires UV; the legacy Poetry workflow supports Python 3.10 through
+Python 3.13 requires UV; the legacy Poetry workflow supports Python 3.11 through
 3.12 because LNURL's package metadata declares an older Python limit.
 
 ### Verify Python
@@ -480,7 +480,7 @@ Problems installing? These commands have helped us install LNbits.
 sudo apt install pkg-config libffi-dev libpq-dev
 
 # build essentials for debian/ubuntu
-sudo apt install python3.10-dev gcc build-essential
+sudo apt install python3.11-dev gcc build-essential
 
 # if the secp256k1 build fails:
 # if you used poetry
@@ -499,7 +499,7 @@ poetry add setuptools wheel
 sudo apt install pkg-config libffi-dev libpq-dev
 
 # build essentials (Debian/Ubuntu)
-sudo apt install python3.10-dev gcc build-essential
+sudo apt install python3.11-dev gcc build-essential
 
 # if secp256k1 build fails and you used poetry
 poetry add setuptools wheel

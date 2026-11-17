@@ -6,9 +6,8 @@ import plistlib
 import shutil
 import sys
 import tempfile
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 
 def output_path():
