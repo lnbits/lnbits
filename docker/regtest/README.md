@@ -58,6 +58,44 @@ make dev
 
 # testing
 
+## Optional NWC funding source
+
+NWC uses a separate Compose project with its own provider database and Nostr
+relay. The provider connects to the existing CLN node 1. The normal regtest
+services and funding sources do not change.
+
+After building the LNbits image and starting the normal stack, run from the
+repository root:
+
+```sh
+bash docker/regtest/start-nwc
+source docker/regtest/data/nwc.env
+make test-regtest
+```
+
+Each setup resets only the add-on's provider and relay data. Run it again before
+repeating the NWC suite. It uses a pinned NWC Provider revision, gives its test
+wallet a regtest balance, and writes the local pairing URL to the ignored
+`data/nwc.env` file.
+Its HTTP API and relay listen on localhost ports 5003 and 7777. These test
+credentials must not be used outside regtest.
+
+Stop only the NWC services and remove their test databases with:
+
+```sh
+docker compose -p lnbits-nwc -f docker/regtest/docker-compose.nwc.yml down --volumes
+```
+
+Stop this add-on before resetting or stopping the normal stack. CI starts it
+only for the separate `regtest-nwc` job and removes it afterward. It is outside
+the existing backend matrix, so its failure cannot cancel those jobs.
+
+The pinned provider reports failed outgoing payments as settled. The two
+payment-cancellation checks are strict expected failures for NWC until that
+provider behavior is corrected. Other funding sources keep their existing checks.
+
+## Existing funding sources
+
 BOLT12 offer tests run with `CoreLightningWallet`, `EclairWallet`, and
 `LNbitsWallet`. The remote LNbits container uses CLN, and CLN node 3 issues the
 offers. Eclair 0.11.0 requires Bitcoin Core 27.2 or later; this stack uses 28.1.

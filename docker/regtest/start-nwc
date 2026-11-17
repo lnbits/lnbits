@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# Start the normal regtest stack first. This add-on never restarts its services.
+docker network inspect lnbits_default >/dev/null
+compose=(docker compose -p lnbits-nwc -f docker-compose.nwc.yml)
+
+# Pin the provider so upstream changes cannot silently change the test fixture.
+provider_commit=cb2d8423338d740bd7f8258ed3b8cd2cec24a6ea
+mkdir -p data/nwcprovider
+curl --fail --silent --show-error --location --max-time 60 \
+  "https://github.com/lnbits/nwcprovider/archive/$provider_commit.tar.gz" \
+  | tar -xz --strip-components=1 -C data/nwcprovider
+
+wait_for_http() {
+  local url=$1
+  for attempt in {1..120}; do
+    if curl --fail --silent --max-time 2 "$url" >/dev/null; then
+      return
+    fi
+    sleep 1
+  done
+  "${compose[@]}" logs --tail=100 >&2
+  echo "Timed out waiting for $url" >&2
+  return 1
+}
+
+# Reset this fixture so earlier payments and relay events cannot affect a new run.
+"${compose[@]}" down --volumes
+"${compose[@]}" up -d
+wait_for_http http://127.0.0.1:7777
+wait_for_http http://127.0.0.1:5003/nwcprovider/api/v1/permissions
+"${compose[@]}" exec -T nwc-provider uv run --no-sync python setup-nwc.py
+"${compose[@]}" restart nwc-provider
+wait_for_http http://127.0.0.1:5003/nwcprovider/api/v1/permissions
+"${compose[@]}" exec -T nwc-provider cat data/nwc.env > data/nwc.env
+
+echo "NWC ready. From the repository root, source docker/regtest/data/nwc.env."

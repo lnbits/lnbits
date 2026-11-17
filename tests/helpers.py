@@ -17,6 +17,7 @@ from lnbits.core.models.extensions import (
     PayToEnableInfo,
     ReleasePaymentInfo,
 )
+from lnbits.settings import settings
 from lnbits.wallets import get_funding_source, set_funding_source
 
 # https://github.com/lightning/bolts/blob/master/bolt12/offers-test.json
@@ -163,8 +164,10 @@ def make_lnurl_pay_response(
     )
 
 
-set_funding_source()
+# NWC starts background tasks and must be initialized during async app startup.
+if settings.lnbits_backend_wallet_class != "NWCWallet":
+    set_funding_source()
 
 funding_source = get_funding_source()
-is_fake: bool = funding_source.__class__.__name__ == "FakeWallet"
+is_fake: bool = settings.lnbits_backend_wallet_class == "FakeWallet"
 is_regtest: bool = not is_fake

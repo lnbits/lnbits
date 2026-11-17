@@ -1,9 +1,12 @@
+import hashlib
+
 import pytest
 from bolt11 import decode
 
 from lnbits.core.services import (
     create_invoice,
 )
+from lnbits.settings import settings
 from lnbits.wallets import get_funding_source
 from lnbits.wallets.base import PaymentStatus
 
@@ -20,14 +23,20 @@ async def test_create_invoice(from_wallet):
         memo=description,
     )
 
-    # we cannot know the preimage of the swap yet
-    if not is_boltz_wallet:
+    # Boltz and NWC may omit the preimage until the invoice is paid.
+    if not is_boltz_wallet and settings.lnbits_backend_wallet_class != "NWCWallet":
         assert payment.preimage
 
     invoice = decode(payment.bolt11)
     assert invoice.payment_hash == payment.payment_hash
     assert invoice.amount_msat == 1000000
-    assert invoice.description == description
+    if settings.lnbits_backend_wallet_class == "NWCWallet":
+        # The provider puts the description's hash in the BOLT11 invoice.
+        assert (
+            invoice.description_hash == hashlib.sha256(description.encode()).hexdigest()
+        )
+    else:
+        assert invoice.description == description
 
     funding_source = get_funding_source()
     status = await funding_source.get_invoice_status(payment.payment_hash)
