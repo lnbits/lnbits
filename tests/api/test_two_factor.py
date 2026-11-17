@@ -8,6 +8,7 @@ from uuid import uuid4
 import jwt
 import pytest
 from coincurve import PrivateKey
+from fastapi_sso.sso.base import OpenID
 
 from lnbits.core.crud.settings import set_settings_field
 from lnbits.core.crud.users import (
@@ -16,7 +17,6 @@ from lnbits.core.crud.users import (
     save_two_factor_config,
     update_account,
 )
-from lnbits.core.models.sso import VerifiedOpenID
 from lnbits.core.models.users import AccessTokenPayload, Account, TwoFactorConfig
 from lnbits.core.services.two_factor import (
     issue_challenge,
@@ -550,9 +550,7 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     factor_account.password_hash = None
     await update_account(factor_account)
     response = await _handle_sso_login(
-        VerifiedOpenID(
-            id=factor_account.id, email=factor_account.email, email_verified=True
-        ),
+        OpenID.model_validate({"email": factor_account.email})
     )
     assert response.headers["location"] == "/2fa"
     cookies = response.headers.getlist("set-cookie")

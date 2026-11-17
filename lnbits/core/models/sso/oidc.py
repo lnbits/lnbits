@@ -3,9 +3,7 @@
 from typing import Optional
 
 import httpx
-from fastapi_sso.sso.base import DiscoveryDocument, SSOBase, SSOLoginError
-
-from . import VerifiedOpenID
+from fastapi_sso.sso.base import DiscoveryDocument, OpenID, SSOBase
 
 
 class OidcSSO(SSOBase):
@@ -17,12 +15,9 @@ class OidcSSO(SSOBase):
 
     async def openid_from_response(
         self, response: dict, session: Optional["httpx.AsyncClient"] = None
-    ) -> VerifiedOpenID:
+    ) -> OpenID:
         """Return OpenID from user information provided by OIDC provider"""
-        if response.get("email_verified") is not True:
-            raise SSOLoginError(401, "A verified email is required for SSO.")
-        return VerifiedOpenID(
-            email_verified=True,
+        return OpenID(
             email=response.get("email", ""),
             provider=self.provider,
             id=response.get("sub"),

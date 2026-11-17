@@ -21,7 +21,6 @@ from lnbits.core.crud.users import (
     update_user_access_control_list,
 )
 from lnbits.core.models.misc import SimpleItem
-from lnbits.core.models.sso import VerifiedOpenID
 from lnbits.core.models.users import (
     ApiTokenRequest,
     ApiTokenResponse,
@@ -599,8 +598,6 @@ async def update(
     if data.username:
         account.username = data.username
     if data.extra:
-        # Email verification is established by the SSO callback, not profile input.
-        data.extra.email_verified = account.extra.email_verified
         account.extra = data.extra
 
     await update_user_account(account)
@@ -664,10 +661,6 @@ async def first_install(data: UpdateSuperuserPassword) -> JSONResponse:
 
 
 async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = None):
-    if not isinstance(userinfo, VerifiedOpenID) or not userinfo.email_verified:
-        raise HTTPException(
-            HTTPStatus.UNAUTHORIZED, "A verified email is required for SSO."
-        )
     email = userinfo.email
     if not email or not is_valid_email_address(email):
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid email.")
@@ -690,8 +683,6 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
                 "SSO is disabled for accounts with a password. "
                 "Sign in with your username and password.",
             )
-        if not account.activated:
-            raise HTTPException(HTTPStatus.FORBIDDEN, "Account is deactivated.")
         account.extra = account.extra or UserExtra()
         account.extra.email_verified = True
         await update_account(account)
