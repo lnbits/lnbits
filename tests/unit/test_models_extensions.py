@@ -1,3 +1,5 @@
+import socket
+
 import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -355,6 +357,63 @@ def test_check_release_updates_ignores_unusable_candidate(missing_release: bool)
     extension.check_release_updates(release, candidate=candidate)
 
     assert extension.dict() == before
+
+
+@pytest.mark.anyio
+async def test_release_details_loads_public_description(safe_http_mock, settings):
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    _, handler = safe_http_mock
+    handler.side_effect = [
+        httpx.Response(
+            200,
+            json={
+                "name": "Demo",
+                "description_md": "https://extensions.example/README.md",
+            },
+        ),
+        httpx.Response(200, text="# Demo"),
+    ]
+
+    details = await ExtensionRelease.fetch_release_details(
+        "https://extensions.example/config.json"
+    )
+
+    assert details == {"name": "Demo", "description_md": "# Demo"}
+    assert handler.call_count == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target", ["details", "description"])
+@pytest.mark.parametrize("address", ["127.0.0.1", "10.0.0.1", "169.254.169.254", "::1"])
+async def test_release_details_rejects_private_destinations(
+    safe_http_mock, settings, target, address
+):
+    settings.lnbits_callback_allow_private_ips = True
+    resolver, handler = safe_http_mock
+    private_address = [
+        (
+            socket.AF_INET6 if ":" in address else socket.AF_INET,
+            socket.SOCK_STREAM,
+            6,
+            "",
+            (address, 443),
+        )
+    ]
+    resolver.side_effect = (
+        [resolver.return_value, private_address]
+        if target == "description"
+        else [private_address]
+    )
+    handler.side_effect = lambda request: httpx.Response(
+        200, json={"description_md": "https://extensions.example/README.md"}
+    )
+
+    details = await ExtensionRelease.fetch_release_details(
+        "https://extensions.example/config.json"
+    )
+
+    assert details is None
+    assert handler.call_count == (1 if target == "description" else 0)
 
 
 @pytest.mark.anyio

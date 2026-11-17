@@ -28,6 +28,7 @@ from lnbits.helpers import (
 from lnbits.settings import settings
 from lnbits.task_manager import task_manager
 from lnbits.utils.cache import cache
+from lnbits.utils.safe_http import SafeHttpClient
 
 EXTENSION_ID_PATTERN = r"^[A-Za-z0-9_-]+$"
 
@@ -487,7 +488,7 @@ class ExtensionRelease(BaseModel):
     @classmethod
     async def fetch_release_details(cls, details_link: str) -> dict | None:
         try:
-            async with httpx.AsyncClient() as client:
+            async with SafeHttpClient(apply_callback_rules=False) as client:
                 resp = await client.get(details_link)
                 resp.raise_for_status()
                 data = resp.json()
