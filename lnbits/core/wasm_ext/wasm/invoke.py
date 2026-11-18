@@ -10,6 +10,7 @@ from wasmtime import Store, WasiConfig, component
 
 from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
+from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
@@ -65,10 +66,12 @@ async def invoke_wasm_extension_export(
         request_bytes if request_bytes is not None else payload_size
     )
     _check_wasm_request_size(effective_request_bytes, limits)
-    # Authenticated routes, public owner routes, events and schedules must use
-    # the same lock for the same storage owner, regardless of export name.
+    # Extensions allowed to pay use the same owner lock across all exports,
+    # including authenticated routes, public owner routes, events and schedules.
     user_id = _user_id(user)
-    lock = _invocation_lock(extension.id, sha256s(user_id) if user_id else owner_id)
+    lock = _invocation_lock(
+        extension.id, sha256s(user_id) if user_id else owner_id, permissions
+    )
     # Register waiting calls too, so they count toward runtime concurrency limits.
     invocation = await start_wasm_invocation(
         extension_id=extension.id,
@@ -112,14 +115,14 @@ async def invoke_wasm_extension_export(
             )
         )
     except BaseException:
-        lock.release()
+        _release_invocation_lock(lock)
         await finish_wasm_invocation(
             invocation.id, status="stopped", stop_reason="Invocation did not start."
         )
         raise
     # A timed-out HTTP invocation may return before its native thread exits.
     # Keep the owner locked until that thread has finished all host side effects.
-    thread_task.add_done_callback(lambda _task: lock.release())
+    thread_task.add_done_callback(lambda _task: _release_invocation_lock(lock))
     max_execution_ms = limits["wasm_runtime_max_execution_ms"]
     timed_out = False
     finished = False
@@ -315,7 +318,16 @@ def _json_size(value: Any) -> int:
     return len(json.dumps(value, default=str).encode())
 
 
-def _invocation_lock(extension_id: str, owner_id: str | None) -> asyncio.Lock:
+def _invocation_lock(
+    extension_id: str,
+    owner_id: str | None,
+    permissions: list[ExtensionPermission],
+) -> asyncio.Lock | None:
+    if not any(
+        permission.id in {"wallet.pay_invoice", "wallet.pay_invoice_background"}
+        for permission in permissions
+    ):
+        return None
     key = (asyncio.get_running_loop(), extension_id, owner_id)
     lock = _invocation_locks.get(key)
     if lock is None:
@@ -324,12 +336,16 @@ def _invocation_lock(extension_id: str, owner_id: str | None) -> asyncio.Lock:
     return lock
 
 
-async def _acquire_invocation_lock(lock: asyncio.Lock, invocation_id: str) -> None:
+async def _acquire_invocation_lock(
+    lock: asyncio.Lock | None, invocation_id: str
+) -> None:
     from lnbits.core.services.extensions import (
         finish_wasm_invocation,
         wasm_invocation_stop_requested,
     )
 
+    if lock is None:
+        return
     try:
         await lock.acquire()
     except asyncio.CancelledError:
@@ -343,3 +359,8 @@ async def _acquire_invocation_lock(lock: asyncio.Lock, invocation_id: str) -> No
             invocation_id, status="stopped", stop_reason="Invocation did not start."
         )
         raise PermissionError("WASM invocation was stopped while waiting.")
+
+
+def _release_invocation_lock(lock: asyncio.Lock | None) -> None:
+    if lock is not None:
+        lock.release()

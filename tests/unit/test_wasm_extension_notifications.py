@@ -449,7 +449,9 @@ async def test_invocation_notifies_current_user_or_wallet_owner_regardless_of_tr
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._active_installed_extension",
-        AsyncMock(return_value=SimpleNamespace(permissions=[METHOD])),
+        AsyncMock(
+            return_value=SimpleNamespace(permissions=[ExtensionPermission(id=METHOD)])
+        ),
     )
     mocker.patch(
         "lnbits.core.services.extensions.resolve_wasm_runtime_limits",

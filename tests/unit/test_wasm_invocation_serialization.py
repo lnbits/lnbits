@@ -5,19 +5,29 @@ from uuid import uuid4
 
 import pytest
 
+from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 from lnbits.helpers import sha256s
 
 
 @pytest.fixture
-def invocation_runtime(mocker):
+def invocation_runtime(mocker, request):
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._get_registered_extension",
         side_effect=lambda ext_id: SimpleNamespace(id=ext_id),
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._active_installed_extension",
-        mocker.AsyncMock(return_value=SimpleNamespace(permissions=[])),
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                permissions=[
+                    ExtensionPermission(id=permission_id)
+                    for permission_id in getattr(
+                        request, "param", ["wallet.pay_invoice_background"]
+                    )
+                ]
+            )
+        ),
     )
     limits = {
         "wasm_runtime_max_execution_ms": 0,
@@ -38,6 +48,11 @@ def invocation_runtime(mocker):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "invocation_runtime",
+    [["wallet.pay_invoice"], ["wallet.pay_invoice_background"]],
+    indirect=True,
+)
 async def test_payout_invocations_share_owner_lock_across_exports_and_contexts(
     mocker, invocation_runtime
 ):
@@ -153,9 +168,20 @@ async def test_owner_lock_outlives_cancelled_or_timed_out_request(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("extension,owner", [("other", "alice"), ("demo", "bob")])
-async def test_other_owners_and_extensions_are_not_blocked(
-    mocker, invocation_runtime, extension, owner
+@pytest.mark.parametrize("context", ["user", "event", "schedule"])
+@pytest.mark.parametrize(
+    "invocation_runtime,extension,owner",
+    [
+        (["wallet.pay_invoice_background"], "other", "alice"),
+        (["wallet.pay_invoice_background"], "demo", "bob"),
+        ([], "demo", "alice"),
+        (["wallet.create_invoice"], "demo", "alice"),
+        (["ext.storage.write"], "demo", "alice"),
+    ],
+    indirect=["invocation_runtime"],
+)
+async def test_independent_invocations_are_not_blocked(
+    mocker, invocation_runtime, extension, owner, context
 ):
     entered = asyncio.Event()
     release = threading.Event()
@@ -171,13 +197,23 @@ async def test_other_owners_and_extensions_are_not_blocked(
         side_effect=run,
     )
     first = asyncio.create_task(
-        invoke_wasm_extension_export("demo", "first", context="event", owner_id="alice")
+        invoke_wasm_extension_export(
+            "demo",
+            "first",
+            context=context,
+            owner_id=sha256s("alice"),
+            user=None if context == "event" else SimpleNamespace(id="alice"),
+        )
     )
     try:
         await asyncio.wait_for(entered.wait(), 1)
         assert await asyncio.wait_for(
             invoke_wasm_extension_export(
-                extension, "other", context="event", owner_id=owner
+                extension,
+                "other",
+                context=context,
+                owner_id=sha256s(owner),
+                user=None if context == "event" else SimpleNamespace(id=owner),
             ),
             1,
         ) == {"ok": True}
