@@ -396,7 +396,7 @@ async def test_scheduler_invocation_stops_and_drains_wasm_thread(
     release = threading.Event()
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._get_registered_extension",
-        return_value=SimpleNamespace(id="demo"),
+        return_value=SimpleNamespace(id="demo", exports=[]),
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._active_installed_extension",

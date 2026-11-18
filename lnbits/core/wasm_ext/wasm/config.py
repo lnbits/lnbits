@@ -26,6 +26,7 @@ class _StrictWasmModel(BaseModel):
 class WasmExtensionExport(_StrictWasmModel):
     name: StrictStr
     visibility: Literal["authenticated", "event", "public"]
+    sync: StrictBool = False
 
 
 class WasmRuntimeConfig(_StrictWasmModel):
