@@ -87,6 +87,13 @@ async def test_public_invoice_forwards_description_hash(mocker):
         ("description_hash", "zz" * 32),
         ("description_hash", "ab" * 31),
         ("description_hash", "ab" * 33),
+        ("description_hash", " " * 64),
+        ("description_hash", "  " + "ab" * 31),
+        ("description_hash", "ab" * 31 + "  "),
+        ("description_hash", "ab" * 16 + "  " + "ab" * 15),
+        ("description_hash", "ab" * 31 + "\t\n"),
+        ("description_hash", "ab" * 31 + "\r\v"),
+        ("description_hash", "ab" * 31 + "\f "),
         ("unhashed_description", "abc"),
         ("unhashed_description", "not hex"),
         ("unhashed_description", "ab" * 8193),
@@ -94,6 +101,25 @@ async def test_public_invoice_forwards_description_hash(mocker):
 )
 def test_invoice_requests_reject_invalid_description_hash(field, value):
     _assert_both_requests_reject({field: value})
+
+
+@pytest.mark.parametrize("description_hash", [METADATA_HASH, METADATA_HASH.upper()])
+def test_invoice_requests_normalize_description_hash(description_hash):
+    authenticated = CreateInvoiceRequest(
+        wallet_id="wallet-1",
+        tag="tips",
+        amount=1,
+        memo="",
+        description_hash=description_hash,
+    )
+    public = CreateInvoicePublicRequest(
+        source_id="row-1",
+        amount=1,
+        currency="sat",
+        description_hash=description_hash,
+    )
+    assert authenticated.description_hash == METADATA_HASH
+    assert public.description_hash == METADATA_HASH
 
 
 def test_invoice_requests_reject_both_description_fields():
