@@ -555,9 +555,13 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or (
-            self.context == "schedule"
-            and (not self.user_id or wallet.user != self.user_id)
+        if (
+            wallet is None
+            or self.owner_id != sha256s(wallet.user)
+            or (
+                self.context == "schedule"
+                and (not self.user_id or wallet.user != self.user_id)
+            )
         ):
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
@@ -623,9 +627,13 @@ class ExtensionHostAPI:
         )
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or (
-            self.context == "schedule"
-            and (not self.user_id or wallet.user != self.user_id)
+        if (
+            wallet is None
+            or self.owner_id != sha256s(wallet.user)
+            or (
+                self.context == "schedule"
+                and (not self.user_id or wallet.user != self.user_id)
+            )
         ):
             raise PermissionError("Paying from this wallet is not allowed.")
 
