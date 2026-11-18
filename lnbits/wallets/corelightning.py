@@ -200,8 +200,13 @@ class CoreLightningWallet(Wallet):
             logger.warning(exc)
             try:
                 error_code = exc.error.get("code")  # type: ignore
-                if error_code in self.pay_failure_error_codes or (
-                    _all_payment_attempts_failed(exc.error)
+                if (
+                    error_code in self.pay_failure_error_codes
+                    or _all_payment_attempts_failed(exc.error)
+                    or (
+                        error_code == 203
+                        and (await self.get_payment_status(invoice.payment_hash)).failed
+                    )
                 ):
                     error_message = exc.error.get("message", error_code)  # type: ignore
                     return PaymentResponse(
