@@ -338,7 +338,12 @@ Multiple invocations can run concurrently. Reading a version or processing flag
 and then writing a row is not an atomic lock. Separate writes can partially
 complete, and an HTTP timeout does not undo a payment or a stored row. Use
 durable operation IDs, immutable receipts where suitable, bounded retries, and
-reconciliation. If correctness requires an atomic primitive the host lacks,
+reconciliation. Core serializes invocations for each extension and storage owner
+within one server process, across HTTP routes, events, and schedules. A timed-out
+request retains that lock until its WASM thread exits. Different owners can run
+concurrently. This does not coordinate multiple server processes or provide
+payment idempotency after a crash. Background payment grants keep their existing
+per-payment limits. If correctness requires an atomic primitive the host lacks,
 resolve that requirement before shipping; guest globals cannot supply it.
 
 Sources: [storage implementation and migrations](../lnbits/core/wasm_ext/storage/crud.py),
