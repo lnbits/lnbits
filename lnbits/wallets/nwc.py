@@ -418,6 +418,9 @@ class NWCWallet(Wallet):
 
     def _payment_data_is_failed(self, payment_data: dict[str, Any]) -> bool:
         state = payment_data.get("state")
+        # Invoice expiry does not determine the outcome of an outgoing payment.
+        if payment_data.get("type") != "incoming":
+            return state == "failed"
         if state in {"expired", "failed"}:
             return True
         created_at = int(payment_data.get("created_at", time.time()))
