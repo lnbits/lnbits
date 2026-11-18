@@ -187,6 +187,7 @@ class InvoiceDescriptionHash(BaseModel):
         None,
         min_length=64,
         max_length=64,
+        pattern=r"^[0-9a-fA-F]+$",
         description="Hex SHA-256 committed to instead of the memo.",
     )
     unhashed_description: str | None = Field(
