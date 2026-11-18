@@ -445,7 +445,7 @@ async def test_invocation_notifies_current_user_or_wallet_owner_regardless_of_tr
     wallet_id = None if user_id else event_invocation.wallet_id
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._get_registered_extension",
-        return_value=SimpleNamespace(id="forms"),
+        return_value=SimpleNamespace(id="forms", exports=[]),
     )
     mocker.patch(
         "lnbits.core.wasm_ext.wasm.invoke._active_installed_extension",
