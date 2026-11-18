@@ -553,7 +553,7 @@ async def test_host_api_background_pay_invoice_requires_background_permission(
         "lnbits.core.crud.wallets.get_wallet",
         mocker.AsyncMock(return_value=wallet),
     )
-    api = ExtensionHostAPI("demoext", [], context="event")
+    api = ExtensionHostAPI("demoext", [], context="event", owner_id=sha256s("user-1"))
 
     response = await api.wallet_pay_invoice(
         PayInvoiceRequest(
@@ -610,6 +610,7 @@ async def test_host_api_background_pay_invoice_uses_background_grant_metadata(
         "demoext",
         ["wallet.pay_invoice_background"],
         context="event",
+        owner_id=sha256s("user-1"),
     )
 
     response = await api.wallet_pay_invoice(
@@ -661,7 +662,10 @@ async def test_host_api_can_fetch_lnurl_invoice_without_paying(
     )
     pay_mock = mocker.patch("lnbits.core.services.payments.pay_invoice")
     api = ExtensionHostAPI(
-        "demoext", ["wallet.pay_invoice_background"], context="event"
+        "demoext",
+        ["wallet.pay_invoice_background"],
+        context="event",
+        owner_id=sha256s("user-1"),
     )
 
     response = await api.wallet_pay_lnurl(
