@@ -924,7 +924,7 @@ async def test_wallet_payment_watch_check_returns_requested_unapproved_grant(
 
 
 @pytest.mark.anyio
-async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
+async def test_invoice_paid_owner_lookup_rejects_unbound_invoice_with_granted_source(
     mocker: MockerFixture,
 ):
     extension = SimpleNamespace(
@@ -955,7 +955,7 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
         mocker.AsyncMock(return_value=installed_extension),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row",
+        "lnbits.core.wasm_ext.storage.crud.storage_get_public_row",
         mocker.AsyncMock(
             return_value={
                 "wallet_id": "wallet-1",
@@ -975,10 +975,8 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
 
     owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
 
-    assert owner_id == sha256s("user-1")
-    storage_mock.assert_awaited_once_with(
-        "demoext", "granted_table", "source-1", include_owner=True
-    )
+    assert owner_id is None
+    storage_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio

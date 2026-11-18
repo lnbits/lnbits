@@ -69,7 +69,7 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
     # Current records and permissions may change while the invoice is outstanding.
     row["wallet_id"] = "replacement-wallet"
     source_lookup = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row",
+        "lnbits.core.wasm_ext.storage.crud.storage_get_public_row",
         mocker.AsyncMock(side_effect=AssertionError("must use original binding")),
     )
     wallet_lookup = mocker.patch(
@@ -156,9 +156,7 @@ async def test_authenticated_shared_wallet_invoice_uses_authenticated_owner(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("shared", [False, True])
-async def test_legacy_invoices_accept_authorised_wallets_and_reject_forged_sources(
-    mocker, shared
-):
+async def test_unbound_invoices_reject_even_authorised_current_sources(mocker, shared):
     wallet = _wallet(shared=shared)
     payment = _payment("tips")
     payment.wallet_id = wallet.source_wallet_id
@@ -176,7 +174,7 @@ async def test_legacy_invoices_accept_authorised_wallets_and_reject_forged_sourc
     )
     row = {"wallet_id": wallet.id, OWNER_ID_FIELD: sha256s(wallet.user)}
     mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row",
+        "lnbits.core.wasm_ext.storage.crud.storage_get_public_row",
         mocker.AsyncMock(return_value=row),
     )
     mocker.patch(
@@ -184,7 +182,7 @@ async def test_legacy_invoices_accept_authorised_wallets_and_reject_forged_sourc
         mocker.AsyncMock(return_value=wallet),
     )
     extension = SimpleNamespace(id="tips")
-    assert await _wasm_invoice_paid_owner_id(extension, payment) == sha256s(wallet.user)
+    assert await _wasm_invoice_paid_owner_id(extension, payment) is None
     # A forged owner in extra never replaces the database owner or wallet checks.
     payment.extra["extension_context"] = {"owner_id": "victim"}
     payment.wallet_id = "attacker-wallet"
@@ -216,12 +214,54 @@ async def test_invalid_binding_fails_closed_without_legacy_fallback(
     }
     payment.extension_context[field] = value
     lookup = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_public_row", mocker.AsyncMock()
+        "lnbits.core.wasm_ext.storage.crud.storage_get_public_row", mocker.AsyncMock()
     )
     assert (
         await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), payment) is None
     )
     lookup.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("tag_field", ["extension", "extra", "tag"])
+@pytest.mark.parametrize("source_id", [None, "row-1"])
+async def test_unbound_invoice_metadata_cannot_trigger_wasm_event(
+    mocker, tag_field, source_id
+):
+    extension = _wasm_extension("tips")
+    registry = core_app_extra.wasm_extension_registry
+    registry.register(extension)
+    payment = _payment("")
+    payment.extra = {
+        "source_id": source_id,
+        "extension_context": {
+            "extension_id": "tips",
+            "owner_id": sha256s("source-owner"),
+            "wallet_id": "wallet-1",
+            "source_id": source_id,
+        },
+    }
+    if tag_field == "extra":
+        payment.extra["tag"] = "tips"
+    else:
+        setattr(payment, tag_field, "tips")
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(return_value=_wallet()),
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events._wallet_watch_extension_ids",
+        mocker.AsyncMock(return_value=[]),
+    )
+    invoke = mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.invoke_wasm_extension_export",
+        mocker.AsyncMock(),
+    )
+    try:
+        await dispatch_wasm_invoice_paid(payment)
+    finally:
+        registry._extensions.pop("tips", None)
+    invoke.assert_not_awaited()
 
 
 @pytest.mark.anyio

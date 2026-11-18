@@ -1,5 +1,4 @@
 import json
-from collections.abc import Iterable
 from typing import Any
 
 from loguru import logger
@@ -8,7 +7,6 @@ from lnbits.core.crud.extensions import get_installed_extension, get_user_extens
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.db import core_app_extra
 from lnbits.core.models.extensions import ExtensionWalletPaymentsWatchGrant
-from lnbits.core.wasm_ext.storage.crud import OWNER_ID_FIELD, storage_get_public_row
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 from lnbits.helpers import sha256s
 
@@ -182,35 +180,7 @@ async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | Non
         owner_id = context.get("owner_id")
         return owner_id if isinstance(owner_id, str) and owner_id else None
 
-    # Older invoices have no binding. Only accept a source whose current wallet
-    # still resolves to the receiving wallet and belongs to the source owner.
-    if not source_id:
-        wallet = await _payment_wallet(payment)
-        return sha256s(wallet.user) if wallet else None
-
-    installed_extension = await get_installed_extension(extension.id)
-    if not installed_extension:
-        return None
-    sources = _wasm_public_invoice_sources_from_permissions(
-        installed_extension.permissions
-    )
-    for source in sources:
-        row = await storage_get_public_row(
-            extension.id, source["table"], source_id, include_owner=True
-        )
-        if not row:
-            continue
-        wallet_id = row.get(source["wallet_field"])
-        if not isinstance(wallet_id, str) or not wallet_id:
-            continue
-        wallet = await get_wallet(wallet_id)
-        if (
-            wallet
-            and wallet.can_receive_payments
-            and wallet.source_wallet_id == payment.wallet_id
-            and row.get(OWNER_ID_FIELD) == sha256s(wallet.user)
-        ):
-            return sha256s(wallet.user)
+    # Public invoice metadata cannot authenticate an extension event.
     return None
 
 
@@ -218,36 +188,6 @@ def _payment_source_id(payment: Any) -> str | None:
     extra = payment.extra or {}
     source_id = extra.get("source_id")
     return source_id if isinstance(source_id, str) and source_id else None
-
-
-def _wasm_public_invoice_sources_from_permissions(
-    permissions: Iterable[Any],
-) -> list[dict[str, str]]:
-    for permission in permissions:
-        permission_id = (
-            permission.get("id")
-            if isinstance(permission, dict)
-            else getattr(permission, "id", None)
-        )
-        if permission_id != "wallet.create_invoice_public":
-            continue
-        policies = (
-            permission.get("policies")
-            if isinstance(permission, dict)
-            else getattr(permission, "policies", None)
-        )
-        if not isinstance(policies, list):
-            return []
-        return [
-            source_policy
-            for source_policy in policies
-            if isinstance(source_policy, dict)
-            and isinstance(source_policy.get("table"), str)
-            and source_policy["table"]
-            and isinstance(source_policy.get("wallet_field"), str)
-            and source_policy["wallet_field"]
-        ]
-    return []
 
 
 def _wasm_invoice_paid_export(config: Any) -> str | None:
