@@ -4,11 +4,12 @@ import json
 import secrets
 import time
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, TypeGuard
 
 from loguru import logger
 
 from lnbits.core.models.users import Account, UserNotifications
+from lnbits.core.models.wallets import Wallet
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
@@ -555,14 +556,7 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         wallet = await get_wallet(request.wallet_id)
-        if (
-            wallet is None
-            or self.owner_id != sha256s(wallet.user)
-            or (
-                self.context == "schedule"
-                and (not self.user_id or wallet.user != self.user_id)
-            )
-        ):
+        if not self._can_pay_from_wallet(wallet):
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
@@ -627,14 +621,7 @@ class ExtensionHostAPI:
         )
 
         wallet = await get_wallet(request.wallet_id)
-        if (
-            wallet is None
-            or self.owner_id != sha256s(wallet.user)
-            or (
-                self.context == "schedule"
-                and (not self.user_id or wallet.user != self.user_id)
-            )
-        ):
+        if not self._can_pay_from_wallet(wallet):
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
@@ -1081,6 +1068,13 @@ class ExtensionHostAPI:
             f"context={self.context!r}, "
             f"owner_id={self.owner_id!r}"
             ")"
+        )
+
+    def _can_pay_from_wallet(self, wallet: Wallet | None) -> TypeGuard[Wallet]:
+        if wallet is None or self.owner_id != sha256s(wallet.user):
+            return False
+        return self.context != "schedule" or (
+            bool(self.user_id) and wallet.user == self.user_id
         )
 
 
