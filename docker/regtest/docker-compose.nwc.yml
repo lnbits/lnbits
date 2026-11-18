@@ -1,0 +1,44 @@
+services:
+  nwc-relay:
+    image: ghcr.io/hoytech/strfry@sha256:36f1886d185a88ca57c66ebe52e6e9e8428dac2486eea0a5d50ff934f18b60c3
+    user: "0:0"
+    ports:
+      - "127.0.0.1:7777:7777"
+    volumes:
+      - ./nwc-strfry.conf:/etc/strfry.conf:ro
+      - nwc-relay-data:/app/strfry-db
+
+  nwc-provider:
+    image: ${NWC_LNBITS_IMAGE:-lnbits/lnbits}
+    depends_on:
+      - nwc-relay
+    user: "0:0"
+    environment:
+      LNBITS_PORT: 5000
+      LNBITS_ADMIN_UI: false
+      LNBITS_BACKEND_WALLET_CLASS: CoreLightningWallet
+      CORELIGHTNING_RPC: /clightning/regtest/lightning-rpc
+      LNBITS_DATA_FOLDER: ./data
+      LNBITS_EXTENSIONS_DEFAULT_INSTALL: '[]'
+      LNBITS_EXTENSIONS_DEACTIVATE_ALL: false
+      LNBITS_AUTOUPDATE_EXTENSIONS_ON_STARTUP: false
+      LNBITS_USER_DEFAULT_EXTENSIONS: '["nwcprovider"]'
+      LNBITS_ALLOW_NEW_ACCOUNTS: true
+      LNBITS_SERVICE_FEE: 0
+      LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: 60
+    ports:
+      - "127.0.0.1:5003:5000"
+    volumes:
+      - nwc-provider-data:/app/data
+      - ./data/clightning-1:/clightning
+      - ./data/nwcprovider:/app/lnbits/extensions/nwcprovider
+      - ./setup-nwc.py:/app/setup-nwc.py:ro
+
+networks:
+  default:
+    external: true
+    name: lnbits_default
+
+volumes:
+  nwc-relay-data:
+  nwc-provider-data:
