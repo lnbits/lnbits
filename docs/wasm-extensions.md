@@ -352,6 +352,12 @@ the caller does not choose an arbitrary wallet. Guest metadata is nested under
 amounts are in millisatoshis, whereas invoice APIs also accept currency-specific
 amounts. Do not assume all numeric amounts represent sats.
 
+Tagged invoice events require the immutable `extension_context` written by the
+core WASM invoice APIs. Caller-supplied `extension`, `extra.tag`, or source IDs
+cannot authenticate an event. Invoices created before that binding was added
+no longer trigger tagged WASM events; recreate outstanding extension invoices.
+Explicit wallet-watch grants continue to authorize additional incoming events.
+
 For settlement-driven state changes, verify status/pending state, payment hash,
 amount, wallet, source, and the extension's stored invoice binding. Store enough
 information before invoice creation to cope with settlement arriving before
