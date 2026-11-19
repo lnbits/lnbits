@@ -169,6 +169,7 @@ module = [
   "pyln.client.*",
   "py_vapid.*",
   "pywebpush.*",
+  "http_ece.*",
   "fastapi_sso.sso.*",
   "json5.*",
   "jsonpath_ng.*",
