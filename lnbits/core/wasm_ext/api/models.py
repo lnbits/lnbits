@@ -184,14 +184,14 @@ class InvoiceDescriptionHash(BaseModel):
     """Optional BOLT11 description hash, e.g. for LNURL-pay metadata."""
 
     description_hash: str | None = Field(
-        None,
+        default=None,
         min_length=64,
         max_length=64,
         pattern=r"^[0-9a-fA-F]+$",
         description="Hex SHA-256 committed to instead of the memo.",
     )
     unhashed_description: str | None = Field(
-        None,
+        default=None,
         max_length=16384,
         description="Hex bytes whose SHA-256 becomes the description hash.",
     )
@@ -219,7 +219,7 @@ class InvoiceDescriptionHash(BaseModel):
 class CreateInvoiceRequest(InvoiceDescriptionHash):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     amount: float = Field(..., gt=0)
-    currency: str = Field("sat", min_length=1, max_length=8)
+    currency: str = Field(default="sat", min_length=1, max_length=8)
     memo: str = Field(..., max_length=512)
     tag: str = Field(..., min_length=1, max_length=64)
     extra: dict[str, str] = Field(default_factory=dict)
@@ -234,7 +234,7 @@ class CreateInvoicePublicRequest(InvoiceDescriptionHash):
     )
     amount: float = Field(..., gt=0)
     currency: str = Field(..., min_length=1, max_length=8)
-    memo: str = Field("", max_length=512)
+    memo: str = Field(default="", max_length=512)
     extra: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("extra")
