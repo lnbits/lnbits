@@ -312,6 +312,23 @@ class WalletBalanceResponse(BaseModel):
     can_send_payments: bool
 
 
+class RefreshPaymentRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    checking_id: str = Field(..., min_length=1, max_length=512)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class RefreshPaymentResponse(BaseModel):
+    checking_id: str
+    payment_hash: str
+    status: str
+    amount_msat: int
+    fee_msat: int
+    pending: bool
+    success: bool
+
+
 class PayInvoiceRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     payment_request: str = Field(..., min_length=1, max_length=8192)

@@ -56,6 +56,8 @@ from .models import (
     PayLnurlRequest,
     RandomIdRequest,
     RandomIdResponse,
+    RefreshPaymentRequest,
+    RefreshPaymentResponse,
     SendUserNotificationRequest,
     SendUserNotificationResponse,
     StorageAppendPublicRequest,
@@ -504,14 +506,13 @@ class ExtensionHostAPI:
         name="Check extension invoice",
         host_name="invoice_status",
         sdk_name="invoiceStatus",
-        description="Check an invoice bound to this extension, owner and source.",
+        description="Read stored invoice status for this extension, owner and source.",
         required_permission="wallet.invoice_status",
     )
     async def wallet_invoice_status(
         self, request: InvoiceStatusRequest
     ) -> InvoiceStatusResponse:
         from lnbits.core.crud.payments import get_standalone_payment
-        from lnbits.core.services.payments import update_pending_payment
 
         owner_id = self._require_owner_id()
         payment = await get_standalone_payment(request.payment_hash, incoming=True)
@@ -528,9 +529,6 @@ class ExtensionHostAPI:
             or binding.get("source_id") != request.source_id
         ):
             raise PermissionError("Invoice is not available to this extension source.")
-        # Authorize before consulting a backend. Mutable guest rows/extra are not proof.
-        if payment.pending:
-            payment = await update_pending_payment(payment)
         return InvoiceStatusResponse(
             paid=payment.success,
             pending=payment.pending,
@@ -546,6 +544,7 @@ class ExtensionHostAPI:
         sdk_name="listFiatProviders",
         description="List enabled fiat provider names allowed for the current user.",
         required_permission="wallet.create_fiat_invoice_public",
+        require_auth=True,
     )
     async def wallet_list_fiat_providers(
         self, request: EmptyRequest
@@ -708,6 +707,54 @@ class ExtensionHostAPI:
             fee_reserve_msat=fee_reserve_msat,
             fee_reserve_sat=fee_reserve_msat // 1000,
             can_send_payments=wallet.can_send_payments,
+        )
+
+    @extension_api_method(
+        method_id="wallet.refresh_payment",
+        namespace="wallet",
+        name="Refresh payment",
+        host_name="refresh_payment",
+        sdk_name="refreshPayment",
+        description=(
+            "Refresh a pending payment in the user's wallet and persist its status. "
+            "This can trigger settlement processing and notifications."
+        ),
+        required_permission="wallet.payments.refresh",
+        require_auth=True,
+    )
+    async def wallet_refresh_payment(
+        self, request: RefreshPaymentRequest
+    ) -> RefreshPaymentResponse:
+        from lnbits.core.crud.payments import get_standalone_payment
+        from lnbits.core.crud.wallets import get_wallet
+        from lnbits.core.services.payments import update_pending_payment
+
+        if not self.user_id:
+            raise PermissionError(
+                "Refreshing a payment requires an authenticated user context."
+            )
+
+        wallet = await get_wallet(request.wallet_id)
+        if wallet is None or wallet.user != self.user_id:
+            raise PermissionError("Refreshing payments in this wallet is not allowed.")
+
+        payment = await get_standalone_payment(request.checking_id, wallet_id=wallet.id)
+        if payment is None:
+            raise ValueError("Payment was not found in this wallet.")
+        if payment.pending:
+            try:
+                payment = await update_pending_payment(payment)
+            except Exception as exc:
+                raise RuntimeError("Unable to refresh payment status.") from exc
+
+        return RefreshPaymentResponse(
+            checking_id=payment.checking_id,
+            payment_hash=payment.payment_hash,
+            status=payment.status,
+            amount_msat=abs(payment.amount),
+            fee_msat=abs(payment.fee),
+            pending=payment.pending,
+            success=payment.success,
         )
 
     @extension_api_method(

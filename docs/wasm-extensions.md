@@ -157,6 +157,16 @@ types and wrappers from those methods. It does not replace building a matching
 WIT component. Repository-specific `lnbits-sdk.js` wrappers can differ; verify
 their behavior rather than treating one copied SDK as the host specification.
 
+`wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
+payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
+It requires `wallet.payments.refresh` and an authenticated user who owns the
+requested wallet, including a shared wallet with permission to view payments.
+The lookup also accepts a payment hash in `checking_id`. Pending payments are
+reconciled with the funding source, or marked failed if an incoming invoice has
+expired. Changes are persisted and can trigger settlement processing and
+notifications. Completed payments return their stored status without refreshing.
+The response contains identifiers, status, amount, fee, and pending/success flags.
+
 Unknown config fields are currently ignored. In particular, copying a
 `wasm.resource_limits` or `wasm.host_api` field does not configure the runtime.
 Unknown requested permission IDs are rejected. See the
@@ -281,6 +291,7 @@ Installation approval does not replace per-user wallet grants.
 | Private storage reads and writes               | `ext.storage.read`, `ext.storage.write`; requires an owner                                   |
 | Public reads and public append                 | `ext.storage.read_public`, `ext.storage.append_public`; explicit table/field/source policies |
 | List wallets / read balance                    | `wallet.list`, `wallet.balance.read`; accessible user wallets                                |
+| Refresh payment status                         | `wallet.payments.refresh`; user's wallet with permission to view payments                    |
 | Create invoices                                | `wallet.create_invoice`; user's wallet                                                       |
 | Public invoice creation                        | `wallet.create_invoice_public`; wallet selected through an approved stored source            |
 | Interactive outgoing payments                  | `wallet.pay_invoice`; user's wallet                                                          |
@@ -415,9 +426,12 @@ Explicit wallet-watch grants continue to authorize additional incoming events.
 
 `wallet.invoice_status` exposes `invoice-status(payment-hash, source-id)` to
 owner-scoped invocations with that permission. The host checks an incoming
-payment's immutable extension, owner, wallet and source binding before querying
-the backend. It rejects unrelated invoices and legacy invoices without a trusted
-binding. Pending payments reconcile through core's existing payment service.
+payment's immutable extension, owner, wallet and source binding before returning
+its stored status. It rejects unrelated invoices and legacy invoices without a
+trusted binding. This operation does not query the backend or update payments.
+Pending payments are reconciled by core's background processing; an authenticated
+wallet user can also request reconciliation with `wallet.refresh_payment` and
+the separate `wallet.payments.refresh` permission.
 Only `paid`, `pending`, `failed` and `amount-msat` are returned; no keys, preimages,
 provider identifiers or arbitrary wallet history are exposed.
 

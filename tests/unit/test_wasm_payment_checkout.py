@@ -39,10 +39,10 @@ async def test_status_only_returns_bound_invoice_state(mocker, state):
     api = ExtensionHostAPI("paywallwasm", [STATUS_PERMISSION], user_id="source-owner")
     result = await api.wallet_invoice_status(_status_request())
     lookup.assert_awaited_once_with("a" * 64, incoming=True)
-    assert update.await_count == (state == "pending")
+    update.assert_not_awaited()
     assert result.model_dump() == {
-        "paid": state != "failed",
-        "pending": False,
+        "paid": state == "success",
+        "pending": state == "pending",
         "failed": state == "failed",
         "amount_msat": 21000,
     }
