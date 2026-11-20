@@ -167,6 +167,74 @@ expired. Changes are persisted and can trigger settlement processing and
 notifications. Completed payments return their stored status without refreshing.
 The response contains identifiers, status, amount, fee, and pending/success flags.
 
+### Core onchain checkouts
+
+`wallet.list_user_wallets` also returns `wallet_type`, `onchain_network` and
+`receiving_ready` for each wallet. Onchain readiness requires core server setup
+and key backup, a configured wallet and network, and the wallet backup for hot
+wallets. Other wallet types use their existing receive permission. The summary
+contains no keys, descriptors, seeds or explorer configuration.
+
+The existing `lnbits:extension/host` wallet-list import remains compatible with
+components declaring only `id`, `name` and `currency`: Wasmtime lowers records
+using the importing component's declared fields. New components can add
+`wallet-type: string`, `onchain-network: option<string>` and
+`receiving-ready: bool` to their wallet record. Both shapes are exercised by
+component tests. No existing field or import is renamed.
+
+The new `lnbits:extension/onchain` interface provides:
+
+| Method / SDK method                                  | Permission              | Request                                                            | Response                                                         |
+| ---------------------------------------------------- | ----------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `onchain.reserve_address` / `onchain.reserveAddress` | `onchain.receive`       | `wallet_id`, `source_id`, `checkout_id`                            | `address`, `network`, `status_token`                             |
+| `onchain.payment_status` / `onchain.paymentStatus`   | `onchain.payments.read` | `wallet_id`, `source_id`, `checkout_id`, `address`, `status_token` | `received_sat`, `confirmed_sat`, `unconfirmed_sat`, `checked_at` |
+
+WIT function names are `reserve-address` and `payment-status`. Record field names
+use kebab case; all request fields are strings except `status-token`, which is
+`option<string>`; a nonempty token is required for every status read. Reservation
+response fields are strings. Status response fields
+are `u64` (JavaScript WIT bindings use `BigInt`); `checked-at` is Unix seconds.
+The generated TypeScript SDK uses camel case names.
+
+Only an authenticated wallet owner can reserve an address. The owner supplies
+extension-local source and checkout identifiers, thereby approving that exact
+checkout. Allocation uses the existing core database compare-and-swap and address
+records. The returned token contains the address record ID and a purpose-specific
+HMAC binding the extension, owner, wallet, source, checkout, network and address.
+The MAC uses the existing server authentication secret; no keys or private wallet
+configuration appear in the token. No new tables, migrations or CRUD operations
+are needed. Address notes remain ordinary editable labels.
+
+The extension must persist the reservation response and handle retries. Every
+reservation call requests a fresh address, even for the same checkout ID; core
+does not deduplicate extension checkouts. Core address allocation remains scoped
+to each wallet, including when a descriptor is imported into multiple wallets.
+
+Both owners and public terminals need the `status_token` issued with the
+reservation, and every identifier must match its binding. The host verifies the
+token against current core wallet and address records on every read. Treat the
+token as a bearer secret: give it only to the terminal approved
+for that checkout. It grants no wallet listing, other-checkout reads, address
+reservation, signing or spending. Public `ownerContext` alone grants no access;
+when present it must also match the bound owner. There is no general public
+terminal reservation grant in this minimal interface.
+
+Status sums transaction outputs to the reserved address, including outputs
+already spent, and excludes other addresses and outgoing amounts. Confirmed means
+the core snapshot reports the transaction included in a block; unconfirmed means
+it does not. Totals may decrease after replacement or a reorganization. Reads
+use the existing core scanner, which normally runs every minute, and return only
+totals plus the address snapshot timestamp. Missing data, snapshots older than
+the core `SCAN_MAX_AGE` (120 seconds), failed or active scans, malformed data and
+changed wallet bindings fail closed. Retry after core synchronization completes.
+These methods do not accept explorer URLs or credentials and do not start scans.
+
+Deleting an address, reconfiguring a wallet, rotating its admin key or rotating
+the server authentication secret invalidates its token. Deleted or unconfigured
+wallets remain inaccessible. Checkout storage, cart logic, expiry, partial-payment
+decisions and zero-confirmation acceptance remain the extension's responsibility.
+This interface uses only core onchain wallets and has no Watchonly dependency.
+
 Unknown config fields are currently ignored. In particular, copying a
 `wasm.resource_limits` or `wasm.host_api` field does not configure the runtime.
 Unknown requested permission IDs are rejected. See the

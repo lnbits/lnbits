@@ -72,7 +72,6 @@ from .models import (
     StoragePublicPaginatedRequest,
     StorageSetRequest,
     StorageSetResponse,
-    UserWalletSummary,
     WalletBalanceRequest,
     WalletBalanceResponse,
     WebsocketPublishRequest,
@@ -106,8 +105,10 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
+        from .onchain import ExtensionOnchainAPI
         from .utils import ExtensionAPIUtils
 
+        self.onchain = ExtensionOnchainAPI(self)
         self.scheduler = ExtensionSchedulerAPI(self)
         self.utils = ExtensionAPIUtils(
             self.extension_id,
@@ -637,24 +638,7 @@ class ExtensionHostAPI:
     async def wallet_list_user_wallets(
         self, request: EmptyRequest
     ) -> ListUserWalletsResponse:
-        if not self.user_id:
-            raise PermissionError(
-                "Listing user wallets requires an authenticated user context."
-            )
-
-        from lnbits.core.crud.wallets import get_wallets
-
-        user_wallets = await get_wallets(self.user_id)
-        if user_wallets is None:
-            raise PermissionError(
-                "Listing user wallets requires an authenticated user context."
-            )
-        return ListUserWalletsResponse(
-            wallets=[
-                UserWalletSummary(id=w.id, name=w.name, currency=w.currency)
-                for w in user_wallets
-            ]
-        )
+        return await self.onchain.list_user_wallets(request)
 
     @extension_api_method(
         method_id="wallet.balance",
