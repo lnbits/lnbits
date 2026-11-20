@@ -80,7 +80,7 @@ async def test_admin_only_manifest_survives_config_loading(
         InstallableExtension,
         "fetch_github_repo_info",
         return_value=(
-            GitHubRepo(stargazers_count="0", html_url=source, default_branch="main"),
+            GitHubRepo(stargazers_count=0, html_url=source, default_branch="main"),
             github_release,
             config,
         ),
