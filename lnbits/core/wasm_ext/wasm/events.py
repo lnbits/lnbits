@@ -7,6 +7,7 @@ from lnbits.core.crud.extensions import get_installed_extension, get_user_extens
 from lnbits.core.crud.wallets import get_wallet
 from lnbits.core.db import core_app_extra
 from lnbits.core.models.extensions import ExtensionWalletPaymentsWatchGrant
+from lnbits.core.models.payments import PaymentExtensionContext
 from lnbits.core.wasm_ext.wasm.invoke import invoke_wasm_extension_export
 from lnbits.helpers import sha256s
 
@@ -170,15 +171,14 @@ async def _wasm_invoice_paid_owner_id(extension: Any, payment: Any) -> str | Non
         # This column is written with the invoice by the host, not from extra.
         # Do not consult mutable source rows for invoices with a trusted binding.
         if (
-            not isinstance(context, dict)
-            or context.get("extension_id") != extension.id
+            not isinstance(context, PaymentExtensionContext)
+            or context.extension_id != extension.id
             or payment.extension != extension.id
-            or context.get("wallet_id") != payment.wallet_id
-            or context.get("source_id") != source_id
+            or context.wallet_id != payment.wallet_id
+            or context.source_id != source_id
         ):
             return None
-        owner_id = context.get("owner_id")
-        return owner_id if isinstance(owner_id, str) and owner_id else None
+        return context.owner_id
 
     # Public invoice metadata cannot authenticate an extension event.
     return None

@@ -5,6 +5,7 @@ import pytest
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.payments import PaymentExtensionContext
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
@@ -753,12 +754,14 @@ async def test_host_api_public_invoice_uses_granted_source_policy(
     }
     assert invoice.extension == "demoext"
 
-    assert create_mock.await_args.kwargs["extension_context"] == {
-        "extension_id": "demoext",
-        "owner_id": "owner-1",
-        "wallet_id": "wallet-1",
-        "source_id": "tip-1",
-    }
+    assert create_mock.await_args.kwargs[
+        "extension_context"
+    ] == PaymentExtensionContext(
+        extension_id="demoext",
+        owner_id="owner-1",
+        wallet_id="wallet-1",
+        source_id="tip-1",
+    )
 
 
 @pytest.mark.anyio

@@ -12,6 +12,7 @@ from bolt11 import Bolt11Exception
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
+from lnbits.core.models.payments import Payment, PaymentExtensionContext
 from lnbits.core.models.users import Account, UserNotifications
 from lnbits.core.models.wallets import Wallet
 from lnbits.helpers import sha256s
@@ -403,12 +404,12 @@ class ExtensionHostAPI:
                 extra=request.extra,
                 extension=self.extension_id,
             ),
-            extension_context={
-                "extension_id": self.extension_id,
-                "owner_id": sha256s(wallet.user),
-                "wallet_id": wallet.source_wallet_id,
-                "source_id": (request.extra or {}).get("source_id") or None,
-            },
+            extension_context=PaymentExtensionContext(
+                extension_id=self.extension_id,
+                owner_id=sha256s(wallet.user),
+                wallet_id=wallet.source_wallet_id,
+                source_id=(request.extra or {}).get("source_id") or None,
+            ),
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -455,7 +456,11 @@ class ExtensionHostAPI:
 
         wallet = await get_wallet(wallet_id)
         owner_id = row.get(OWNER_ID_FIELD)
-        if not wallet or owner_id != sha256s(wallet.user):
+        if (
+            not wallet
+            or not isinstance(owner_id, str)
+            or owner_id != sha256s(wallet.user)
+        ):
             raise PermissionError("Public invoice source does not own its wallet.")
 
         payment = await create_payment_request(
@@ -473,12 +478,12 @@ class ExtensionHostAPI:
                 },
                 extension=self.extension_id,
             ),
-            extension_context={
-                "extension_id": self.extension_id,
-                "owner_id": owner_id,
-                "wallet_id": wallet.source_wallet_id,
-                "source_id": request.source_id,
-            },
+            extension_context=PaymentExtensionContext(
+                extension_id=self.extension_id,
+                owner_id=owner_id,
+                wallet_id=wallet.source_wallet_id,
+                source_id=request.source_id,
+            ),
         )
         if request.unhashed_description:
             try:
@@ -516,18 +521,7 @@ class ExtensionHostAPI:
 
         owner_id = self._require_owner_id()
         payment = await get_standalone_payment(request.payment_hash, incoming=True)
-        binding = payment.extension_context if payment else None
-        if (
-            not payment
-            or not payment.is_in
-            or payment.payment_hash != request.payment_hash
-            or payment.extension != self.extension_id
-            or not isinstance(binding, dict)
-            or binding.get("extension_id") != self.extension_id
-            or binding.get("owner_id") != owner_id
-            or binding.get("wallet_id") != payment.wallet_id
-            or binding.get("source_id") != request.source_id
-        ):
+        if not self._can_read_invoice(payment, request, owner_id):
             raise PermissionError("Invoice is not available to this extension source.")
         return InvoiceStatusResponse(
             paid=payment.success,
@@ -612,12 +606,12 @@ class ExtensionHostAPI:
                 extension=self.extension_id,
                 extra={"tag": self.extension_id, "source_id": request.source_id},
             ),
-            extension_context={
-                "extension_id": self.extension_id,
-                "owner_id": owner_id,
-                "wallet_id": wallet.source_wallet_id,
-                "source_id": request.source_id,
-            },
+            extension_context=PaymentExtensionContext(
+                extension_id=self.extension_id,
+                owner_id=owner_id,
+                wallet_id=wallet.source_wallet_id,
+                source_id=request.source_id,
+            ),
         )
         checkout = payment.extra.get("fiat_payment_request")
         if not isinstance(checkout, str):
@@ -1292,6 +1286,26 @@ class ExtensionHostAPI:
             return False
         return self.context != "schedule" or (
             bool(self.user_id) and wallet.user == self.user_id
+        )
+
+    def _can_read_invoice(
+        self,
+        payment: Payment | None,
+        request: InvoiceStatusRequest,
+        owner_id: str,
+    ) -> TypeGuard[Payment]:
+        if payment is None or not payment.is_in:
+            return False
+
+        binding = payment.extension_context
+        return (
+            payment.payment_hash == request.payment_hash
+            and payment.extension == self.extension_id
+            and isinstance(binding, PaymentExtensionContext)
+            and binding.extension_id == self.extension_id
+            and binding.owner_id == owner_id
+            and binding.wallet_id == payment.wallet_id
+            and binding.source_id == request.source_id
         )
 
 

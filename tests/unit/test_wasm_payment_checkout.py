@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from lnbits.core.models.extensions import ExtensionPermission
-from lnbits.core.models.payments import Payment, PaymentState
+from lnbits.core.models.payments import Payment, PaymentExtensionContext, PaymentState
 from lnbits.core.models.wallets import WalletPermission
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.models import (
@@ -54,6 +54,8 @@ async def test_status_only_returns_bound_invoice_state(mocker, state):
     [
         "missing",
         "legacy",
+        "untyped_binding",
+        "unbound_source",
         "owner",
         "source",
         "wallet",
@@ -77,7 +79,19 @@ async def test_status_denies_unrelated_payments_before_backend_lookup(mocker, in
     elif invalid in {"owner", "source", "wallet", "binding_extension"}:
         field = "extension" if invalid == "binding_extension" else invalid
         assert payment.extension_context is not None
-        payment.extension_context[field + "_id"] = "different"
+        payment.extension_context = payment.extension_context.model_copy(
+            update={field + "_id": "different"}
+        )
+    elif invalid == "untyped_binding":
+        assert payment.extension_context is not None
+        payment = payment.model_copy(
+            update={"extension_context": payment.extension_context.model_dump()}
+        )
+    elif invalid == "unbound_source":
+        assert payment.extension_context is not None
+        payment.extension_context = payment.extension_context.model_copy(
+            update={"source_id": None}
+        )
     elif invalid == "extension":
         payment.extension = "other"
     elif invalid == "hash":
@@ -222,12 +236,12 @@ def _payment(state="pending"):
         extension="paywallwasm",
         preimage="private",
         extra={"fiat_payment_request": "https://checkout.example/pay"},
-        extension_context={
-            "extension_id": "paywallwasm",
-            "owner_id": sha256s("source-owner"),
-            "wallet_id": "wallet-1",
-            "source_id": "attempt",
-        },
+        extension_context=PaymentExtensionContext(
+            extension_id="paywallwasm",
+            owner_id=sha256s("source-owner"),
+            wallet_id="wallet-1",
+            source_id="attempt",
+        ),
     )
 
 

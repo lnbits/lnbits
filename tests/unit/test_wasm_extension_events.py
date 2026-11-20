@@ -7,6 +7,7 @@ from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.db import core_app_extra
 from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.payments import PaymentExtensionContext
 from lnbits.core.wasm_ext.wasm.config import parse_wasm_extension_config
 from lnbits.core.wasm_ext.wasm.events import (
     _payment_extension_id,
@@ -48,12 +49,12 @@ async def test_dispatch_wasm_invoice_paid_invokes_registered_event_export_with_o
         mocker.AsyncMock(return_value=[]),
     )
     payment = _payment(ext_id)
-    payment.extension_context = {
-        "extension_id": ext_id,
-        "owner_id": sha256s("user-1"),
-        "wallet_id": payment.wallet_id,
-        "source_id": "row-1",
-    }
+    payment.extension_context = PaymentExtensionContext(
+        extension_id=ext_id,
+        owner_id=sha256s("user-1"),
+        wallet_id=payment.wallet_id,
+        source_id="row-1",
+    )
 
     try:
         await dispatch_wasm_invoice_paid(payment)
@@ -212,12 +213,11 @@ async def test_dispatch_wasm_invoice_paid_dedupes_tagged_wallet_watch_grant(
 
     try:
         payment = _payment(ext_id, extra={})
-        payment.extension_context = {
-            "extension_id": ext_id,
-            "owner_id": sha256s("user-1"),
-            "wallet_id": payment.wallet_id,
-            "source_id": None,
-        }
+        payment.extension_context = PaymentExtensionContext(
+            extension_id=ext_id,
+            owner_id=sha256s("user-1"),
+            wallet_id=payment.wallet_id,
+        )
         await dispatch_wasm_invoice_paid(payment)
     finally:
         registry._extensions.pop(ext_id, None)

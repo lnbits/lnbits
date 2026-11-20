@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from lnbits.core.crud import create_wallet, get_payment, update_payment
 from lnbits.core.db import core_app_extra
-from lnbits.core.models import CreateInvoice, PaymentState
+from lnbits.core.models import CreateInvoice, PaymentExtensionContext, PaymentState
 from lnbits.core.models.wallets import Wallet, WalletPermission, WalletType
 from lnbits.core.services.payments import create_payment_request
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
@@ -73,12 +73,12 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(
     assert create.await_args.args[1].unhashed_description == metadata_hex
     payment.extension_context = create.await_args.kwargs["extension_context"]
     payment.wallet_id = wallet.source_wallet_id
-    assert payment.extension_context == {
-        "extension_id": "tips",
-        "owner_id": owner,
-        "wallet_id": wallet.source_wallet_id,
-        "source_id": "row-1",
-    }
+    assert payment.extension_context == PaymentExtensionContext(
+        extension_id="tips",
+        owner_id=owner,
+        wallet_id=wallet.source_wallet_id,
+        source_id="row-1",
+    )
     # Current records and permissions may change while the invoice is outstanding.
     row["wallet_id"] = "replacement-wallet"
     source_lookup = mocker.patch(
@@ -227,16 +227,11 @@ async def test_authenticated_shared_wallet_invoice_uses_authenticated_owner(
             },
         )
     )
-    assert create.await_args.kwargs["extension_context"]["source_id"] == (
-        source_id or None
-    )
-    assert create.await_args.kwargs["extension_context"]["owner_id"] == sha256s(
-        wallet.user
-    )
-    assert (
-        create.await_args.kwargs["extension_context"]["wallet_id"]
-        == wallet.source_wallet_id
-    )
+    context = create.await_args.kwargs["extension_context"]
+    assert isinstance(context, PaymentExtensionContext)
+    assert context.source_id == (source_id or None)
+    assert context.owner_id == sha256s(wallet.user)
+    assert context.wallet_id == wallet.source_wallet_id
 
 
 @pytest.mark.anyio
@@ -284,20 +279,21 @@ async def test_unbound_invoices_reject_even_authorised_current_sources(mocker, s
         ("extension_id", "other"),
         ("wallet_id", "other"),
         ("source_id", "other"),
-        ("owner_id", ""),
     ],
 )
 async def test_invalid_binding_fails_closed_without_legacy_fallback(
     mocker, field, value
 ):
     payment = _payment("tips")
-    payment.extension_context = {
-        "extension_id": "tips",
-        "wallet_id": "wallet-1",
-        "source_id": "row-1",
-        "owner_id": "owner",
-    }
-    payment.extension_context[field] = value
+    payment.extension_context = PaymentExtensionContext(
+        **{
+            "extension_id": "tips",
+            "wallet_id": "wallet-1",
+            "source_id": "row-1",
+            "owner_id": "owner",
+            field: value,
+        }
+    )
     lookup = mocker.patch(
         "lnbits.core.wasm_ext.storage.crud.storage_get_public_row", mocker.AsyncMock()
     )
@@ -305,6 +301,16 @@ async def test_invalid_binding_fails_closed_without_legacy_fallback(
         await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), payment) is None
     )
     lookup.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("context", [None, {}, {"owner_id": ""}, "invalid", []])
+async def test_untyped_invoice_context_cannot_authorize_an_event(context):
+    payment = _payment("tips")
+    payment.extension_context = context
+    assert (
+        await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), payment) is None
+    )
 
 
 @pytest.mark.anyio
@@ -393,12 +399,12 @@ async def test_trusted_context_persists_with_invoice_and_survives_updates(
     app, from_user
 ):
     wallet = await create_wallet(user_id=from_user.id)
-    context = {
-        "extension_id": "tips",
-        "owner_id": sha256s(wallet.user),
-        "wallet_id": wallet.id,
-        "source_id": "row-1",
-    }
+    context = PaymentExtensionContext(
+        extension_id="tips",
+        owner_id=sha256s(wallet.user),
+        wallet_id=wallet.id,
+        source_id="row-1",
+    )
     payment = await create_payment_request(
         wallet.id,
         CreateInvoice(amount=1, extension="tips", extra={"source_id": "row-1"}),
@@ -413,11 +419,12 @@ async def test_trusted_context_persists_with_invoice_and_survives_updates(
     assert reloaded.extension_context == context
     assert (
         await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), reloaded)
-        == context["owner_id"]
+        == context.owner_id
     )
     # Ordinary invoices may carry arbitrary metadata but cannot create a binding.
     ordinary = await create_payment_request(
-        wallet.id, CreateInvoice(amount=1, extra={"extension_context": context})
+        wallet.id,
+        CreateInvoice(amount=1, extra={"extension_context": context.model_dump()}),
     )
     assert (await get_payment(ordinary.checking_id)).extension_context is None
 
