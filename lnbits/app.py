@@ -19,7 +19,9 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from lnbits.core.crud import (
     get_db_version,
+    get_installed_extension,
     get_installed_extensions,
+    update_installed_extension,
     update_installed_extension_state,
 )
 from lnbits.core.crud.audit import delete_expired_audit_entries
@@ -323,6 +325,9 @@ async def build_all_installed_extensions_list(  # noqa: C901
     """
     installed_extensions = await get_installed_extensions()
     settings.lnbits_installed_extensions_ids = {e.id for e in installed_extensions}
+    settings.lnbits_admin_only_extensions = {
+        e.id for e in installed_extensions if e.has_admin_only_release
+    }
 
     settings.wasm_extensions_dir.mkdir(parents=True, exist_ok=True)
     for ext_dir in settings.wasm_extensions_dir.iterdir():
@@ -414,6 +419,12 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
     if not ext.zip_path.is_file():
         await ext.download_archive()
     archive_config = ext.load_archive_config()
+    ext.validate_archive(archive_config)
+    if ext.meta and ext.meta.installed_release:
+        release = ext.meta.installed_release
+        release.admin_only = release.admin_only or archive_config.get(
+            "admin_only", False
+        )
     if archive_config.get("extension_type") == "wasm":
         ext.extract_wasm_archive()
     else:
@@ -423,6 +434,10 @@ async def check_installed_extension_files(ext: InstallableExtension) -> bool:
 
 
 async def restore_installed_extension(app: FastAPI, ext: InstallableExtension):
+    if not await get_installed_extension(ext.id):
+        await create_installed_extension(ext)
+    else:
+        await update_installed_extension(ext)
     await update_installed_extension_state(ext_id=ext.id, active=True)
 
     extension = Extension.from_installable_ext(ext)

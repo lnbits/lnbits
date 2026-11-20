@@ -159,6 +159,7 @@ async def test_lnurl_redirects_are_denied_by_default(
 async def test_lnurl_redirect_target_is_revalidated(
     settings: Settings, mocker: MockerFixture
 ):
+    settings.lnbits_lnurl_allow_private_ips = False
     settings.lnbits_lnurl_redirect_url_rules = [r"http://169\.254\.169\.254"]
     mocker.patch(
         "lnbits.core.services.lnurl._resolve_lnurl_host",

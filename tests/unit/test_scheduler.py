@@ -83,6 +83,7 @@ async def extension_job_scopes(
         active=True,
         is_wasm=request.param == "wasm",
         requires_payment=False,
+        is_available_for_user=mocker.Mock(return_value=True),
         permissions=[
             ExtensionPermission(
                 id=permission,
