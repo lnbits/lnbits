@@ -715,7 +715,7 @@ async def test_dispatch_webhook_pins_allowed_target(
     payment = await _create_payment(
         wallet, webhook="https://callback.example:8443/paid"
     )
-    expected_body = payment.model_dump_json()
+    expected_body = payment.model_dump(mode="json")
 
     class UnreadableBody(httpx.AsyncByteStream):
         async def __aiter__(self):
