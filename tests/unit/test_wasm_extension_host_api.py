@@ -454,9 +454,19 @@ async def test_host_api_wallet_methods_require_permissions_and_user_wallets(
     with pytest.raises(PermissionError, match="wallet.list"):
         await api_without_permission.wallet_list_user_wallets(EmptyRequest())
 
-    wallet = SimpleNamespace(id="wallet-1", name="Wallet", currency="USD")
+    wallet = SimpleNamespace(
+        id="wallet-1",
+        name="Wallet",
+        currency="USD",
+        user="user-1",
+        deleted=False,
+        can_receive_payments=True,
+        is_onchain_wallet=False,
+        wallet_type="lightning",
+        onchain_network=None,
+    )
     mocker.patch(
-        "lnbits.core.crud.wallets.get_wallets",
+        "lnbits.core.wasm_ext.api.onchain.get_wallets",
         mocker.AsyncMock(return_value=[wallet]),
     )
     api = ExtensionHostAPI("demoext", ["wallet.list"], user_id="user-1")

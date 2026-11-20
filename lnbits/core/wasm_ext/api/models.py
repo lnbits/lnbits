@@ -289,6 +289,9 @@ class UserWalletSummary(BaseModel):
     id: str
     name: str
     currency: str | None = None
+    wallet_type: str = "lightning"
+    onchain_network: str | None = None
+    receiving_ready: bool = False
 
 
 class ListUserWalletsResponse(BaseModel):
