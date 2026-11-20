@@ -73,7 +73,12 @@ async def update_wallet(
     conn: Connection | None = None,
 ) -> Wallet:
     wallet.updated_at = datetime.now(timezone.utc)
-    await (conn or db).update("wallets", wallet)
+    stored_wallet = wallet
+    if wallet.is_lightning_shared_wallet:
+        # shared wallets only mirror the source wallet's lightning address,
+        # storing it on the shared wallet row violates the unique index
+        stored_wallet = wallet.model_copy(update={"lightning_address": None})
+    await (conn or db).update("wallets", stored_wallet)
     return wallet
 
 
