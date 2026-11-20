@@ -91,7 +91,7 @@ class GitHubRepoRelease(BaseModel):
 
 
 class GitHubRepo(BaseModel):
-    stargazers_count: str
+    stargazers_count: int
     html_url: str
     default_branch: str
 
