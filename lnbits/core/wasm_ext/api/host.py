@@ -486,19 +486,10 @@ class ExtensionHostAPI:
             ),
         )
         if request.unhashed_description:
-            try:
-                invoice = bolt11_decode(payment.payment_request or payment.bolt11)
-            except (Bolt11Exception, ValueError) as exc:
-                raise ValueError(
-                    "Funding backend returned an invalid invoice."
-                ) from exc
-            expected_hash = sha256(
-                bytes.fromhex(request.unhashed_description)
-            ).hexdigest()
-            if invoice.description_hash != expected_hash:
-                raise ValueError(
-                    "Funding backend returned an incorrect description hash."
-                )
+            _validate_invoice_description_hash(
+                payment.payment_request or payment.bolt11,
+                request.unhashed_description,
+            )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
             payment_request=payment.payment_request or payment.bolt11,
@@ -1337,3 +1328,15 @@ def _user_notification_preferences(
             preferences.telegram_chat_id if notification_type == "telegram" else None
         ),
     )
+
+
+def _validate_invoice_description_hash(
+    payment_request: str, unhashed_description: str
+) -> None:
+    try:
+        invoice = bolt11_decode(payment_request)
+    except (Bolt11Exception, ValueError) as exc:
+        raise ValueError("Funding backend returned an invalid invoice.") from exc
+    expected_hash = sha256(bytes.fromhex(unhashed_description)).hexdigest()
+    if invoice.description_hash != expected_hash:
+        raise ValueError("Funding backend returned an incorrect description hash.")
