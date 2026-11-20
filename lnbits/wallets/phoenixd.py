@@ -379,6 +379,15 @@ class PhoenixdWallet(Wallet):
             )
             return PaymentPendingStatus()
 
+        if (
+            isinstance(data, dict)
+            and data.get("isPaid") is False
+            and data.get("completedAt")
+        ):
+            # phoenixd only sets completedAt once a payment succeeded or failed,
+            # and outgoingbyhash prefers a paid or pending attempt over a failed one
+            return PaymentFailedStatus()
+
         if "isPaid" not in data or "fees" not in data or "preimage" not in data:
             # should never happen, but just in case we keep it pending
             logger.warning(
