@@ -1065,23 +1065,3 @@ async def m058_clear_extensions_reviews_url(db: Connection):
     from lnbits.settings import settings
 
     settings.lnbits_extensions_reviews_url = ""
-
-
-async def m059_create_wasm_onchain_checkouts(db: Connection):
-    # Core-owned bindings cannot be forged through extension storage or address notes.
-    await db.execute("""
-        CREATE TABLE wasm_onchain_checkouts (
-            extension_id TEXT NOT NULL,
-            owner_id TEXT NOT NULL,
-            wallet_id TEXT NOT NULL,
-            source_id TEXT NOT NULL,
-            checkout_id TEXT NOT NULL,
-            address_id TEXT NOT NULL UNIQUE,
-            address TEXT NOT NULL,
-            network TEXT NOT NULL,
-            wallet_fingerprint TEXT NOT NULL,
-            status_token_hash TEXT NOT NULL,
-            PRIMARY KEY (extension_id, owner_id, source_id, checkout_id),
-            UNIQUE (network, address)
-        )
-    """)

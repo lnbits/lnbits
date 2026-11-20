@@ -99,16 +99,3 @@ class Snapshot(BaseModel):
     transactions: list[dict]
     utxos: list[dict]
     checked_at: int
-
-
-class WasmOnchainCheckout(BaseModel):
-    extension_id: str
-    owner_id: str
-    wallet_id: str
-    source_id: str
-    checkout_id: str
-    address_id: str
-    address: str
-    network: str
-    wallet_fingerprint: str
-    status_token_hash: str

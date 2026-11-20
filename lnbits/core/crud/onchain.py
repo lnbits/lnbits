@@ -2,7 +2,7 @@ import json
 
 from lnbits.core.crud.wallets import get_onchain_wallet
 from lnbits.core.db import db
-from lnbits.core.models.onchain import Address, Snapshot, WasmOnchainCheckout
+from lnbits.core.models.onchain import Address, Snapshot
 from lnbits.db import Connection, model_to_dict
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.utils.onchain import derive_address
@@ -187,41 +187,4 @@ async def update_address_snapshot(
             "amount": amount,
             "active": bool(snapshot.transactions),
         },
-    )
-
-
-async def create_wasm_onchain_checkout(
-    checkout: WasmOnchainCheckout, conn: Connection | None = None
-) -> bool:
-    result = await (conn or db).execute(
-        """INSERT INTO wasm_onchain_checkouts
-            (extension_id, owner_id, wallet_id, source_id, checkout_id,
-             address_id, address, network, wallet_fingerprint, status_token_hash)
-        VALUES (:extension_id, :owner_id, :wallet_id, :source_id, :checkout_id,
-                :address_id, :address, :network, :wallet_fingerprint,
-                :status_token_hash)
-        ON CONFLICT DO NOTHING""",
-        checkout.model_dump(),
-    )
-    return result.rowcount == 1
-
-
-async def get_wasm_onchain_checkout(
-    extension_id: str,
-    wallet_id: str,
-    source_id: str,
-    checkout_id: str,
-    conn: Connection | None = None,
-) -> WasmOnchainCheckout | None:
-    return await (conn or db).fetchone(
-        """SELECT * FROM wasm_onchain_checkouts
-        WHERE extension_id = :extension_id AND wallet_id = :wallet_id
-            AND source_id = :source_id AND checkout_id = :checkout_id""",
-        {
-            "extension_id": extension_id,
-            "wallet_id": wallet_id,
-            "source_id": source_id,
-            "checkout_id": checkout_id,
-        },
-        WasmOnchainCheckout,
     )

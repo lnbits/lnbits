@@ -8,8 +8,8 @@ from pydantic import ValidationError
 from wasmtime import Config, Engine, Store, component
 
 from lnbits.core.crud.onchain import (
+    get_address,
     get_address_by_id,
-    get_wasm_onchain_checkout,
     update_address_snapshot,
 )
 from lnbits.core.crud.wallets import (
@@ -105,14 +105,11 @@ async def test_owner_context_is_not_authentication(wallets, context):
 
 
 @pytest.mark.anyio
-async def test_reservation_uses_core_allocator_and_persists_binding(checkout):
+async def test_reservation_uses_core_allocator_and_returns_bound_token(checkout):
     wallet, request, response = checkout
-    stored = await get_wasm_onchain_checkout("pos", **request.model_dump())
-    assert stored
-    assert stored.owner_id == sha256s("alice")
-    assert stored.status_token_hash == sha256s(response.status_token)
-    assert response.status_token not in stored.model_dump_json()
-    address = await get_address_by_id(stored.address_id)
+    address_id, signature = response.status_token.rsplit(".", 1)
+    assert len(signature) == 64
+    address = await get_address_by_id(address_id)
     assert address and address.address == response.address
     assert address.walet_id == wallet.id and address.branch_index == 0
     assert address.address_index == 0
@@ -120,9 +117,18 @@ async def test_reservation_uses_core_allocator_and_persists_binding(checkout):
         request.model_copy(update={"checkout_id": "sale-2"})
     )
     assert second.address != response.address
-    with pytest.raises(ValueError, match="unavailable"):
-        await _api().onchain.reserve_address(request)
-    assert await get_wasm_onchain_checkout("pos", **request.model_dump()) == stored
+    # Retry/idempotency decisions belong to the extension: each call allocates afresh.
+    retry = await _api().onchain.reserve_address(request)
+    assert retry.address not in {response.address, second.address}
+    assert retry.status_token != response.status_token
+    assert address.note is None
+    assert wallet.adminkey not in response.model_dump_json()
+    assert wallet.onchain_meta.masterpub not in response.model_dump_json()
+    await _snapshot(wallet, response, [])
+    # A new host instance verifies the receipt using only existing core records.
+    assert (
+        await _api(None).onchain.payment_status(_status(request, response))
+    ).received_sat == 0
 
 
 @pytest.mark.anyio
@@ -141,7 +147,7 @@ async def test_concurrent_reservations_never_share_an_address(wallets):
 
 
 @pytest.mark.anyio
-async def test_allocator_conflict_is_safe_and_creates_no_binding(wallets, mocker):
+async def test_allocator_conflict_is_safe_and_returns_no_token(wallets, mocker):
     reserve = mocker.patch(
         "lnbits.core.services.onchain.reserve_onchain_address_index",
         mocker.AsyncMock(return_value=False),
@@ -152,7 +158,8 @@ async def test_allocator_conflict_is_safe_and_creates_no_binding(wallets, mocker
     with pytest.raises(ValueError, match="^Onchain wallet or checkout is unavailable"):
         await _api().onchain.reserve_address(request)
     reserve.assert_awaited_once()
-    assert await get_wasm_onchain_checkout("pos", **request.model_dump()) is None
+    wallet = await get_onchain_wallet(wallets[0].id)
+    assert wallet and wallet.onchain_address_no == -1
 
 
 @pytest.mark.anyio
@@ -173,7 +180,7 @@ async def test_two_owners_can_use_same_source_and_checkout_ids(wallets):
             wallet_id=wallet.id, source_id="same-terminal", checkout_id="same-sale"
         )
         response = await _api(wallet.user).onchain.reserve_address(request)
-        await _snapshot(wallet, request, [])
+        await _snapshot(wallet, response, [])
         assert (
             await _api(wallet.user).onchain.payment_status(_status(request, response))
         ).received_sat == 0
@@ -188,14 +195,14 @@ async def test_existing_but_mismatched_binding_is_rejected(checkout, change):
     wallet, request, response = checkout
     second_request = request.model_copy(update={"source_id": wallet.id + "-other"})
     second = await _api().onchain.reserve_address(second_request)
-    await _snapshot(wallet, request, [])
+    await _snapshot(wallet, response, [])
     query = _status(request, response)
     if change == "address":
-        stored = await get_wasm_onchain_checkout("pos", **request.model_dump())
-        assert stored
+        address = await get_address(response.address)
+        assert address
         await db.execute(
             "UPDATE onchain_addresses SET address = :address WHERE id = :id",
-            {"address": second.address, "id": stored.address_id},
+            {"address": second.address, "id": address.id},
         )
     elif change == "network":
         await db.execute(
@@ -252,6 +259,57 @@ async def test_status_token_cannot_cross_checkout_extension_or_route_owner(check
     ]:
         with pytest.raises(PermissionError, match="unavailable"):
             await api.onchain.payment_status(query)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "change", ["signature", "address-id", "auth-key", "wallet-key", "missing-key"]
+)
+async def test_checkout_token_rejects_tampering_and_key_changes(
+    checkout, settings, change
+):
+    wallet, request, response = checkout
+    await _snapshot(wallet, response, [])
+    query = _status(request, response)
+    address_id, signature = response.status_token.rsplit(".", 1)
+    if change == "signature":
+        query.status_token = (
+            f"{address_id}.{'0' if signature[0] != '0' else '1'}{signature[1:]}"
+        )
+    elif change == "address-id":
+        second = await _api().onchain.reserve_address(
+            request.model_copy(update={"checkout_id": "other"})
+        )
+        query.address = second.address
+        query.status_token = second.status_token.rsplit(".", 1)[0] + "." + signature
+    elif change == "auth-key":
+        settings.auth_secret_key = "different-server-secret"
+    elif change == "missing-key":
+        settings.auth_secret_key = ""
+    else:
+        await db.execute(
+            "UPDATE wallets SET adminkey = :key WHERE id = :id",
+            {"key": "rotated-key", "id": wallet.id},
+        )
+    with pytest.raises(PermissionError, match="unavailable"):
+        await _api(None).onchain.payment_status(query)
+
+
+@pytest.mark.anyio
+async def test_caller_editable_address_note_cannot_authorize_checkout(checkout):
+    wallet, request, response = checkout
+    await _snapshot(wallet, response, [])
+    await db.execute(
+        "UPDATE onchain_addresses SET note = :note WHERE address = :address",
+        {"address": response.address, "note": response.status_token},
+    )
+    # Labels remain ordinary labels and do not grant or change checkout authorization.
+    assert (
+        await _api(None).onchain.payment_status(_status(request, response))
+    ).received_sat == 0
+    forged = _status(request, response).model_copy(update={"source_id": "forged"})
+    with pytest.raises(PermissionError, match="unavailable"):
+        await _api(None).onchain.payment_status(forged)
 
 
 @pytest.mark.anyio
@@ -346,7 +404,7 @@ async def test_checkout_totals_include_spent_outputs_and_only_this_address(check
         {"prevout": {"scriptpubkey_address": response.address, "value": 3000}}
     ]
     transactions.append(transactions[0].copy())
-    await _snapshot(wallet, request, transactions)
+    await _snapshot(wallet, response, transactions)
     for api in [
         _api(),
         _api(None),
@@ -359,11 +417,14 @@ async def test_checkout_totals_include_spent_outputs_and_only_this_address(check
             "unconfirmed_sat": 4000,
             "checked_at": wallet.onchain_meta.sync_checked_at,
         }
-    owner_query = _status(request, response).model_copy(update={"status_token": None})
-    assert (await _api().onchain.payment_status(owner_query)).received_sat == 7000
+    owner_query = _status(request, response)
+    with pytest.raises(PermissionError, match="unavailable"):
+        await _api().onchain.payment_status(
+            owner_query.model_copy(update={"status_token": None})
+        )
     # Replacement/reorg snapshots replace earlier totals instead of accumulating them.
     await _snapshot(
-        wallet, request, [_tx("b", response.address, [4000], confirmed=True)]
+        wallet, response, [_tx("b", response.address, [4000], confirmed=True)]
     )
     result = await _api().onchain.payment_status(owner_query)
     assert result.received_sat == result.confirmed_sat == 4000
@@ -378,7 +439,7 @@ async def test_payment_data_must_be_recent_and_complete(checkout, failure):
     wallet, request, response = checkout
     if failure != "missing":
         checked_at = int(time.time()) + {"stale": -121, "future": 30}.get(failure, 0)
-        await _snapshot(wallet, request, [], checked_at=checked_at)
+        await _snapshot(wallet, response, [], checked_at=checked_at)
         if failure == "error":
             wallet.onchain_meta.sync_error = "private explorer URL"
         elif failure == "incomplete":
@@ -428,7 +489,7 @@ async def test_malformed_payment_data_fails_closed(checkout, failure):
         tx["vout"][0]["scriptpubkey"] = "6a00"
     else:
         txs.append(_tx("a", response.address, [200], confirmed=True))
-    await _snapshot(wallet, request, txs)
+    await _snapshot(wallet, response, txs)
     with pytest.raises(ValueError, match="unavailable"):
         await _api().onchain.payment_status(_status(request, response))
 
@@ -572,7 +633,7 @@ async def test_onchain_component_imports(checkout, method):
         params, result_size = 6, 24
     else:
         await _snapshot(
-            wallet, request, [_tx("a", response.address, [5000000000], confirmed=True)]
+            wallet, response, [_tx("a", response.address, [5000000000], confirmed=True)]
         )
         payload = _status(request, response).model_dump()
         request_fields += (
@@ -681,14 +742,14 @@ async def _save_meta(wallet):
     )
 
 
-async def _snapshot(wallet, request, transactions, *, checked_at=None):
-    stored = await get_wasm_onchain_checkout("pos", **request.model_dump())
-    assert stored
+async def _snapshot(wallet, response, transactions, *, checked_at=None):
+    address = await get_address(response.address)
+    assert address
     checked_at = int(time.time()) if checked_at is None else checked_at
     # Empty UTXOs deliberately model payments that have already been spent.
     await update_address_snapshot(
         Snapshot(
-            address_id=stored.address_id,
+            address_id=address.id,
             transactions=transactions,
             utxos=[],
             checked_at=checked_at,

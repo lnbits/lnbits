@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hmac
+import json
 import secrets
 import time
 from typing import TYPE_CHECKING
@@ -7,10 +9,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 from lnbits.core.crud.onchain import (
-    create_wasm_onchain_checkout,
     get_address_by_id,
     get_address_snapshot,
-    get_wasm_onchain_checkout,
 )
 from lnbits.core.crud.wallets import (
     get_onchain_sync_status,
@@ -18,7 +18,7 @@ from lnbits.core.crud.wallets import (
     get_wallets,
 )
 from lnbits.core.db import db
-from lnbits.core.models.onchain import Address, Snapshot, WasmOnchainCheckout
+from lnbits.core.models.onchain import Address, Snapshot
 from lnbits.core.models.wallets import OnchainWallet
 from lnbits.core.services.blockexplorer import TXID
 from lnbits.core.services.onchain import (
@@ -28,6 +28,7 @@ from lnbits.core.services.onchain import (
 )
 from lnbits.db import Connection
 from lnbits.helpers import sha256s
+from lnbits.settings import settings
 from lnbits.utils.onchain import address_script
 
 from .models import EmptyRequest, ListUserWalletsResponse, UserWalletSummary
@@ -83,7 +84,7 @@ class ExtensionOnchainAPI:
             if wallet.is_onchain_wallet:
                 try:
                     await require_onchain_payments()
-                    await self._wallet(wallet.id, sha256s(user_id))
+                    await self._wallet(wallet.id)
                     ready = True
                 except (PermissionError, ValueError):
                     ready = False
@@ -115,11 +116,11 @@ class ExtensionOnchainAPI:
     async def reserve_address(
         self, request: ReserveOnchainAddressRequest
     ) -> ReserveOnchainAddressResponse:
-        owner_id = sha256s(self._authenticated_user())
+        self._authenticated_user()
         try:
             await require_onchain_payments()
             async with db.connect() as conn:
-                wallet = await self._wallet(request.wallet_id, owner_id, conn)
+                wallet = await self._wallet(request.wallet_id, conn)
                 # Core allocation uses a database compare-and-swap, also across workers.
                 address = await get_fresh_address(wallet.id, conn=conn)
                 if (
@@ -132,26 +133,15 @@ class ExtensionOnchainAPI:
                 snapshot = await get_address_snapshot(address.id, conn)
                 if snapshot and snapshot.transactions:
                     raise ValueError(_UNAVAILABLE)
-                token = secrets.token_urlsafe(32)
-                checkout = WasmOnchainCheckout(
-                    extension_id=self.api.extension_id,
-                    owner_id=owner_id,
-                    wallet_id=wallet.id,
-                    source_id=request.source_id,
-                    checkout_id=request.checkout_id,
-                    address_id=address.id,
-                    address=address.address,
-                    network=wallet.onchain_network or "",
-                    wallet_fingerprint=sha256s(wallet.onchain_meta.masterpub),
-                    status_token_hash=sha256s(token),
-                )
-                if not await create_wasm_onchain_checkout(checkout, conn):
-                    raise ValueError(_UNAVAILABLE)
+                token = self._checkout_token(wallet, address, request)
                 # Recheck after allocation: deletion/reconfiguration must fail closed.
-                current = await self._wallet(wallet.id, owner_id, conn)
-                self._validate_wallet_binding(current, checkout)
+                current = await self._wallet(wallet.id, conn)
+                if token != self._checkout_token(current, address, request):
+                    raise PermissionError(_UNAVAILABLE)
             return ReserveOnchainAddressResponse(
-                address=checkout.address, network=checkout.network, status_token=token
+                address=address.address,
+                network=wallet.onchain_network or "",
+                status_token=token,
             )
         except PermissionError:
             raise PermissionError(_UNAVAILABLE) from None
@@ -167,7 +157,7 @@ class ExtensionOnchainAPI:
         sdk_name="paymentStatus",
         description=(
             "Read received, confirmed and unconfirmed satoshis for one checkout. "
-            "Requires its authenticated owner or its public status token. "
+            "Requires its checkout token, also for authenticated owners. "
             "Uses recent successful core scans, including spent outputs."
         ),
         required_permission="onchain.payments.read",
@@ -177,28 +167,16 @@ class ExtensionOnchainAPI:
         self, request: OnchainPaymentStatusRequest
     ) -> OnchainPaymentStatusResponse:
         try:
+            if not request.status_token or "." not in request.status_token:
+                raise PermissionError(_UNAVAILABLE)
+            address_id = request.status_token.rsplit(".", 1)[0]
             await require_onchain_payments()
             async with db.connect() as conn:
-                checkout = await get_wasm_onchain_checkout(
-                    self.api.extension_id,
-                    request.wallet_id,
-                    request.source_id,
-                    request.checkout_id,
-                    conn,
-                )
-                self._authorize_status(checkout, request)
-                if checkout is None:
+                wallet = await self._wallet(request.wallet_id, conn)
+                address = await get_address_by_id(address_id, conn)
+                if not address:
                     raise PermissionError(_UNAVAILABLE)
-                wallet = await self._wallet(checkout.wallet_id, checkout.owner_id, conn)
-                self._validate_wallet_binding(wallet, checkout)
-                address = await get_address_by_id(checkout.address_id, conn)
-                if (
-                    not address
-                    or address.walet_id != wallet.id
-                    or address.address != checkout.address
-                    or address.branch_index != 0
-                ):
-                    raise PermissionError(_UNAVAILABLE)
+                self._authorize_status(wallet, address, request)
                 status = await get_onchain_sync_status(wallet.id, conn)
                 snapshot = await get_address_snapshot(address.id, conn)
                 now = int(time.time())
@@ -213,8 +191,8 @@ class ExtensionOnchainAPI:
                     or status != await get_onchain_sync_status(wallet.id, conn)
                 ):
                     raise ValueError(_STATUS_UNAVAILABLE)
-                current = await self._wallet(wallet.id, checkout.owner_id, conn)
-                self._validate_wallet_binding(current, checkout)
+                current = await self._wallet(wallet.id, conn)
+                self._authorize_status(current, address, request)
                 return _payment_totals(address, snapshot)
         except PermissionError:
             raise PermissionError(_UNAVAILABLE) from None
@@ -228,15 +206,16 @@ class ExtensionOnchainAPI:
         return self.api.user_id
 
     async def _wallet(
-        self, wallet_id: str, owner_id: str, conn: Connection | None = None
+        self, wallet_id: str, conn: Connection | None = None
     ) -> OnchainWallet:
         wallet = await get_onchain_wallet(wallet_id, conn=conn)
+        owner_id = sha256s(self.api.user_id) if self.api.user_id else self.api.owner_id
         if (
             not wallet
             or wallet.id != wallet_id
             or wallet.deleted
             or not wallet.is_onchain_wallet
-            or sha256s(wallet.user) != owner_id
+            or (owner_id is not None and sha256s(wallet.user) != owner_id)
             or not wallet.onchain_network
             or not wallet.onchain_wallet_kind
             or not wallet.onchain_meta.masterpub
@@ -250,38 +229,52 @@ class ExtensionOnchainAPI:
 
     def _authorize_status(
         self,
-        checkout: WasmOnchainCheckout | None,
+        wallet: OnchainWallet,
+        address: Address,
         request: OnchainPaymentStatusRequest,
     ) -> None:
         if (
-            not checkout
-            or checkout.extension_id != self.api.extension_id
-            or checkout.wallet_id != request.wallet_id
-            or checkout.source_id != request.source_id
-            or checkout.checkout_id != request.checkout_id
-            or checkout.address != request.address
-        ):
-            raise PermissionError(_UNAVAILABLE)
-        if self.api.user_id:
-            if checkout.owner_id != sha256s(self._authenticated_user()):
-                raise PermissionError(_UNAVAILABLE)
-        elif not request.status_token:
-            raise PermissionError(_UNAVAILABLE)
-        elif self.api.owner_id and self.api.owner_id != checkout.owner_id:
-            raise PermissionError(_UNAVAILABLE)
-        if request.status_token and not secrets.compare_digest(
-            checkout.status_token_hash, sha256s(request.status_token)
+            address.walet_id != wallet.id
+            or address.address != request.address
+            or address.branch_index != 0
+            or not request.status_token
+            or not secrets.compare_digest(
+                request.status_token.encode(),
+                self._checkout_token(wallet, address, request).encode(),
+            )
         ):
             raise PermissionError(_UNAVAILABLE)
 
-    def _validate_wallet_binding(
-        self, wallet: OnchainWallet, checkout: WasmOnchainCheckout
-    ) -> None:
-        if (
-            wallet.onchain_network != checkout.network
-            or sha256s(wallet.onchain_meta.masterpub) != checkout.wallet_fingerprint
-        ):
+    def _checkout_token(
+        self,
+        wallet: OnchainWallet,
+        address: Address,
+        request: ReserveOnchainAddressRequest,
+    ) -> str:
+        if not settings.auth_secret_key:
             raise PermissionError(_UNAVAILABLE)
+        # A purpose-specific MAC binds existing core records without checkout storage.
+        # The extension persists this receipt; notes and caller IDs cannot replace it.
+        payload = json.dumps(
+            [
+                "lnbits:wasm:onchain-checkout:v1",
+                self.api.extension_id,
+                sha256s(wallet.user),
+                wallet.id,
+                request.source_id,
+                request.checkout_id,
+                address.id,
+                address.address,
+                wallet.onchain_network,
+                sha256s(wallet.onchain_meta.masterpub),
+                sha256s(wallet.adminkey),
+            ],
+            separators=(",", ":"),
+        )
+        signature = hmac.digest(
+            settings.auth_secret_key.encode(), payload.encode(), "sha256"
+        ).hex()
+        return f"{address.id}.{signature}"
 
 
 def _payment_totals(
