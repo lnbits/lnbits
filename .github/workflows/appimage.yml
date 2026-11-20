@@ -24,18 +24,19 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           fetch-depth: 0
           ref: ${{ inputs.tag_name }}
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: "24.x"
           cache: npm
@@ -46,7 +47,7 @@ jobs:
           sudo apt-get install -y libfuse2 libcrypt1 python3-tk xvfb
         shell: bash
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v6.8.0
 
       - name: Verify frontend assets
         run: |

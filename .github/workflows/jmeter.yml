@@ -9,13 +9,18 @@ on:
         default: "3.10"
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   jmeter:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: ./.github/actions/prepare
+      - uses: $/.github/actions/prepare
         with:
           python-version: ${{ inputs.python-version }}
 
@@ -58,7 +63,7 @@ jobs:
           cat data/logs/lnbits.log
 
       - name: upload jmeter test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         if: ${{ always() }}
         with:
           name: jmeter-extension-test-results

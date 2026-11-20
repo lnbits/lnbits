@@ -2,6 +2,8 @@ name: LNbits CI
 on:
   pull_request:
 
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -103,4 +105,7 @@ jobs:
 
   bundle:
     needs: [ lint, test-api, test-wallets, test-unit, migration, openapi, regtest, jmeter ]
+    # bundle.yml pushes the rebuilt bundle to the pull request branch
+    permissions:
+      contents: write
     uses: ./.github/workflows/bundle.yml

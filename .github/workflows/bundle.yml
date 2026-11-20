@@ -8,10 +8,10 @@ jobs:
       contents: write
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || github.event.pull_request.head.sha }}
-      - uses: lnbits/lnbits/.github/actions/prepare@dev
+      - uses: $/.github/actions/prepare
         with:
           python-version: "3.10"
           node-version: "24.x"

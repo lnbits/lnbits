@@ -2,6 +2,9 @@ name: lint
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
 
   black:

@@ -4,6 +4,9 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-e2e:
     name: test-e2e (${{ matrix.name }})
@@ -22,8 +25,10 @@ jobs:
             spec: tests/e2e/tips.spec.ts
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: lnbits/lnbits/.github/actions/prepare@dev
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/prepare
         with:
           python-version: "3.12"
           node-version: "24.x"
@@ -34,7 +39,7 @@ jobs:
         run: npm run test:e2e -- "${{ matrix.spec }}"
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: playwright-report-${{ matrix.name }}
           path: test-reports

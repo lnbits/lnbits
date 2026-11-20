@@ -42,16 +42,17 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           ref: ${{ inputs.tag_name || github.ref }}
+          persist-credentials: false
       - name: Initialize release recovery path
         run: echo "MACOS_RELEASE_STATE=$RUNNER_TEMP/lnbits-release.json" >> "$GITHUB_ENV"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v4
+      - uses: astral-sh/setup-uv@v6.8.0
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: "24.x"
           cache: npm
@@ -94,7 +95,7 @@ jobs:
       - name: Record signing status
         run: |
           echo 'Developer ID signed; app and DMG independently notarized, stapled and verified. Final read-only image smoke checks and checksum verification passed.' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: LNbits-macOS-${{ matrix.arch }}
           path: |
@@ -109,7 +110,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.3.0
         with:
           pattern: LNbits-macOS-*
           merge-multiple: true

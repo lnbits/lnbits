@@ -8,14 +8,22 @@ on:
   schedule:
     - cron: '0 12 * * 5'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # upload the CodeQL results
+      security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           fetch-depth: 2
+          persist-credentials: false
       - run: git checkout HEAD^2
         if: ${{ github.event_name == 'pull_request' }}
       - name: Initialize CodeQL
