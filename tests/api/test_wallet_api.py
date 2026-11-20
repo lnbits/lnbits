@@ -1,13 +1,19 @@
+from contextlib import contextmanager
+from typing import cast
 from uuid import uuid4
 
 import pytest
+from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from httpx import AsyncClient
 
 from lnbits.core.crud.wallets import create_wallet, get_wallet
+from lnbits.core.db import core_app_extra
 from lnbits.core.models.users import Account
 from lnbits.core.services import update_wallet_balance
 from lnbits.core.services.users import create_user_account
 from lnbits.settings import settings
+from tests.helpers import make_lnurl_pay_response
 
 
 @pytest.mark.anyio
@@ -207,6 +213,13 @@ async def test_wallet_api_custom_lightning_address_owner_rules(
     )
     assert invalid.status_code == 400
 
+    dot_segment = await http_client.patch(
+        "/api/v1/wallet",
+        headers=headers,
+        json={"lightning_address": ".."},
+    )
+    assert dot_segment.status_code == 400
+
     existing_wallet = await create_wallet(
         user_id=user.id,
         wallet_name="existing lightning address",
@@ -307,6 +320,132 @@ async def test_wallet_api_shared_wallet_requires_source_id(http_client: AsyncCli
     assert (
         response.json()["detail"] == "Shared wallet ID is required for shared wallets."
     )
+
+
+@pytest.mark.anyio
+async def test_wallet_api_blocks_extension_collision_before_charging_fee(
+    app: FastAPI, http_client: AsyncClient
+):
+    user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"user_{uuid4().hex[:8]}",
+            email=f"user_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    fee_user = await create_user_account(
+        Account(
+            id=uuid4().hex,
+            username=f"fees_{uuid4().hex[:8]}",
+            email=f"fees_{uuid4().hex[:8]}@lnbits.com",
+        )
+    )
+    wallet = user.wallets[0]
+    fee_wallet = fee_user.wallets[0]
+    await update_wallet_balance(wallet=wallet, amount=2_000)
+
+    settings.lnbits_ln_address_mode = "extension_first"
+    settings.lnbits_allow_custom_wallet_lightning_addresses = True
+    settings.lnbits_charge_wallet_lightning_addresses = True
+    settings.lnbits_wallet_lightning_address_price_sats = 1_000
+    settings.lnbits_service_fee_wallet = fee_wallet.id
+
+    taken_in_ext = {"ext.taken"}
+    ext_id = "lnurlp"
+    ext_router = APIRouter(prefix=f"/{ext_id}")
+
+    @ext_router.get("/api/v1/well-known/{username}")
+    async def ext_well_known(username: str):
+        if username in taken_in_ext:
+            return make_lnurl_pay_response(
+                identifier=f"{username}@ext.example",
+                callback=f"https://ext.example/cb/{username}",
+            )
+        if username == "ext.broken":
+            return JSONResponse({"detail": "rate lookup failed"}, status_code=500)
+        raise HTTPException(status_code=404, detail="Not found")
+
+    with _mounted_lnurlp_extension(app, ext_router, ext_id):
+        taken_resp = await http_client.patch(
+            "/api/v1/wallet",
+            headers=_admin_headers(wallet.adminkey),
+            json={"lightning_address": "Ext.Taken"},
+        )
+        assert taken_resp.status_code == 400
+        assert taken_resp.json()["detail"] == "Lightning Address is already taken."
+
+        broken_resp = await http_client.patch(
+            "/api/v1/wallet",
+            headers=_admin_headers(wallet.adminkey),
+            json={"lightning_address": "ext.broken"},
+        )
+        assert broken_resp.status_code == 400
+        assert (
+            broken_resp.json()["detail"]
+            == "Could not verify Lightning Address availability."
+        )
+
+        # User must NEVER be charged when collision or verification fails
+        uncharged_wallet = await get_wallet(wallet.id)
+        uncredited_fee_wallet = await get_wallet(fee_wallet.id)
+        assert uncharged_wallet is not None
+        assert uncredited_fee_wallet is not None
+        assert uncharged_wallet.balance == 2_000
+        assert uncredited_fee_wallet.balance == 0
+
+        # Available address succeeds and charges fee once
+        available_resp = await http_client.patch(
+            "/api/v1/wallet",
+            headers=_admin_headers(wallet.adminkey),
+            json={"lightning_address": "ext.free"},
+        )
+        assert available_resp.status_code == 200
+        assert available_resp.json()["lightning_address"] == "ext.free"
+
+        # Simulate legacy collision after ownership and verify re-saving own address
+        # (with uppercase normalization) neither fails nor double-charges
+        taken_in_ext.add("ext.free")
+        resave_own = await http_client.patch(
+            "/api/v1/wallet",
+            headers=_admin_headers(wallet.adminkey),
+            json={"lightning_address": "Ext.Free"},
+        )
+        assert resave_own.status_code == 200
+        assert resave_own.json()["lightning_address"] == "ext.free"
+
+        final_wallet = await get_wallet(wallet.id)
+        assert final_wallet is not None
+        assert final_wallet.balance == 1_000
+
+
+@contextmanager
+def _mounted_lnurlp_extension(_app, ext_router: APIRouter, ext_id: str):
+    fastapi_app = cast(FastAPI, core_app_extra.local_lnurl_app)
+    settings.activate_extension_paths(
+        ext_id,
+        [
+            {
+                "from_path": "/.well-known/lnurlp",
+                "redirect_to_path": "/api/v1/well-known",
+            }
+        ],
+    )
+    fastapi_app.include_router(ext_router)
+    try:
+        yield
+    finally:
+        fastapi_app.router.routes = [
+            route
+            for route in fastapi_app.router.routes
+            if not (
+                getattr(route, "path", "") == f"/{ext_id}"
+                or getattr(route, "path", "").startswith(f"/{ext_id}/")
+            )
+        ]
+        fastapi_app.openapi_schema = None
+        settings.deactivate_extension_paths(ext_id)
+        settings.lnbits_deactivated_extensions.discard(ext_id)
+        settings.lnbits_installed_extensions_ids.discard(ext_id)
 
 
 def _admin_headers(adminkey: str) -> dict[str, str]:
