@@ -41,6 +41,8 @@ async def storage_get_public_row(
     ext_id: str,
     table: str,
     row_id: str,
+    *,
+    include_owner: bool = False,
 ) -> dict[str, Any] | None:
     table_schema = _load_table_schema(ext_id, table)
     query = f"""
@@ -49,7 +51,12 @@ async def storage_get_public_row(
     """  # noqa: S608
     async with Database(f"ext_{ext_id}").connect() as conn:
         row = await conn.fetchone(query, {"id": row_id})
-    return _row_from_db(table_schema, row) if row else None
+    if not row:
+        return None
+    result = _row_from_db(table_schema, row)
+    if include_owner:
+        result[OWNER_ID_FIELD] = row[OWNER_ID_FIELD]
+    return result
 
 
 async def storage_get_row_owner_id(

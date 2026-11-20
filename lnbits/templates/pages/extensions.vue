@@ -77,20 +77,6 @@
                 ></span>
               </q-badge>
               <q-btn
-                v-if="extbuilderEnabled"
-                flat
-                no-caps
-                icon="architecture"
-                to="/extensions/builder"
-                ><span v-text="$t('create_extension')"></span
-              ></q-btn>
-              <q-btn v-else disabled flat no-caps icon="architecture"
-                ><span v-text="$t('create_extension')"></span>
-                <q-tooltip
-                  v-text="$t('only_admins_can_create_extensions')"
-                ></q-tooltip>
-              </q-btn>
-              <q-btn
                 v-if="g.user.admin"
                 flat
                 round

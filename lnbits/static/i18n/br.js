@@ -192,8 +192,6 @@ window.localisation.br = {
   all: 'Tudo',
   only_admins_can_install:
     'Apenas contas de administrador podem instalar extensões.',
-  only_admins_can_create_extensions:
-    'Apenas contas de administrador podem criar extensões',
   admin_only: 'Apenas para Administração',
   make_user_admin: 'Tornar usuário administrador',
   revoke_admin: 'Revogar Admin',
@@ -500,7 +498,6 @@ window.localisation.br = {
   admin_settings: 'Configurações do Administrador',
   extension_cost: 'Este lançamento requer um pagamento mínimo de {cost} sats.',
   extension_paid_sats: 'Você já pagou {paid_sats} sats.',
-  create_extension: 'Criar Extensão',
   release_details_error: 'Não é possível obter os detalhes da versão.',
   pay_from_wallet: 'Pagar com a Carteira',
   pay_with: 'Pague com {provider}',
@@ -573,16 +570,9 @@ window.localisation.br = {
   user_default_extensions_label: 'Extensões do usuário',
   user_default_extensions_hint:
     'Extensões que serão ativadas por padrão para os usuários.',
-  extension_builder: 'Construtor de Extensão',
-  extension_builder_manifest_url: 'URL do Manifesto do Criador de Extensões',
-  extension_builder_manifest_url_hint:
-    'URL para um arquivo JSON manifest com detalhes do extension builder',
   miscellanous: 'Diversos',
   misc_disable_extensions: 'Desativar extensões',
   misc_disable_extensions_label: 'Desativar todas as extensões',
-  misc_disable_extensions_builder: 'Habilitar Extensions Builder',
-  misc_disable_extensions_builder_label:
-    'Habilitar Extensions Builder para usuários não administradores.',
   misc_hide_api: 'Ocultar API',
   misc_hide_api_label:
     'Oculta a API de carteira, extensões podem optar por honrar',

@@ -1,4 +1,5 @@
 import asyncio
+from time import monotonic
 
 from loguru import logger
 
@@ -9,6 +10,7 @@ from lnbits.core.crud.wallets import get_wallets_count
 from lnbits.core.models.audit import AuditEntry
 from lnbits.core.models.extensions import InstallableExtension
 from lnbits.core.models.notifications import NotificationType
+from lnbits.core.services.extensions import auto_update_extensions
 from lnbits.core.services.funding_source import get_balance_delta
 from lnbits.core.services.notifications import (
     enqueue_admin_notification,
@@ -19,6 +21,7 @@ from lnbits.utils.cache import cache
 from lnbits.utils.exchange_rates import btc_price_from_aggregator, btc_rates
 
 audit_queue: asyncio.Queue[AuditEntry] = asyncio.Queue()
+_last_extension_update_check: float | None = None
 
 
 async def process_next_audit_entry() -> None:
@@ -33,6 +36,22 @@ async def process_next_audit_entry() -> None:
 async def refresh_extension_cache() -> None:
     # only refreshes every 10 minutes
     await InstallableExtension.get_installable_extensions()
+
+
+async def scheduled_extension_updates() -> None:
+    global _last_extension_update_check
+
+    now = monotonic()
+    if _last_extension_update_check is None:
+        # Startup already checked for updates.
+        _last_extension_update_check = now
+
+    interval = settings.lnbits_autoupdate_extensions_interval_hours
+    if interval == 0 or now - _last_extension_update_check < interval * 60 * 60:
+        return
+
+    _last_extension_update_check = monotonic()
+    await auto_update_extensions(reload_active=True)
 
 
 async def notify_server_status() -> None:

@@ -9,6 +9,7 @@ from lnbits.core.models.extensions import UserExtension
 from lnbits.core.models.users import RegisterUser
 from lnbits.db import Connection
 from lnbits.settings import (
+    AuthMethods,
     EditableSettings,
     SuperSettings,
     settings,
@@ -41,10 +42,19 @@ from .settings import update_cached_settings
 
 
 async def create_user_account(
-    account: Account | None = None, wallet_name: str | None = None
+    account: Account | None = None,
+    wallet_name: str | None = None,
+    *,
+    activation_verified: bool = False,
 ) -> User:
     if not settings.new_accounts_allowed:
         raise ValueError("Account creation is disabled.")
+    if account is None and not settings.is_auth_method_allowed(
+        AuthMethods.user_id_only
+    ):
+        raise ValueError("Account creation by user ID is disabled.")
+    if settings.lnbits_require_user_activation and not activation_verified:
+        raise ValueError("Account creation requires an invitation or activation.")
 
     return await create_user_account_no_ckeck(account, wallet_name)
 

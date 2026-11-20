@@ -1,7 +1,9 @@
 import asyncio
 import json
+import socket
 import time
 
+import httpx
 import pytest
 from nostr_sdk import (
     Client,
@@ -18,6 +20,7 @@ from nostr_sdk import (
 from pytest_mock.plugin import MockerFixture
 
 from lnbits.core.services.nostr import (
+    _validate_relay_url,
     fetch_nip5_details,
     send_nostr_dm,
     send_nostr_dm_nip17,
@@ -30,10 +33,13 @@ class FakeWebSocket:
         self.sent: list[str] = []
         self.closed = False
 
-    def send(self, message: str):
+    async def send(self, message: str):
         self.sent.append(message)
 
-    def close(self):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
         self.closed = True
 
 
@@ -68,7 +74,7 @@ class MockHTTPResponse:
 
 @pytest.mark.anyio
 async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
-    mocker: MockerFixture,
+    mocker: MockerFixture, safe_http_mock, settings
 ):
     event = mocker.Mock()
     event.to_message.return_value = "nostr-message"
@@ -77,10 +83,11 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
     dm.to_event.return_value = event
     mocker.patch("lnbits.core.services.nostr.EncryptedDirectMessage", return_value=dm)
 
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
     ws_one = FakeWebSocket()
     ws_two = FakeWebSocket()
-    mocker.patch(
-        "lnbits.core.services.nostr.create_connection",
+    connect = mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect",
         side_effect=[ws_one, RuntimeError("boom"), ws_two],
     )
     result = await send_nostr_dm(
@@ -90,6 +97,12 @@ async def test_send_nostr_dm_sends_to_available_relays_and_closes_connections(
         ["wss://relay-1", "wss://broken", "wss://relay-2"],
     )
 
+    assert connect.call_count == 3
+    assert all(
+        call.kwargs["host"] == "93.184.216.34" for call in connect.call_args_list
+    )
+    assert all(call.kwargs["proxy"] is None for call in connect.call_args_list)
+    safe_http_mock[0].assert_awaited()
     assert ws_one.sent == ["nostr-message"]
     assert ws_two.sent == ["nostr-message"]
     assert ws_one.closed is True
@@ -109,7 +122,7 @@ async def test_fetch_nip5_details_returns_pubkey_and_relays(mocker: MockerFixtur
     mocker.patch("lnbits.core.services.nostr.is_valid_url", return_value=True)
     validate_identifier = mocker.patch("lnbits.core.services.nostr.validate_identifier")
     validate_pub_key = mocker.patch("lnbits.core.services.nostr.validate_pub_key")
-    mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
+    mocker.patch("lnbits.core.services.nostr.SafeHttpClient", return_value=client)
 
     pubkey, relays = await fetch_nip5_details("alice@example.com")
 
@@ -131,8 +144,72 @@ async def test_fetch_nip5_details_rejects_invalid_values(mocker: MockerFixture):
 
     mocker.patch("lnbits.core.services.nostr.is_valid_url", return_value=True)
     client = MockHTTPClient(MockHTTPResponse({"names": {}}))
-    mocker.patch("lnbits.core.services.nostr.httpx.AsyncClient", return_value=client)
+    mocker.patch("lnbits.core.services.nostr.SafeHttpClient", return_value=client)
     with pytest.raises(ValueError, match="NIP5 not name found"):
+        await fetch_nip5_details("alice@example.com")
+
+
+@pytest.mark.anyio
+async def test_nip05_pins_public_host_without_applying_webhook_rules(
+    safe_http_mock, settings
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    pubkey = Keys.generate().public_key().to_hex()
+    handler.side_effect = lambda request: httpx.Response(
+        200, json={"names": {"alice": pubkey}}
+    )
+
+    assert await fetch_nip5_details("alice@example.com") == (pubkey, [])
+
+    resolver.assert_awaited_once()
+    request = handler.call_args.args[0]
+    assert str(request.url) == "https://93.184.216.34/.well-known/nostr.json?name=alice"
+    assert request.headers["host"] == "example.com"
+    assert request.extensions["sni_hostname"] == "example.com"
+    assert request.extensions["timeout"]["read"] == 5
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "address",
+    ["127.0.0.1", "10.0.0.2", "169.254.169.254", "64:ff9b::7f00:1", "8.8.8.8"],
+)
+async def test_nip05_rejects_private_and_self_addresses(
+    safe_http_mock, settings, address
+):
+    resolver, handler = safe_http_mock
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_outbound_host_ips = ["8.8.8.8"]
+    resolver.return_value = [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 443))
+    ]
+    with pytest.raises(ValueError):
+        await fetch_nip5_details("alice@example.com")
+    handler.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nip05_rejects_instance_hostname_before_dns(safe_http_mock, settings):
+    resolver, handler = safe_http_mock
+    settings.lnbits_baseurl = "https://example.com"
+    with pytest.raises(ValueError, match="this server"):
+        await fetch_nip5_details("alice@example.com")
+    resolver.assert_not_awaited()
+    handler.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nip05_bounds_response_and_does_not_follow_redirects(safe_http_mock):
+    _, handler = safe_http_mock
+    handler.side_effect = lambda request: httpx.Response(
+        302, headers={"location": "http://127.0.0.1/"}
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await fetch_nip5_details("alice@example.com")
+    handler.assert_called_once()
+    handler.side_effect = lambda request: httpx.Response(200, content=b"x" * 1048577)
+    with pytest.raises(ValueError, match="too large"):
         await fetch_nip5_details("alice@example.com")
 
 
@@ -152,7 +229,7 @@ def test_normalize_identifier_keeps_hyphens():
 
 
 @pytest.fixture
-def nip17_sender(mocker: MockerFixture):
+def nip17_sender(mocker: MockerFixture, safe_http_mock):
     sender = Keys.generate()
     receiver = Keys.generate()
     client = mocker.Mock(spec=Client)
@@ -341,6 +418,7 @@ async def test_send_nip17_times_out_and_closes_client(
     mocker.patch(
         "lnbits.core.services.nostr.asyncio.wait_for", side_effect=short_timeout
     )
+    mocker.patch("lnbits.core.services.nostr._validate_relay_url", mocker.AsyncMock())
     client.connect.side_effect = never_connect
 
     with pytest.raises(ValueError, match="NIP-17 notification timed out"):
@@ -352,3 +430,141 @@ async def test_send_nip17_times_out_and_closes_client(
         )
     client.send_event_to.assert_not_awaited()
     client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("scheme", ["ws", "wss"])
+async def test_relay_validation_allows_public_urls_without_webhook_rules(
+    safe_http_mock, settings, scheme
+):
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    await _validate_relay_url(f"{scheme}://relay.example.com:8443/path")
+    resolver, _ = safe_http_mock
+    assert resolver.call_args.args == ("relay.example.com", 8443)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://relay.example.com",
+        "wss:///missing-host",
+        "wss://user:password@relay.example.com",
+        "wss://self.example.com",
+    ],
+)
+async def test_relay_validation_rejects_invalid_urls_before_dns(
+    safe_http_mock, settings, url
+):
+    settings.lnbits_baseurl = "https://self.example.com"
+    with pytest.raises(ValueError):
+        await _validate_relay_url(url)
+    resolver, _ = safe_http_mock
+    resolver.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "addresses",
+    [
+        ["127.0.0.1"],
+        ["10.0.0.1"],
+        ["169.254.169.254"],
+        ["::1"],
+        ["8.8.8.8"],
+        ["93.184.216.34", "127.0.0.1"],
+    ],
+)
+async def test_relay_validation_rejects_private_self_and_mixed_dns(
+    safe_http_mock, settings, addresses
+):
+    settings.lnbits_callback_allow_private_ips = True
+    settings.lnbits_outbound_host_ips = ["8.8.8.8"]
+    resolver, _ = safe_http_mock
+    resolver.return_value = [
+        (
+            socket.AF_INET6 if ":" in ip else socket.AF_INET,
+            socket.SOCK_STREAM,
+            6,
+            "",
+            (ip, 443),
+        )
+        for ip in addresses
+    ]
+    with pytest.raises(ValueError):
+        await _validate_relay_url("wss://relay.example.com")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target", ["nip04", "nip17_discovery", "nip17_inbox"])
+async def test_senders_validate_relays_before_using_them(
+    nip17_sender, safe_http_mock, mocker, target
+):
+    sender, receiver, client = nip17_sender
+    resolver, _ = safe_http_mock
+
+    async def resolve(host, port, **kwargs):
+        ip = "127.0.0.1" if host == "internal.example.com" else "93.184.216.34"
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
+
+    resolver.side_effect = resolve
+    unsafe_relay = "ws://internal.example.com"
+    if target == "nip04":
+        connect = mocker.patch("lnbits.utils.safe_http._NoRedirectConnect")
+        await send_nostr_dm(
+            sender.secret_key().to_hex(),
+            receiver.public_key().to_hex(),
+            "hi",
+            [unsafe_relay],
+        )
+        connect.assert_not_called()
+        return
+
+    relays = [unsafe_relay]
+    if target == "nip17_inbox":
+        relays = ["wss://discovery.example.com"]
+        client.fetch_events.return_value.to_vec.return_value = [
+            EventBuilder(Kind(10050), "")
+            .tags([Tag.parse(["relay", unsafe_relay])])
+            .sign_with_keys(receiver)
+        ]
+    with pytest.raises(ValueError, match="public addresses"):
+        await send_nostr_dm_nip17(
+            sender.secret_key().to_hex(), receiver.public_key().to_hex(), "hi", relays
+        )
+    assert client.add_relay.await_count == (1 if target == "nip17_inbox" else 0)
+    client.send_event_to.assert_not_awaited()
+    client.shutdown.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("failure", ["send", "close", "cancel"])
+async def test_nip04_closes_connections_on_failure(safe_http_mock, mocker, failure):
+    keys = Keys.generate()
+    first = mocker.AsyncMock()
+    second = mocker.AsyncMock()
+    first.__aenter__.return_value = first
+    second.__aenter__.return_value = second
+    if failure == "send":
+        first.send.side_effect = RuntimeError("send failed")
+    elif failure == "close":
+        second.__aexit__.side_effect = RuntimeError("close failed")
+    else:
+        second.send.side_effect = asyncio.CancelledError()
+    mocker.patch(
+        "lnbits.utils.safe_http._NoRedirectConnect", side_effect=[first, second]
+    )
+    operation = send_nostr_dm(
+        keys.secret_key().to_hex(),
+        keys.public_key().to_hex(),
+        "hello",
+        ["wss://first.example", "wss://second.example"],
+    )
+    if failure == "cancel":
+        with pytest.raises(asyncio.CancelledError):
+            await operation
+    else:
+        assert (await operation)["kind"] == 4
+        second.send.assert_awaited_once()
+    first.__aexit__.assert_awaited_once()
+    second.__aexit__.assert_awaited_once()

@@ -1,7 +1,4 @@
-from hashlib import sha256
 from http import HTTPStatus
-from pathlib import Path
-from urllib.parse import urlparse
 
 from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
@@ -18,14 +15,12 @@ from lnbits.decorators import (
     check_admin_ui,
     check_blockexplorer_access,
     check_blockexplorer_public,
-    check_extension_builder,
     check_first_install,
     check_user_exists,
 )
 from lnbits.helpers import check_callback_url, template_renderer
 from lnbits.settings import settings
-
-from ..crud import get_user
+from lnbits.utils.outbound import outbound_protection_status
 
 generic_router = APIRouter(
     tags=["Core NON-API Website Routes"], include_in_schema=False
@@ -43,48 +38,6 @@ async def robots():
     return HTMLResponse(content=data, media_type="text/plain")
 
 
-@generic_router.get(
-    "/extensions/builder/preview/{ext_id}/{resource}",
-    name="extensions builder",
-    dependencies=[Depends(check_extension_builder)],
-)
-async def extensions_builder_preview(
-    ext_id: str,
-    resource: str | None = None,
-    page_name: str | None = None,
-    user: User = Depends(check_user_exists),
-) -> FileResponse:
-    working_dir_name = "preview_" + sha256(user.id.encode("utf-8")).hexdigest()
-
-    file_name = "index"
-    if page_name == "public_page":
-        file_name = "public_page"
-
-    resource_path = Path(
-        settings.extension_builder_working_dir_path,
-        "extension_builder_stub",
-        ext_id,
-        working_dir_name,
-        ext_id,
-        "static",
-    )
-
-    file_ext = ".vue" if resource == "template" else ".js"
-    file_full_path = Path(resource_path, file_name + file_ext)
-
-    if not file_full_path.is_file():
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-
-    response = FileResponse(file_full_path.absolute().as_posix())
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    )
-
-    return response
-
-
 @generic_router.get("/service-worker.js")
 async def service_worker(request: Request):
     return template_renderer().TemplateResponse(
@@ -95,87 +48,6 @@ async def service_worker(request: Request):
         },
         media_type="text/javascript",
     )
-
-
-@generic_router.get("/manifest/{usr}.webmanifest")
-async def manifest(request: Request, usr: str):
-    host = urlparse(str(request.url)).netloc
-    user = await get_user(usr)
-    if not user:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-    return {
-        "short_name": settings.lnbits_site_title,
-        "name": settings.lnbits_site_title + " Wallet",
-        "icons": [
-            {
-                "src": (
-                    settings.lnbits_custom_logo
-                    if settings.lnbits_custom_logo
-                    else "images/logos/lnbits.png"
-                ),
-                "sizes": "512x512",
-                "type": "image/png",
-            },
-            {"src": "/static/favicon.ico", "sizes": "32x32", "type": "image/x-icon"},
-            {
-                "src": "/static/images/maskable_icon_x192.png",
-                "type": "image/png",
-                "sizes": "192x192",
-                "purpose": "maskable",
-            },
-            {
-                "src": "/static/images/maskable_icon_x512.png",
-                "type": "image/png",
-                "sizes": "512x512",
-                "purpose": "maskable",
-            },
-            {
-                "src": "/static/images/maskable_icon.png",
-                "type": "image/png",
-                "sizes": "1024x1024",
-                "purpose": "maskable",
-            },
-        ],
-        "screenshots": [
-            {
-                "src": "/static/images/screenshot_desktop.png",
-                "sizes": "2394x1314",
-                "type": "image/png",
-                "form_factor": "wide",
-                "label": "LNbits - Desktop screenshot",
-            },
-            {
-                "src": "/static/images/screenshot_phone.png",
-                "sizes": "1080x1739",
-                "type": "image/png",
-                "form_factor": "narrow",
-                "label": "LNbits - Phone screenshot",
-            },
-        ],
-        "start_url": f"/wallet?usr={usr}&wal={user.wallets[0].id}",
-        "background_color": "#1F2234",
-        "description": "Bitcoin Lightning Wallet",
-        "display": "standalone",
-        "scope": "/",
-        "theme_color": "#1F2234",
-        "shortcuts": [
-            {
-                "name": wallet.name,
-                "short_name": wallet.name,
-                "description": wallet.name,
-                "url": f"/wallet?usr={usr}&wal={wallet.id}",
-                "icons": [
-                    {
-                        "src": "/static/images/maskable_icon_x96.png",
-                        "sizes": "96x96",
-                        "type": "image/png",
-                    }
-                ],
-            }
-            for wallet in user.wallets
-        ],
-        "url_handlers": [{"origin": f"https://{host}"}],
-    }
 
 
 admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
@@ -196,12 +68,6 @@ admin_ui_checks = [Depends(check_admin), Depends(check_admin_ui)]
 @generic_router.get("/admin/extensions/wasm", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm/limits", dependencies=admin_ui_checks)
 @generic_router.get("/admin/extensions/wasm/{ext_id}", dependencies=admin_ui_checks)
-@generic_router.get(
-    "/extensions/builder", dependencies=[Depends(check_extension_builder)]
-)
-@generic_router.get(
-    "/extensions/builder/preview", dependencies=[Depends(check_extension_builder)]
-)
 async def index(
     request: Request,
     ext_id: str | None = None,
@@ -212,6 +78,9 @@ async def index(
         "base.html",
         {
             "user": user.model_dump_json(),
+            "outbound_protection": (
+                outbound_protection_status() if user.super_user else None
+            ),
         },
     )
 

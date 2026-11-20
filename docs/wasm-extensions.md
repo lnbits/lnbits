@@ -133,6 +133,9 @@ dev/ or wasm/src/             Source/build tooling; layout varies by toolchain
 The currently supported payment event configuration is `events.onInvoicePaid`.
 Scheduler handlers also use event exports, with separate scheduler policies.
 
+Exports can set `"sync": true` to run one at a time for each owner. The default is
+`false`. See [storage and concurrency](#storage-and-concurrency) for the lock scope.
+
 When first creating a WASM extension, set `config.json`'s `min_lnbits_version`
 to the current LNbits version from `[project].version` in
 [`pyproject.toml`](../pyproject.toml). Read that value at creation time and preserve
@@ -341,6 +344,22 @@ durable operation IDs, immutable receipts where suitable, bounded retries, and
 reconciliation. If correctness requires an atomic primitive the host lacks,
 resolve that requirement before shipping; guest globals cannot supply it.
 
+To keep a full read, check, update operation in order, set `"sync": true` on its
+export in `config.json`:
+
+```json
+{"name": "update-item", "visibility": "authenticated", "sync": true}
+```
+
+All marked exports share one lock for the extension and storage owner, across
+HTTP requests, events, and schedules. Core takes the lock before the export runs
+and holds it until the WASM thread exits, including after a timeout or cancellation.
+Waiting calls still count toward runtime concurrency limits. Different owners
+and unmarked exports can run concurrently. Mark every export that must share the
+same protection. Calls without an owner share the extension's ownerless lock.
+This applies within one server process; it does not coordinate multiple processes
+or undo partial work after a crash.
+
 Sources: [storage implementation and migrations](../lnbits/core/wasm_ext/storage/crud.py),
 [storage policies](../lnbits/core/wasm_ext/api/host.py).
 
@@ -351,6 +370,18 @@ the caller does not choose an arbitrary wallet. Guest metadata is nested under
 `extra_<extension-id>`. Check the actual event fields and units: settled payment
 amounts are in millisatoshis, whereas invoice APIs also accept currency-specific
 amounts. Do not assume all numeric amounts represent sats.
+
+Both invoice methods accept one optional hex field, `unhashed_description` or
+`description_hash` (32-byte SHA-256). The invoice then commits to that hash
+instead of the memo, which LNURL-pay (LUD-06) requires: pass the hex-encoded
+metadata string as `unhashed_description` so the hash matches the payer's
+check. When either field is set, the memo is not stored.
+
+Tagged invoice events require the immutable `extension_context` written by the
+core WASM invoice APIs. Caller-supplied `extension`, `extra.tag`, or source IDs
+cannot authenticate an event. Invoices created before that binding was added
+no longer trigger tagged WASM events; recreate outstanding extension invoices.
+Explicit wallet-watch grants continue to authorize additional incoming events.
 
 For settlement-driven state changes, verify status/pending state, payment hash,
 amount, wallet, source, and the extension's stored invoice binding. Store enough

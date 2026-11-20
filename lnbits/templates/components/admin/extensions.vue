@@ -119,6 +119,36 @@
           </p>
           <q-item tag="label" v-ripple>
             <q-item-section>
+              <q-item-label>Update extensions on startup</q-item-label>
+              <q-item-label caption>
+                Update installed extensions when LNbits starts.
+              </q-item-label>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-toggle
+                size="md"
+                v-model="formData.lnbits_autoupdate_extensions_on_startup"
+                checked-icon="check"
+                color="green"
+                unchecked-icon="clear"
+              />
+            </q-item-section>
+          </q-item>
+          <q-input
+            dense
+            filled
+            class="q-mb-md"
+            v-model.number="
+              formData.lnbits_autoupdate_extensions_interval_hours
+            "
+            type="number"
+            min="0"
+            step="1"
+            label="Extension update interval (hours)"
+            hint="0 disables scheduled updates. Startup updates use the toggle above."
+          ></q-input>
+          <q-item tag="label" v-ripple>
+            <q-item-section>
               <q-item-label>
                 <span v-text="$t('misc_disable_extensions')"></span>
               </q-item-label>
@@ -130,27 +160,6 @@
               <q-toggle
                 size="md"
                 v-model="formData.lnbits_extensions_deactivate_all"
-                checked-icon="check"
-                color="green"
-                unchecked-icon="clear"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item tag="label" v-ripple>
-            <q-item-section>
-              <q-item-label>
-                <span v-text="$t('misc_disable_extensions_builder')"></span>
-              </q-item-label>
-              <q-item-label caption>
-                <span
-                  v-text="$t('misc_disable_extensions_builder_label')"
-                ></span>
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-toggle
-                size="md"
-                v-model="formData.lnbits_extensions_builder_activate_non_admins"
                 checked-icon="check"
                 color="green"
                 unchecked-icon="clear"
@@ -186,18 +195,6 @@
             label="WASM invocation retention"
             :suffix="$t('days')"
             hint="Set to 0 to disable automatic cleanup."
-          ></q-input>
-        </div>
-        <div class="col-12 col-md-6">
-          <p>
-            <span v-text="$t('extension_builder_manifest_url')"></span>
-          </p>
-          <q-input
-            dense
-            filled
-            v-model="formData.lnbits_extensions_builder_manifest_url"
-            :label="$t('extension_builder_manifest_url')"
-            :hint="$t('extension_builder_manifest_url_hint')"
           ></q-input>
         </div>
         <div class="col-12 col-md-6 q-pb-md">

@@ -37,8 +37,11 @@ async def test_create_account(client, settings: Settings):
     settings.lnbits_allow_new_accounts = False
     response = await client.post("/api/v1/account", json={"name": "test"})
 
-    assert response.status_code == 400
-    assert response.json().get("detail") == "Account creation is disabled."
+    assert response.status_code == 403
+    assert response.json().get("detail") == (
+        "Anonymous account creation is disabled. Contact the administrator "
+        "for an invitation."
+    )
 
     settings.lnbits_allow_new_accounts = True
     response = await client.post("/api/v1/account", json={"name": "test"})

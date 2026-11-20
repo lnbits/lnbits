@@ -1,6 +1,6 @@
 [project]
 name = "lnbits"
-version = "1.7.0-rc1"
+version = "1.7.1"
 requires-python = ">=3.10,<3.14"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
@@ -169,6 +169,7 @@ module = [
   "pyln.client.*",
   "py_vapid.*",
   "pywebpush.*",
+  "http_ece.*",
   "fastapi_sso.sso.*",
   "json5.*",
   "jsonpath_ng.*",
@@ -253,7 +254,6 @@ classmethod-decorators = [
 # TODO: remove S101 ignore
 "lnbits/*" = ["S101"]
 "lnbits/core/views/admin_api.py" = ["S603", "S607"]
-"lnbits/core/services/extensions_builder.py" = ["S701"]
 "crypto.py" = ["S324"]
 "test*.py" = ["S101", "S105", "S106", "S307"]
 "tools*.py" = ["S101", "S608"]

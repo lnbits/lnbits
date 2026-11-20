@@ -225,7 +225,10 @@
               <lnbits-admin-fiat-providers :form-data="formData" />
             </q-tab-panel>
             <q-tab-panel name="users" class="q-pa-md">
-              <lnbits-admin-users :form-data="formData" />
+              <lnbits-admin-users
+                :form-data="formData"
+                :is-super-user="isSuperUser"
+              />
             </q-tab-panel>
             <q-tab-panel name="server" class="q-pa-md">
               <lnbits-admin-server

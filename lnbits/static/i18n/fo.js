@@ -189,8 +189,6 @@ window.localisation.fo = {
   categories: 'Flokkar',
   all: 'Øll',
   only_admins_can_install: '(Einans umsitarar kunnu innleggja ískoytisforrit)',
-  only_admins_can_create_extensions:
-    'Einans umsitarar kunnu gera ískoytisforrit',
   admin_only: 'Einans umsitarar',
   make_user_admin: 'Játta umsitanarrættindi',
   revoke_admin: 'Ógilda umsitanarrættindi',
@@ -569,7 +567,6 @@ window.localisation.fo = {
   extension_permission_wallet_pay_invoice: 'Rinda gjaldsumbønir',
   extension_permission_wallet_pay_invoice_background:
     'Rinda í bakgrundini, uttan inntriv frá brúkara',
-  create_extension: 'Stovna ískoytisforrit',
   release_details_error: 'Bar ikki til at útvega sleppingarstaklutir.',
   pay_from_wallet: 'Rinda úr mappuni',
   pay_with: 'Rinda við {provider}',
@@ -641,16 +638,9 @@ window.localisation.fo = {
   user_default_extensions_label: 'Brúkaraforsett ískoytisforrit',
   user_default_extensions_hint:
     'Ískoytisforrit ið forsett verða virkt fyri brúkarunum',
-  extension_builder: 'Ískoytisforritasavnari',
-  extension_builder_manifest_url: 'Leinkja til ískoytisforritasavnaraskrá',
-  extension_builder_manifest_url_hint:
-    'Leinkja til eina JSON-skrá við ískoytisforritasavnarastaklutum',
   miscellanous: 'Ymiskt',
   misc_disable_extensions: 'Óvirkja ískoytsiforrit',
   misc_disable_extensions_label: 'Óvirkja øll ískoytisforrit',
-  misc_disable_extensions_builder: 'Virkja ískoytisforritasavnara',
-  misc_disable_extensions_builder_label:
-    'Lova brúkarum ið ikki hava umsitanarrættindi at brúka ískoytisforritasavnaran',
   misc_hide_api: 'Fjal API-upplýsingar',
   misc_hide_api_label:
     'Fjalur mappu-API. Tað er upp til hvørt ískoytisforrit sær at halda við stillingini',

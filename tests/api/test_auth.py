@@ -67,22 +67,15 @@ async def test_login_bad_user(http_client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_login_alan_usr(user_alan: User, http_client: AsyncClient):
+async def test_login_usr_rejects_password_account(
+    user_alan: User, http_client: AsyncClient
+):
     response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
 
-    assert response.status_code == 200, "Alan logs in OK."
-    access_token = response.json().get("access_token")
-    assert access_token is not None, "Expected access token after login."
-
-    response = await http_client.get(
-        "/api/v1/auth", headers={"Authorization": f"Bearer {access_token}"}
-    )
-
-    assert response.status_code == 200, "Alan logs in OK."
-    alan = response.json()
-    assert alan["id"] == user_alan.id
-    assert alan["username"] == user_alan.username
-    assert alan["email"] == user_alan.email
+    assert response.status_code == 403
+    assert response.json()["detail"] == "This account requires password login."
+    assert "access_token" not in response.json()
+    assert "cookie_access_token" not in response.cookies
 
 
 @pytest.mark.anyio
@@ -133,20 +126,19 @@ async def test_login_usr_not_allowed_for_admin_without_credentials(
 
 
 @pytest.mark.anyio
-async def test_login_usr_not_allowed(
-    user_alan: User, http_client: AsyncClient, settings: Settings
-):
+async def test_login_usr_not_allowed(http_client: AsyncClient, settings: Settings):
+    user = await create_user_account()
     # exclude 'user_id_only'
     settings.auth_allowed_methods = [AuthMethods.username_and_password.value]
 
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user.id})
 
     assert response.status_code == 403, "Login method not allowed."
     assert response.json().get("detail") == "Login by 'User ID' not allowed."
 
     settings.auth_allowed_methods = AuthMethods.all()
 
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user.id})
     assert response.status_code == 200, "Login with 'usr' allowed."
     assert (
         response.json().get("access_token") is not None
@@ -784,7 +776,9 @@ async def test_change_password_not_authenticated(http_client: AsyncClient):
 
 @pytest.mark.anyio
 async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncClient):
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")
@@ -810,7 +804,9 @@ async def test_alan_change_password_old_nok(user_alan: User, http_client: AsyncC
 async def test_alan_change_password_different_user(
     user_alan: User, http_client: AsyncClient
 ):
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")
@@ -837,7 +833,9 @@ async def test_alan_change_password_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
 
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")
@@ -1207,7 +1205,9 @@ async def test_change_pubkey_not_authenticated(
 
 @pytest.mark.anyio
 async def test_change_pubkey_other_user(http_client: AsyncClient, user_alan: User):
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")
@@ -1230,7 +1230,9 @@ async def test_alan_change_pubkey_auth_threshold_expired(
     user_alan: User, http_client: AsyncClient, settings: Settings
 ):
 
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     access_token = response.json().get("access_token")

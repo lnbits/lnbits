@@ -26,6 +26,7 @@ jobs:
           AUTH_ALLOWED_METHODS: "user-id-only,username-password"
           LNBITS_EXTENSIONS_DEFAULT_INSTALL: "watchonly, satspay, tipjar, tpos, lnurlp, withdraw"
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
+          LNBITS_EXT_GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv run lnbits &
           sleep 10

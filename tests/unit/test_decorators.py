@@ -19,7 +19,6 @@ from lnbits.decorators import (
     check_access_token,
     check_admin_ui,
     check_api_write_access,
-    check_extension_builder,
     check_first_install,
     check_user_exists,
     optional_acl_token_payload,
@@ -110,11 +109,11 @@ async def test_check_user_exists_with_missing_access_token():
 
 
 @pytest.mark.anyio
-async def test_check_user_exists_with_valid_user_id(user_alan: User):
+async def test_check_user_exists_with_valid_user_id(from_user: User):
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(from_user.id))
 
-    assert user.id == user_alan.id
+    assert user.id == from_user.id
 
 
 @pytest.mark.anyio
@@ -127,12 +126,12 @@ async def test_check_user_exists_with_invalid_user_id():
 
 
 @pytest.mark.anyio
-async def test_check_user_exists_with_user_not_allowed(user_alan: User):
+async def test_check_user_exists_with_user_not_allowed(from_user: User):
     settings.lnbits_admin_users = []
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
     settings.lnbits_allowed_users = ["only_this_user_id"]
     with pytest.raises(HTTPException) as exc_info:
-        await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
+        await check_user_exists(request, access_token=None, usr=UUID(from_user.id))
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "User not allowed."
 
@@ -175,13 +174,13 @@ async def test_check_user_exists_after_user_deletion(http_client: AsyncClient):
 
 @pytest.mark.anyio
 async def test_check_user_exists_with_user_id_only_allowed(
-    user_alan: User, settings: Settings
+    from_user: User, settings: Settings
 ):
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     request = Request({"type": "http", "path": "/some/path", "method": "GET"})
-    user = await check_user_exists(request, access_token=None, usr=UUID(user_alan.id))
+    user = await check_user_exists(request, access_token=None, usr=UUID(from_user.id))
 
-    assert user.id == user_alan.id
+    assert user.id == from_user.id
     assert request.scope["user_id"] == user.id
 
 
@@ -267,19 +266,19 @@ async def test_check_api_write_access(mocker: MockerFixture, write: bool | None)
 
 @pytest.mark.anyio
 async def test_optional_user_id_uses_user_id_or_access_token(
-    user_alan: User, settings: Settings
+    from_user: User, settings: Settings
 ):
     settings.auth_allowed_methods = [AuthMethods.user_id_only.value]
     request = Request({"type": "http", "path": "/wallet", "method": "GET"})
 
     assert (
-        await optional_user_id(request, access_token=None, usr=UUID(user_alan.id))
-        == user_alan.id
+        await optional_user_id(request, access_token=None, usr=UUID(from_user.id))
+        == from_user.id
     )
 
     settings.auth_allowed_methods = []
-    token = create_access_token({"sub": user_alan.username, "usr": user_alan.id})
-    assert await optional_user_id(request, access_token=token, usr=None) == user_alan.id
+    token = create_access_token({"sub": from_user.username or "", "usr": from_user.id})
+    assert await optional_user_id(request, access_token=token, usr=None) == from_user.id
     assert await optional_user_id(request, access_token=None, usr=None) is None
 
 
@@ -306,22 +305,6 @@ async def test_check_admin_ui_and_first_install(settings: Settings):
     finally:
         settings.lnbits_admin_ui = original_admin_ui
         settings.first_install = original_first_install
-
-
-@pytest.mark.anyio
-async def test_check_extension_builder_requires_admin_when_disabled_for_users(
-    settings: Settings, user_alan: User
-):
-    settings.lnbits_extensions_builder_activate_non_admins = False
-
-    with pytest.raises(
-        HTTPException, match="Extension Builder is disabled for non admin users."
-    ):
-        await check_extension_builder(user_alan)
-
-    admin_user = user_alan.model_copy(deep=True)
-    admin_user.admin = True
-    await check_extension_builder(admin_user)
 
 
 def test_extension_id_from_request_path_handles_wasm_routes():

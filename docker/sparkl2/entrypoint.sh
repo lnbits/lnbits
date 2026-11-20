@@ -22,4 +22,4 @@ if ! nc -z localhost $SPARK_SIDECAR_PORT; then
 fi
 
 echo "Starting LNbits on $LNBITS_HOST:$LNBITS_PORT..."
-exec uv run lnbits --port "$LNBITS_PORT" --host "$LNBITS_HOST" --forwarded-allow-ips='*'
+exec uv run lnbits --port "$LNBITS_PORT" --host "$LNBITS_HOST"

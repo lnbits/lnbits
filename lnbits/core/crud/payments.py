@@ -39,6 +39,7 @@ async def get_standalone_payment(
     incoming: bool | None = False,
     wallet_id: str | None = None,
     conn: Connection | None = None,
+    for_update: bool = False,  # Check shared-wallet write permissions.
 ) -> Payment | None:
     clause: str = "checking_id = :checking_id OR payment_hash = :hash"
     values = {
@@ -51,6 +52,8 @@ async def get_standalone_payment(
     if wallet_id:
         wallet = await get_wallet(wallet_id, conn=conn)
         if not wallet or not wallet.can_view_payments:
+            return None
+        if for_update and not wallet.can_update_payments():
             return None
         values["wallet_id"] = wallet.source_wallet_id
         clause = f"({clause}) AND wallet_id = :wallet_id"
@@ -274,6 +277,7 @@ async def create_payment(
         fee=-abs(data.fee),
         tag=extra.get("tag", None),
         extension=data.extension,
+        extension_context=data.extension_context,
         extra=extra,
         labels=data.labels or [],
         external_id=data.external_id,

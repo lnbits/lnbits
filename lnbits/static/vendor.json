@@ -51,9 +51,6 @@
   "components": [
     "js/pages/error.js",
     "js/pages/home.js",
-    "js/pages/extensions_builder.js",
-    "js/pages/extensions_builder.js",
-    "js/pages/extensions_builder_preview.js",
     "js/pages/extensions.js",
     "js/pages/first-install.js",
     "js/pages/payments.js",
@@ -109,7 +106,6 @@
     "js/components/lnbits-payment-list.js",
     "js/components/lnbits-label-selector.js",
     "js/components/extension-settings.js",
-    "js/components/data-fields.js",
     "js/components.js",
     "js/wasm-extension-component.js",
     "js/components/onchain/address-list.js",

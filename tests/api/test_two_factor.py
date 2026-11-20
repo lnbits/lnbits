@@ -180,11 +180,34 @@ async def test_two_factor_user_id_and_cached_session_cannot_bypass(
     http_client.cookies.clear()
     assert (
         await http_client.get("/api/v1/auth", params={"usr": factor_account.id})
-    ).status_code == 401
+    ).status_code == 403
     response = await http_client.post(
         "/api/v1/auth/usr", json={"usr": factor_account.id}
     )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "This account requires password login."
+
+
+async def test_two_factor_passwordless_user_id_requires_factor(http_client, settings):
+    settings.totp_encryption_key = uuid4().hex
+    settings.lnbits_two_factor_enabled = True
+    user = await create_user_account()
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user.id})
+    assert response.status_code == 200
+    setup = await http_client.post("/api/v1/auth/2fa/setup")
+    assert setup.status_code == 200
+    secret = base64.b32decode(setup.json()["secret"])
+    response = await http_client.post(
+        "/api/v1/auth/2fa/confirm",
+        json={"code": totp(secret).generate(int(time())).decode()},
+    )
+    assert response.status_code == 200
+    http_client.cookies.clear()
+    response = await http_client.get("/api/v1/wallets", params={"usr": user.id})
+    assert response.status_code == 401
+    response = await http_client.post("/api/v1/auth/usr", json={"usr": user.id})
     assert response.json()["two_factor_required"]
+    assert "access_token" not in response.json()
 
 
 @pytest.mark.parametrize("operation", ["password", "reset"])
@@ -546,6 +569,9 @@ async def test_two_factor_sso_does_not_bypass(http_client, factor_account):
     factor_account.email = f"{factor_account.id}@example.com"
     await update_account(factor_account)
     await enroll(http_client, factor_account)
+    # SSO is available only to accounts without a password.
+    factor_account.password_hash = None
+    await update_account(factor_account)
     response = await _handle_sso_login(
         OpenID.model_validate({"email": factor_account.email})
     )

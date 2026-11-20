@@ -23,6 +23,14 @@ async def test_onchain_schema_uses_wallets_and_addresses(
         async with db.connect() as conn:
             await migrations.m000_create_migrations_table(conn)
             await conn.execute("""
+                CREATE TABLE system_settings (
+                    id TEXT, value TEXT, tag TEXT, UNIQUE(id, tag)
+                )
+            """)
+            await conn.execute("""
+                CREATE TABLE apipayments (checking_id TEXT PRIMARY KEY)
+            """)
+            await conn.execute("""
                 CREATE TABLE wallets (
                     id TEXT PRIMARY KEY,
                     wallet_type TEXT NOT NULL,

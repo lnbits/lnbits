@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import ipaddress
 import json
 import os
 import re
@@ -53,7 +54,7 @@ class LNbitsSettings(BaseModel):
 class UsersSettings(LNbitsSettings):
     lnbits_admin_users: list[str] = Field(default=[])
     lnbits_allowed_users: list[str] = Field(default=[])
-    lnbits_allow_new_accounts: bool = Field(default=True)
+    lnbits_allow_new_accounts: bool = Field(default=False)
 
     lnbits_ln_address_mode: Literal[
         "core_first", "extension_first", "extension_only"
@@ -86,10 +87,11 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_admin_extensions: list[str] = Field(default=[])
     lnbits_user_default_extensions: list[str] = Field(default=[])
     lnbits_extensions_deactivate_all: bool = Field(default=False)
-    lnbits_extensions_builder_activate_non_admins: bool = Field(default=False)
+    lnbits_autoupdate_extensions_on_startup: bool = Field(default=True)
+    lnbits_autoupdate_extensions_interval_hours: int = Field(default=24, ge=0)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
     lnbits_extensions_reviews_url: str = Field(
-        default="https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r",
+        default="",
         description="""
             URL for the paid reviews.
             Regular users can view this URL (not secret).
@@ -101,13 +103,6 @@ class ExtensionsSettings(LNbitsSettings):
         ]
     )
     lnbits_wasm_extensions_manifests: list[str] = Field(default=DEFAULT_WASM_MANIFESTS)
-    lnbits_extensions_builder_manifest_url: str = Field(
-        default="https://raw.githubusercontent.com/lnbits/extension_builder_stub/refs/heads/main/manifest.json"
-    )
-
-    @property
-    def extension_builder_working_dir_path(self) -> Path:
-        return Path(settings.lnbits_data_folder, "extensions_builder")
 
 
 class WasmRuntimeLimits(LNbitsSettings):
@@ -1196,7 +1191,9 @@ class EnvSettings(LNbitsSettings):
     auth_https_only: bool = Field(default=True)
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=5000, gt=0)
-    forwarded_allow_ips: str = Field(default="*")
+    forwarded_allow_ips: str = Field(default="127.0.0.1")
+    # Deployment-supplied addresses hidden by container networking or NAT.
+    lnbits_outbound_host_ips: list[str] = Field(default=[])
     lnbits_title: str = Field(default="LNbits API")
     lnbits_path: str = Field(default=".")
     lnbits_extensions_path: str = Field(default="lnbits")
@@ -1217,6 +1214,11 @@ class EnvSettings(LNbitsSettings):
     task_heart_beat_verbose: bool = Field(default=False)
     task_heart_beat_interval: int = Field(default=30)
 
+    @field_validator("lnbits_outbound_host_ips")
+    @classmethod
+    def validate_outbound_host_ips(cls, values: list[str]) -> list[str]:
+        return list(dict.fromkeys(str(ipaddress.ip_address(value)) for value in values))
+
     @property
     def has_default_extension_path(self) -> bool:
         return self.lnbits_extensions_path == "lnbits"
@@ -1233,7 +1235,7 @@ class EnvSettings(LNbitsSettings):
             return
         if not os.path.isdir(settings.lnbits_data_folder):
             os.mkdir(settings.lnbits_data_folder)
-        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key")
+        auth_key_file = Path(settings.lnbits_data_folder, ".lnbits_auth_key_v1")
         if auth_key_file.is_file():
             with open(auth_key_file) as file:
                 self.auth_secret_key = file.readline()
@@ -1406,6 +1408,14 @@ class Settings(  # pyright: ignore[reportIncompatibleVariableOverride]
             return list_parse_fallback(value)
         return value
 
+    @property
+    def anonimous_account_creation_allowed(self) -> bool:
+        return (
+            self.new_accounts_allowed
+            and self.is_auth_method_allowed(AuthMethods.user_id_only)
+            and not self.lnbits_require_user_activation
+        )
+
     def is_user_allowed(self, user_id: str) -> bool:
         return (
             len(self.lnbits_allowed_users) == 0
@@ -1493,7 +1503,6 @@ class PublicSettings(BaseModel):
     allowed_currencies: list[str] = Field(alias="allowedCurrencies")
     default_accounting_currency: str = Field(alias="defaultAccountingCurrency")
     extensions_reviews_url: str = Field(alias="extensionsReviewsUrl")
-    ext_builder: bool = Field(alias="extBuilder")
     nostr_configured: bool = Field(alias="nostrConfigured")
     email_configured: bool = Field(alias="emailConfigured")
     telegram_configured: bool = Field(alias="telegramConfigured")
@@ -1582,7 +1591,6 @@ class PublicSettings(BaseModel):
                 settings.lnbits_default_accounting_currency or "USD"
             ),
             extensionsReviewsUrl=settings.lnbits_extensions_reviews_url,
-            extBuilder=settings.lnbits_extensions_builder_activate_non_admins,
             nostrConfigured=settings.is_nostr_notifications_configured(),
             emailConfigured=settings.is_email_notifications_configured(),
             telegramConfigured=settings.is_telegram_notifications_configured(),
@@ -1648,14 +1656,6 @@ settings.check_totp_encryption_key()
 
 if not settings.user_agent:
     settings.user_agent = f"LNbits/{settings.version}"
-
-# printing environment variable for debugging
-if not settings.lnbits_admin_ui:
-    logger.debug("Environment Settings:")
-    for key, value in settings.model_dump(
-        exclude_none=True, exclude={"auth_secret_key", "totp_encryption_key"}
-    ).items():
-        logger.debug(f"{key}: {value}")
 
 
 def get_funding_source():

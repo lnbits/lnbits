@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: docker build
-        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' }}
+        if: ${{ inputs.backend-wallet-class == 'LNbitsWallet' || inputs.backend-wallet-class == 'NWCWallet' }}
         run: |
           docker build -t lnbits/lnbits .
 
@@ -42,6 +42,13 @@ jobs:
           chmod +x ./start-regtest
           ./start-regtest
           sudo chmod -R a+rwx .
+
+      - name: Setup NWC
+        if: ${{ inputs.backend-wallet-class == 'NWCWallet' }}
+        run: |
+          bash docker/regtest/start-nwc
+          source docker/regtest/data/nwc.env
+          echo "NWC_PAIRING_URL=$NWC_PAIRING_URL" >> "$GITHUB_ENV"
 
       - name: Run pytest
         uses: pavelzw/pytest-action@v2
@@ -66,7 +73,7 @@ jobs:
           BOLTZ_MNEMONIC: abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about
           LNBITS_MAX_OUTGOING_PAYMENT_AMOUNT_SATS: 1000000000
           LNBITS_MAX_INCOMING_PAYMENT_AMOUNT_SATS: 1000000000
-          LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: ${{ (inputs.backend-wallet-class == 'CoreLightningRestWallet' || inputs.backend-wallet-class == 'EclairWallet') && 60 || 5 }}
+          LNBITS_FUNDING_SOURCE_PAY_INVOICE_WAIT_SECONDS: ${{ (inputs.backend-wallet-class == 'CoreLightningRestWallet' || inputs.backend-wallet-class == 'EclairWallet' || inputs.backend-wallet-class == 'NWCWallet') && 60 || 5 }}
           ECLAIR_PASS: lnbits
           PYTHONUNBUFFERED: 1
           DEBUG: true
@@ -90,3 +97,9 @@ jobs:
         run: |
           docker logs lnbits-lnbits-1
           docker logs lnbits-lnbits-lnd-1
+
+      - name: NWC logs and cleanup
+        if: ${{ always() && inputs.backend-wallet-class == 'NWCWallet' }}
+        run: |
+          docker compose -p lnbits-nwc -f docker/regtest/docker-compose.nwc.yml logs --tail=100 || true
+          docker compose -p lnbits-nwc -f docker/regtest/docker-compose.nwc.yml down --volumes

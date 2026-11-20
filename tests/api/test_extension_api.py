@@ -67,6 +67,35 @@ from lnbits.core.views.extension_api import (
 from tests.helpers import make_extension_release, make_installable_extension
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize("ext_id", ["../data", "/outside-extension-root", "a\\b"])
+async def test_extension_install_rejects_unsafe_ids_before_lookup(
+    http_client, superuser_token, mocker, ext_id
+):
+    lookup = mocker.patch.object(InstallableExtension, "get_extension_release")
+    cleanup = mocker.patch.object(InstallableExtension, "clean_extension_files")
+    wasm_cleanup = mocker.patch.object(
+        InstallableExtension, "clean_wasm_extension_files"
+    )
+
+    response = await http_client.post(
+        "/api/v1/extension",
+        headers={"Authorization": f"Bearer {superuser_token}"},
+        json={
+            "ext_id": ext_id,
+            "source_repo": "https://example.com/manifest.json",
+            "archive": "https://example.com/ext.zip",
+            "version": "1.0.0",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"][0]["loc"] == ["body", "ext_id"]
+    lookup.assert_not_called()
+    cleanup.assert_not_called()
+    wasm_cleanup.assert_not_called()
+
+
 class _MockHTTPResponse:
     def __init__(
         self,
@@ -283,11 +312,6 @@ async def test_explicit_wasm_release_loads_install_permissions(
 
     mocker.patch.object(settings, "lnbits_extensions_manifests", [])
     mocker.patch.object(settings, "lnbits_wasm_extensions_manifests", [manifest_url])
-    mocker.patch.object(
-        settings,
-        "lnbits_extensions_builder_manifest_url",
-        "https://extensions.example/builder.json",
-    )
     mocker.patch.object(
         InstallableExtension,
         "fetch_manifest",
@@ -825,9 +849,10 @@ async def test_extension_api_activate_uninstall_install_invoice_and_cleanup(mock
 
 
 @pytest.mark.anyio
-async def test_extension_api_review_endpoints(mocker):
+async def test_extension_api_review_endpoints(mocker, settings):
     ext_id = f"review_{uuid4().hex[:8]}"
-    reviews_base = "https://demo.lnbits.com/paidreviews/api/v1/AdFzLjzuKFLsdk4Bcnff6r"
+    reviews_base = "https://reviews.example.com/api/v1/test"
+    settings.lnbits_extensions_reviews_url = reviews_base
     tags_url = f"{reviews_base}/tags"
     reviews_url = f"{reviews_base}/reviews/{ext_id}?offset=0&limit=5"
     create_review_url = f"{reviews_base}/reviews"

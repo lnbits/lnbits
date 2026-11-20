@@ -178,7 +178,6 @@ window.PageAdmin = {
           'Wasm Extension',
           this.$t('admin_extensions'),
           this.$t('user_default_extensions'),
-          this.$t('extension_builder_manifest_url'),
           this.$t('reviews_url')
         ],
         notifications: [

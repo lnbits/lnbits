@@ -44,6 +44,7 @@ from lnbits.decorators import (
     check_account_exists,
     check_admin,
     check_api_write_access,
+    check_passwordless_account,
     check_user_exists,
     optional_user_id,
 )
@@ -195,6 +196,7 @@ async def login_usr(data: LoginUsr) -> JSONResponse:
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "Admin users cannot login with user id only."
         )
+    check_passwordless_account(account)
     return await _login_response(account)
 
 
@@ -459,6 +461,8 @@ async def logout() -> JSONResponse:
 
 @auth_router.post("/register")
 async def register(data: RegisterUser) -> JSONResponse:
+    if not settings.new_accounts_allowed:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Account creation is disabled.")
     if not settings.is_auth_method_allowed(AuthMethods.username_and_password):
         raise HTTPException(
             HTTPStatus.FORBIDDEN,
@@ -487,7 +491,7 @@ async def register(data: RegisterUser) -> JSONResponse:
         username=data.username,
     )
     account.hash_password(data.password)
-    await create_user_account(account)
+    await create_user_account(account, activation_verified=True)
     return await _login_response(account)
 
 
@@ -675,6 +679,12 @@ async def _handle_sso_login(userinfo: OpenID, verified_user_id: str | None = Non
         redirect_path = "/account"
 
     if account:
+        if account.has_password:
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                "SSO is disabled for accounts with a password. "
+                "Sign in with your username and password.",
+            )
         account.extra = account.extra or UserExtra()
         account.extra.email_verified = True
         await update_account(account)

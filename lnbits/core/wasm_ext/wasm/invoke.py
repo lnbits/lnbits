@@ -4,11 +4,13 @@ import asyncio
 import json
 from collections.abc import Mapping
 from typing import Any
+from weakref import WeakValueDictionary
 
 from wasmtime import Store, WasiConfig, component
 
 from lnbits.core.crud.extensions import get_installed_extension
 from lnbits.core.db import core_app_extra
+from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
 from ..api.host import ExtensionHostAPI
@@ -19,6 +21,9 @@ from .loader import WasmExtension
 
 _WASM_EPOCH_DEADLINE_TICKS = 1_000_000_000
 _WASM_UNLIMITED_FUEL = 2**63 - 1
+_invocation_locks: WeakValueDictionary[
+    tuple[asyncio.AbstractEventLoop, str, str | None], asyncio.Lock
+] = WeakValueDictionary()
 
 
 async def invoke_wasm_extension_export(
@@ -60,11 +65,18 @@ async def invoke_wasm_extension_export(
         request_bytes if request_bytes is not None else payload_size
     )
     _check_wasm_request_size(effective_request_bytes, limits)
+    # Marked exports share an owner lock across all invocation contexts,
+    # including authenticated routes, public owner routes, events and schedules.
+    user_id = _user_id(user)
+    lock = _invocation_lock(
+        extension, export_name, sha256s(user_id) if user_id else owner_id
+    )
+    # Register waiting calls too, so they count toward runtime concurrency limits.
     invocation = await start_wasm_invocation(
         extension_id=extension.id,
         export_name=export_name,
         trigger_type=trigger_type,
-        user_id=_user_id(user) or owner_id,
+        user_id=user_id or owner_id,
         wallet_id=wallet_id,
         request_id=request_id,
         method=method,
@@ -76,29 +88,40 @@ async def invoke_wasm_extension_export(
         context={"host_context": context, **(context_data or {})},
         runtime_limits=limits,
     )
-    api = ExtensionHostAPI(
-        extension.id,
-        permissions,
-        user_id=_user_id(user),
-        access_token=access_token,
-        context=context,
-        owner_id=owner_id,
-        invocation_id=invocation.id,
-        runtime_limits=limits,
-    )
-    event_loop = asyncio.get_running_loop()
-    thread_task = asyncio.create_task(
-        asyncio.to_thread(
-            _invoke_wasm_extension_export_sync,
-            extension,
-            export_name,
-            payload,
-            api,
-            event_loop,
-            invocation.id,
-            limits,
+    await _acquire_invocation_lock(lock, invocation.id)
+    try:
+        api = ExtensionHostAPI(
+            extension.id,
+            permissions,
+            user_id=user_id,
+            access_token=access_token,
+            context=context,
+            owner_id=owner_id,
+            invocation_id=invocation.id,
+            runtime_limits=limits,
         )
-    )
+        event_loop = asyncio.get_running_loop()
+        thread_task = asyncio.create_task(
+            asyncio.to_thread(
+                _invoke_wasm_extension_export_sync,
+                extension,
+                export_name,
+                payload,
+                api,
+                event_loop,
+                invocation.id,
+                limits,
+            )
+        )
+    except BaseException:
+        _release_invocation_lock(lock)
+        await finish_wasm_invocation(
+            invocation.id, status="stopped", stop_reason="Invocation did not start."
+        )
+        raise
+    # A timed-out HTTP invocation may return before its native thread exits.
+    # Keep the owner locked until that thread has finished all host side effects.
+    thread_task.add_done_callback(lambda _task: _release_invocation_lock(lock))
     max_execution_ms = limits["wasm_runtime_max_execution_ms"]
     timed_out = False
     finished = False
@@ -158,7 +181,7 @@ async def invoke_wasm_extension_export(
         # A scheduled coroutine can be cancelled while its WASM thread is still
         # running. Stop and drain the runtime before releasing its schedule claim.
         await stop_wasm_invocation(invocation.id, reason="Invocation cancelled.")
-        await asyncio.gather(thread_task, return_exceptions=True)
+        await asyncio.shield(asyncio.gather(thread_task, return_exceptions=True))
         if not finished:
             await finish_wasm_invocation(
                 invocation.id, status="stopped", stop_reason="Invocation cancelled."
@@ -292,3 +315,50 @@ def _wasm_limit(value: int) -> int:
 
 def _json_size(value: Any) -> int:
     return len(json.dumps(value, default=str).encode())
+
+
+def _invocation_lock(
+    extension: WasmExtension,
+    export_name: str,
+    owner_id: str | None,
+) -> asyncio.Lock | None:
+    if not any(
+        export.name == export_name and export.sync for export in extension.exports
+    ):
+        return None
+    key = (asyncio.get_running_loop(), extension.id, owner_id)
+    lock = _invocation_locks.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _invocation_locks[key] = lock
+    return lock
+
+
+async def _acquire_invocation_lock(
+    lock: asyncio.Lock | None, invocation_id: str
+) -> None:
+    from lnbits.core.services.extensions import (
+        finish_wasm_invocation,
+        wasm_invocation_stop_requested,
+    )
+
+    if lock is None:
+        return
+    try:
+        await lock.acquire()
+    except asyncio.CancelledError:
+        await finish_wasm_invocation(
+            invocation_id, status="stopped", stop_reason="Invocation cancelled."
+        )
+        raise
+    if wasm_invocation_stop_requested(invocation_id):
+        lock.release()
+        await finish_wasm_invocation(
+            invocation_id, status="stopped", stop_reason="Invocation did not start."
+        )
+        raise PermissionError("WASM invocation was stopped while waiting.")
+
+
+def _release_invocation_lock(lock: asyncio.Lock | None) -> None:
+    if lock is not None:
+        lock.release()

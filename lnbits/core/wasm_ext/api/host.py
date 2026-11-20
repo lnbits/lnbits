@@ -4,11 +4,12 @@ import json
 import secrets
 import time
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, TypeGuard
 
 from loguru import logger
 
 from lnbits.core.models.users import Account, UserNotifications
+from lnbits.core.models.wallets import Wallet
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
@@ -386,9 +387,17 @@ class ExtensionHostAPI:
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                description_hash=request.description_hash,
+                unhashed_description=request.unhashed_description,
                 extra=request.extra,
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": sha256s(wallet.user),
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": (request.extra or {}).get("source_id") or None,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -409,6 +418,7 @@ class ExtensionHostAPI:
     async def wallet_create_invoice_public(
         self, request: CreateInvoicePublicRequest
     ) -> CreateInvoiceResponse:
+        from lnbits.core.crud.wallets import get_wallet
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
@@ -419,6 +429,7 @@ class ExtensionHostAPI:
                 self.extension_id,
                 policy["table"],
                 request.source_id,
+                include_owner=True,
             )
             if row:
                 wallet_field = policy["wallet_field"]
@@ -431,12 +442,19 @@ class ExtensionHostAPI:
         if not isinstance(wallet_id, str) or not wallet_id:
             raise PermissionError("Public invoice source has no valid wallet.")
 
+        wallet = await get_wallet(wallet_id)
+        owner_id = row.get(OWNER_ID_FIELD)
+        if not wallet or owner_id != sha256s(wallet.user):
+            raise PermissionError("Public invoice source does not own its wallet.")
+
         payment = await create_payment_request(
             wallet_id,
             CreateInvoice(
                 amount=request.amount,
                 unit=request.currency,
                 memo=request.memo,
+                description_hash=request.description_hash,
+                unhashed_description=request.unhashed_description,
                 extra={
                     "tag": self.extension_id,
                     "source_id": request.source_id,
@@ -444,6 +462,12 @@ class ExtensionHostAPI:
                 },
                 extension=self.extension_id,
             ),
+            extension_context={
+                "extension_id": self.extension_id,
+                "owner_id": owner_id,
+                "wallet_id": wallet.source_wallet_id,
+                "source_id": request.source_id,
+            },
         )
         return CreateInvoiceResponse(
             payment_hash=payment.payment_hash,
@@ -536,10 +560,7 @@ class ExtensionHostAPI:
         from lnbits.exceptions import PaymentError
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or (
-            self.context == "schedule"
-            and (not self.user_id or wallet.user != self.user_id)
-        ):
+        if not self._can_pay_from_wallet(wallet):
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
@@ -604,10 +625,7 @@ class ExtensionHostAPI:
         )
 
         wallet = await get_wallet(request.wallet_id)
-        if wallet is None or (
-            self.context == "schedule"
-            and (not self.user_id or wallet.user != self.user_id)
-        ):
+        if not self._can_pay_from_wallet(wallet):
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
@@ -1054,6 +1072,13 @@ class ExtensionHostAPI:
             f"context={self.context!r}, "
             f"owner_id={self.owner_id!r}"
             ")"
+        )
+
+    def _can_pay_from_wallet(self, wallet: Wallet | None) -> TypeGuard[Wallet]:
+        if wallet is None or self.owner_id != sha256s(wallet.user):
+            return False
+        return self.context != "schedule" or (
+            bool(self.user_id) and wallet.user == self.user_id
         )
 
 

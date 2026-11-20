@@ -1,7 +1,10 @@
+import socket
+
 import httpx
 import pytest
 from pytest_mock.plugin import MockerFixture
 
+from lnbits.app import build_all_installed_extensions_list
 from lnbits.core.models.extensions import (
     ExtensionConfig,
     ExtensionManifestType,
@@ -12,6 +15,7 @@ from lnbits.core.models.extensions import (
     github_api_get,
 )
 from lnbits.settings import Settings
+from tests.helpers import make_installable_extension
 
 
 def _mock_json_response(mocker: MockerFixture, url: str, payload: dict):
@@ -39,6 +43,65 @@ def _extension_config_payload() -> dict:
         "min_lnbits_version": None,
         "max_lnbits_version": None,
     }
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("lookup", ["releases", "update", "default_install"])
+async def test_release_prices_are_only_fetched_for_interactive_requests(
+    settings: Settings, mocker: MockerFixture, tmp_path, monkeypatch, lookup
+):
+    manifest_url = "https://example.com/extensions.json"
+    settings.lnbits_extensions_manifests = [manifest_url]
+    settings.lnbits_wasm_extensions_manifests = []
+    ext = make_installable_extension("paidext")
+    assert ext.meta and ext.meta.installed_release
+    ext.meta.installed_release.source_repo = manifest_url
+    pay_link = "https://example.com/pay"
+    manifest = Manifest.model_validate(
+        {
+            "extensions": [
+                {
+                    "id": ext.id,
+                    "name": ext.name,
+                    "version": "2.0.0",
+                    "archive": "https://example.com/paidext.zip",
+                    "hash": "release-hash",
+                    "pay_link": pay_link,
+                }
+            ]
+        }
+    )
+    mocker.patch.object(InstallableExtension, "fetch_manifest", return_value=manifest)
+    client_factory, client = _mock_json_response(mocker, pay_link, {"amount": 100})
+
+    release: ExtensionRelease | None
+    if lookup == "releases":
+        releases = await InstallableExtension.get_extension_releases(ext.id)
+        assert len(releases) == 1
+        release = releases[0]
+    elif lookup == "update":
+        release = await ext.find_latest_compatible_release()
+    else:
+        monkeypatch.setattr(settings, "lnbits_extensions_path", str(tmp_path / "code"))
+        monkeypatch.setattr(
+            settings, "lnbits_wasm_extensions_path", str(tmp_path / "wasm")
+        )
+        settings.lnbits_extensions_default_install = [ext.id]
+        mocker.patch("lnbits.app.get_installed_extensions", return_value=[])
+        extensions = await build_all_installed_extensions_list()
+        assert len(extensions) == 1
+        assert extensions[0].meta
+        release = extensions[0].meta.installed_release
+
+    assert release
+    assert release.version == "2.0.0"
+    assert release.pay_link == pay_link
+    if lookup == "releases":
+        assert release.cost_sats == 100
+        client.get.assert_awaited_once_with(pay_link)
+    else:
+        assert release.cost_sats is None
+        client_factory.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -294,6 +357,63 @@ def test_check_release_updates_ignores_unusable_candidate(missing_release: bool)
     extension.check_release_updates(release, candidate=candidate)
 
     assert extension.dict() == before
+
+
+@pytest.mark.anyio
+async def test_release_details_loads_public_description(safe_http_mock, settings):
+    settings.lnbits_callback_url_rules = [r"https://webhooks\.example"]
+    _, handler = safe_http_mock
+    handler.side_effect = [
+        httpx.Response(
+            200,
+            json={
+                "name": "Demo",
+                "description_md": "https://extensions.example/README.md",
+            },
+        ),
+        httpx.Response(200, text="# Demo"),
+    ]
+
+    details = await ExtensionRelease.fetch_release_details(
+        "https://extensions.example/config.json"
+    )
+
+    assert details == {"name": "Demo", "description_md": "# Demo"}
+    assert handler.call_count == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("target", ["details", "description"])
+@pytest.mark.parametrize("address", ["127.0.0.1", "10.0.0.1", "169.254.169.254", "::1"])
+async def test_release_details_rejects_private_destinations(
+    safe_http_mock, settings, target, address
+):
+    settings.lnbits_callback_allow_private_ips = True
+    resolver, handler = safe_http_mock
+    private_address = [
+        (
+            socket.AF_INET6 if ":" in address else socket.AF_INET,
+            socket.SOCK_STREAM,
+            6,
+            "",
+            (address, 443),
+        )
+    ]
+    resolver.side_effect = (
+        [resolver.return_value, private_address]
+        if target == "description"
+        else [private_address]
+    )
+    handler.side_effect = lambda request: httpx.Response(
+        200, json={"description_md": "https://extensions.example/README.md"}
+    )
+
+    details = await ExtensionRelease.fetch_release_details(
+        "https://extensions.example/config.json"
+    )
+
+    assert details is None
+    assert handler.call_count == (1 if target == "description" else 0)
 
 
 @pytest.mark.anyio

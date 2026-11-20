@@ -1,18 +1,17 @@
 import asyncio
-import ipaddress
 import json
 import smtplib
-import socket
 from asyncio.tasks import create_task
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http import HTTPStatus
-from urllib.parse import urlparse
+from time import time
+from urllib.parse import urlsplit
 
 import httpx
 from loguru import logger
-from py_vapid import Vapid
-from pywebpush import WebPushException, webpush
+from py_vapid import Vapid, VapidException
+from pywebpush import WebPusher, WebPushException
 
 from lnbits.core.crud import (
     delete_webpush_subscriptions,
@@ -36,8 +35,8 @@ from lnbits.core.services.nostr import (
 from lnbits.core.services.websockets import websocket_manager
 from lnbits.helpers import check_callback_url, is_valid_email_address
 from lnbits.settings import settings
-from lnbits.utils.network import is_global_address
 from lnbits.utils.nostr import normalize_private_key
+from lnbits.utils.safe_http import SafeHttpClient
 
 notifications_queue: asyncio.Queue[NotificationMessage] = asyncio.Queue()
 
@@ -423,28 +422,47 @@ async def send_payment_push_notification(wallet: Wallet, payment: Payment):
 
 
 async def send_push_notification(subscription, title, body, url=""):
-    vapid = Vapid()
     try:
-        logger.debug("sending push notification")
-        webpush(
-            json.loads(subscription.data),
-            json.dumps({"title": title, "body": body, "url": url}),
-            (
-                vapid.from_pem(bytes(settings.lnbits_webpush_privkey, "utf-8"))
-                if settings.lnbits_webpush_privkey
-                else None
-            ),
-            {"aud": "", "sub": "mailto:alan@lnbits.com"},
+        subscription_info = json.loads(subscription.data)
+        endpoint = subscription_info["endpoint"]
+        if not isinstance(endpoint, str):
+            raise ValueError("Invalid push endpoint")
+        # Keep pywebpush's encryption, but send only through the guarded transport.
+        encoded = WebPusher(subscription_info).encode(
+            json.dumps({"title": title, "body": body, "url": url}).encode("utf-8")
         )
-    except WebPushException as e:
-        if e.response and e.response.status_code == HTTPStatus.GONE:
-            # cleanup unsubscribed or expired push subscriptions
-            await delete_webpush_subscriptions(subscription.endpoint)
-        else:
-            logger.error(
-                f"failed sending push notification: "
-                f"{e.response.text if e.response else e}"
+        if not settings.lnbits_webpush_privkey:
+            raise ValueError("Missing web-push private key")
+        vapid = Vapid.from_pem(settings.lnbits_webpush_privkey.encode("utf-8"))
+        target = urlsplit(endpoint)
+        headers = vapid.sign(
+            {
+                "aud": f"{target.scheme}://{target.netloc}",
+                "sub": "mailto:alan@lnbits.com",
+                "exp": int(time()) + 12 * 60 * 60,
+            }
+        )
+        headers.update({"content-encoding": "aes128gcm", "ttl": "0"})
+        async with SafeHttpClient(
+            apply_callback_rules=False, follow_redirects=False, read_body=False
+        ) as client:
+            response = await client.post(
+                endpoint, content=encoded["body"], headers=headers
             )
+        if response.status_code == HTTPStatus.GONE:
+            await delete_webpush_subscriptions(subscription.endpoint)
+        elif not HTTPStatus.OK <= response.status_code <= HTTPStatus.ACCEPTED:
+            logger.warning(f"Push notification failed: HTTP {response.status_code}")
+    except (
+        WebPushException,
+        VapidException,
+        httpx.HTTPError,
+        httpx.InvalidURL,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as exc:
+        logger.warning(f"Push notification failed: {type(exc).__name__}")
 
 
 def _is_message_type_enabled(message_type: NotificationType) -> bool:
@@ -486,62 +504,18 @@ async def _post_webhook(payment: Payment) -> int:
     if not payment.webhook:
         raise ValueError("Webhook URL is missing.")
 
-    url = httpx.URL(payment.webhook)
-    parsed = urlparse(str(url))
-    if not parsed.hostname:
-        raise ValueError("Webhook URL host is missing.")
-
-    addresses = await _resolve_webhook_host(parsed.hostname, parsed.port)
-    if not settings.lnbits_callback_allow_private_ips and any(
-        not is_global_address(address) for address in addresses
-    ):
-        raise ValueError("Webhook target IP address is not allowed.")
-
-    request_url = url.copy_with(host=str(addresses[0]))
-    headers = {
-        "Host": parsed.netloc,
-        "User-Agent": settings.user_agent,
-    }
-    async with httpx.AsyncClient(
-        follow_redirects=False,
-        trust_env=False,
+    async with SafeHttpClient(
+        timeout=40,
+        read_body=False,
+        allow_private_ips=settings.lnbits_callback_allow_private_ips,
     ) as client:
         response = await client.post(
-            request_url,
-            headers=headers,
-            extensions={"sni_hostname": parsed.hostname},
+            payment.webhook,
+            headers={"User-Agent": settings.user_agent},
             json=payment.model_dump_json(),
-            timeout=40,
         )
         response.raise_for_status()
         return response.status_code
-
-
-async def _resolve_webhook_host(
-    host: str, port: int | None
-) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-    try:
-        return [ipaddress.ip_address(host)]
-    except ValueError:
-        pass
-
-    def resolve() -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
-        try:
-            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-        except socket.gaierror as exc:
-            raise ValueError("Webhook target could not be resolved.") from exc
-
-        addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
-        for info in infos:
-            address = ipaddress.ip_address(info[4][0])
-            if address not in addresses:
-                addresses.append(address)
-        return addresses
-
-    addresses = await asyncio.to_thread(resolve)
-    if not addresses:
-        raise ValueError("Webhook target could not be resolved.")
-    return addresses
 
 
 def _telegram_error_message(error: Exception) -> str:

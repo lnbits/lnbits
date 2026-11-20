@@ -65,6 +65,37 @@ def test_wasm_extension_config_rejects_coerced_scalar_types():
 
 
 @pytest.mark.parametrize(
+    "export_options,expected",
+    [({}, False), ({"sync": False}, False), ({"sync": True}, True)],
+)
+def test_load_wasm_extension_preserves_export_sync(
+    tmp_path, settings, export_options, expected
+):
+    _write_wasm_extension(settings, tmp_path, "demoext", config_id="demoext")
+    config_path = settings.wasm_extensions_dir / "demoext" / "config.json"
+    config = json.loads(config_path.read_text())
+    config["wasm"]["exports"] = [
+        {"name": "update", "visibility": "authenticated", **export_options}
+    ]
+    config_path.write_text(json.dumps(config))
+
+    extension = load_wasm_extension("demoext")
+
+    assert extension.exports[0].sync is expected
+
+
+@pytest.mark.parametrize("value", ["true", "false", 1, 0, None])
+def test_wasm_extension_config_rejects_invalid_export_sync(value):
+    config = _wasm_config("demoext")
+    config["wasm"]["exports"] = [
+        {"name": "update", "visibility": "authenticated", "sync": value}
+    ]
+
+    with pytest.raises(ValueError, match="Input should be a valid boolean"):
+        parse_wasm_extension_config("demoext", config)
+
+
+@pytest.mark.parametrize(
     "config_update",
     [
         {"wasm": {"module": "extension.wasm", "host_api": "custom.HostAPI"}},

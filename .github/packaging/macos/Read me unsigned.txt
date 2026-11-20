@@ -19,9 +19,9 @@ by default in ~/Library/Application Support/LNbits. The launcher lets you
 choose another data folder. Keep that folder backed up.
 
 Bundled funding
-Choose Spark L2, Phoenixd or Neither in the launcher. First setup of a bundled
-funding source requires a new data folder. The app starts the selected daemon
-and configures LNbits automatically. The funding seed persists in
+Choose Spark L2, Phoenixd or Neither in the launcher. You can switch providers
+using the same LNbits data folder. Switching back reuses the provider's saved
+wallet. The app starts the selected daemon and configures LNbits automatically. The funding seed persists in
 funding/spark/seed.dat (24 words) or funding/phoenixd/seed.dat (12 words).
 Back up the entire data folder and keep a private offline seed backup.
 Never run another Phoenix instance with the same seed. Phoenixd first setup

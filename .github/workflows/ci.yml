@@ -84,6 +84,7 @@ jobs:
           - CoreLightningRestWallet
           - LNbitsWallet
           - EclairWallet
+          - NWCWallet
     with:
       custom-pytest: "uv run pytest tests/regtest"
       python-version: ${{ matrix.python-version }}

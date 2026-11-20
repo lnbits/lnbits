@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 from datetime import timedelta
 
 import httpx
@@ -15,13 +16,13 @@ from nostr_sdk import (
     gift_wrap,
 )
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from websocket import WebSocket, create_connection
 
 from lnbits.core.helpers import is_valid_url
 from lnbits.utils.nostr import (
     validate_identifier,
     validate_pub_key,
 )
+from lnbits.utils.safe_http import SafeHttpClient, safe_websocket, validate_url
 
 
 async def send_nostr_dm(
@@ -41,20 +42,21 @@ async def send_nostr_dm(
     dm_event.sign(private_key_hex=from_private_key_hex)
     notification = dm_event.to_message()
 
-    ws_connections: list[WebSocket] = []
-    for relay in relays:
-        try:
-            ws = create_connection(relay, timeout=2)
-            ws.send(notification)
-            ws_connections.append(ws)
-        except Exception as e:
-            logger.warning(f"Error sending notification to relay {relay}: {e}")
-    await asyncio.sleep(1)
-    for ws in ws_connections:
-        try:
-            ws.close()
-        except Exception as e:
-            logger.debug(f"Failed to close websocket connection: {e}")
+    try:
+        async with AsyncExitStack() as connections:
+            for relay in relays:
+                try:
+                    ws = await connections.enter_async_context(
+                        safe_websocket(relay, apply_callback_rules=False)
+                    )
+                    await ws.send(notification)
+                except Exception as e:
+                    logger.warning(
+                        f"Error sending Nostr notification: {type(e).__name__}"
+                    )
+            await asyncio.sleep(1)
+    except Exception as e:
+        logger.debug(f"Failed to close Nostr connection: {type(e).__name__}")
 
     return dm_event.to_dict()
 
@@ -92,7 +94,7 @@ async def fetch_nip5_details(identifier: str) -> tuple[str, list[str]]:
     validate_identifier(identifier)
 
     url = f"https://{domain}/.well-known/nostr.json?name={identifier}"
-    async with httpx.AsyncClient() as client:
+    async with SafeHttpClient(timeout=5, apply_callback_rules=False) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         data = resp.json()
@@ -115,6 +117,7 @@ async def _send_nip17_message(
 ) -> None:
     timeout = timedelta(seconds=5)
     for relay in relays:
+        await _validate_relay_url(relay)
         await client.add_relay(RelayUrl.parse(relay))
     await client.connect()
     await client.wait_for_connection(timeout)
@@ -140,6 +143,7 @@ async def _send_nip17_message(
         raise ValueError("Recipient's NIP-17 inbox relay list is empty")
 
     for relay_url in inbox_relays:
+        await _validate_relay_url(str(relay_url))
         await client.add_relay(relay_url)
     await client.connect()
     await client.wait_for_connection(timeout)
@@ -150,3 +154,14 @@ async def _send_nip17_message(
     result = await client.send_event_to(inbox_relays, event)
     if not result.success:
         raise ValueError("No NIP-17 inbox relay accepted the notification")
+
+
+async def _validate_relay_url(relay: str) -> None:
+    url = httpx.URL(relay)
+    if url.scheme not in {"ws", "wss"}:
+        raise ValueError("Invalid Nostr relay URL")
+    # Preflight only: the NIP-17 SDK still resolves DNS when connecting.
+    await validate_url(
+        url.copy_with(scheme="https" if url.scheme == "wss" else "http"),
+        apply_callback_rules=False,
+    )

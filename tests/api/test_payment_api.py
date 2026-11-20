@@ -10,12 +10,22 @@ from lnbits.core.crud.payments import (
     create_payment,
     get_payment,
     get_payments,
+    get_standalone_payment,
     update_payment,
 )
+from lnbits.core.crud.wallets import create_wallet, update_wallet
 from lnbits.core.models import Account, CreateInvoice, PaymentFilters, PaymentState
 from lnbits.core.models.payments import CancelInvoice, CreatePayment, SettleInvoice
 from lnbits.core.models.users import AccountId
-from lnbits.core.models.wallets import BaseWalletTypeInfo, KeyType, WalletTypeInfo
+from lnbits.core.models.wallets import (
+    BaseWalletTypeInfo,
+    KeyType,
+    WalletPermission,
+    WalletSharePermission,
+    WalletShareStatus,
+    WalletType,
+    WalletTypeInfo,
+)
 from lnbits.core.services.payments import create_wallet_invoice
 from lnbits.core.services.users import create_user_account
 from lnbits.core.views.payment_api import (
@@ -244,6 +254,7 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
         amount_msat=1_000,
         payment_hash=payment_hash,
         status=PaymentState.PENDING,
+        extra={"hold_invoice": True},
     )
     settle_mock = mocker.patch(
         "lnbits.core.views.payment_api.settle_hold_invoice",
@@ -269,6 +280,7 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
         amount_msat=2_000,
         payment_hash=cancel_hash,
         status=PaymentState.PENDING,
+        extra={"hold_invoice": True},
     )
     cancel_mock = mocker.patch(
         "lnbits.core.views.payment_api.cancel_hold_invoice",
@@ -287,6 +299,123 @@ async def test_payment_api_fee_reserve_and_hold_invoice_actions(mocker):
     )
     assert cancelled.failed is True
     cancel_mock.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("action", ["cancel", "settle", "labels", "extra"])
+@pytest.mark.parametrize(
+    "permission",
+    [
+        None,
+        WalletPermission.VIEW_PAYMENTS,
+        WalletPermission.RECEIVE_PAYMENTS,
+        WalletPermission.SEND_PAYMENTS,
+    ],
+)
+async def test_payment_updates_require_shared_wallet_write_permission(
+    client, to_wallet, from_wallet, mocker, action, permission
+):
+    wallet = await create_wallet(user_id=to_wallet.user)
+    request_wallet = wallet
+    if permission is not None:
+        request_wallet = await create_wallet(
+            user_id=from_wallet.user,
+            wallet_type=WalletType.LIGHTNING_SHARED,
+            shared_wallet_id=wallet.id,
+        )
+        wallet.extra.shared_with.append(
+            WalletSharePermission(
+                username="shared-user",
+                shared_with_wallet_id=request_wallet.id,
+                permissions=list({WalletPermission.VIEW_PAYMENTS, permission}),
+                status=WalletShareStatus.APPROVED,
+            )
+        )
+        await update_wallet(wallet)
+
+    preimage = uuid4().hex * 2
+    payment_hash = sha256(bytes.fromhex(preimage)).hexdigest()
+    is_hold_action = action in ("cancel", "settle")
+    checking_id = await _create_payment(
+        wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        status=PaymentState.PENDING if is_hold_action else PaymentState.SUCCESS,
+        extra={"hold_invoice": True} if is_hold_action else {},
+    )
+    original = await get_standalone_payment(payment_hash, wallet_id=request_wallet.id)
+    assert original is not None
+    assert original.wallet_id == wallet.id
+    hold_actions = {
+        name: mocker.patch(
+            f"lnbits.core.views.payment_api.{name}_hold_invoice",
+            new=mocker.AsyncMock(return_value=InvoiceResponse(ok=True)),
+        )
+        for name in ("cancel", "settle")
+    }
+    method, path, data = {
+        "cancel": ("POST", "/cancel", {"payment_hash": payment_hash}),
+        "settle": ("POST", "/settle", {"preimage": preimage}),
+        "labels": ("PUT", f"/{payment_hash}/labels", {"labels": ["updated"]}),
+        "extra": (
+            "PATCH",
+            "/extra",
+            {"payment_hash": payment_hash, "extra": {"note": "updated"}},
+        ),
+    }[action]
+    response = await client.request(
+        method,
+        f"/api/v1/payments{path}",
+        json=data,
+        headers={"X-Api-Key": request_wallet.adminkey},
+    )
+    payment = await get_payment(checking_id)
+    if permission == WalletPermission.VIEW_PAYMENTS:
+        assert response.status_code == 404
+        for hold_action in hold_actions.values():
+            hold_action.assert_not_awaited()
+        assert payment == original
+    else:
+        assert response.status_code == 200
+        if is_hold_action:
+            hold_actions[action].assert_awaited_once()
+        elif action == "labels":
+            assert payment.labels == ["updated"]
+        else:
+            assert payment.extra == {"note": "updated"}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("action", ["cancel", "settle"])
+async def test_hold_invoice_actions_reject_regular_payments(
+    client, to_wallet, mocker, action
+):
+    preimage = uuid4().hex * 2
+    payment_hash = sha256(bytes.fromhex(preimage)).hexdigest()
+    checking_id = await _create_payment(
+        to_wallet.id,
+        amount_msat=1_000,
+        payment_hash=payment_hash,
+        status=PaymentState.PENDING,
+    )
+    original = await get_payment(checking_id)
+    hold_action = mocker.patch(
+        f"lnbits.core.views.payment_api.{action}_hold_invoice",
+        new=mocker.AsyncMock(return_value=InvoiceResponse(ok=True)),
+    )
+    response = await client.post(
+        f"/api/v1/payments/{action}",
+        headers={"X-Api-Key": to_wallet.adminkey},
+        json=(
+            {"preimage": preimage}
+            if action == "settle"
+            else {"payment_hash": payment_hash}
+        ),
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Payment is not a hold invoice."
+    hold_action.assert_not_awaited()
+    assert await get_payment(checking_id) == original
 
 
 @pytest.mark.anyio
@@ -448,11 +577,14 @@ async def test_payment_extra_update_requires_successful_payment(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("wallet_type", [WalletType.LIGHTNING, WalletType.FIAT])
 async def test_api_update_payment_labels(
     client,
     to_wallet,
-    adminkey_headers_to,
+    wallet_type,
 ):
+    to_wallet = await create_wallet(user_id=to_wallet.user, wallet_type=wallet_type)
+    adminkey_headers_to = {"X-Api-Key": to_wallet.adminkey}
     payment_hash = uuid4().hex
     checking_id = await _create_payment(
         to_wallet.id,

@@ -314,6 +314,7 @@ class DesktopTests(unittest.TestCase):
             )
             with (
                 patch.dict(os.environ, environment),
+                patch("desktop.default_folder", return_value=Path(folder) / "defaults"),
                 patch("tkinter.Tk", return_value=root),
             ):
                 root.after(100, interact)
@@ -323,6 +324,70 @@ class DesktopTests(unittest.TestCase):
             self.assertTrue(Path(folder, "chosen", "database.sqlite3").exists())
             with socket.socket() as probe:
                 self.assertNotEqual(probe.connect_ex(("127.0.0.1", port)), 0)
+
+
+class LauncherSettingsTests(unittest.TestCase):
+    def test_settings_restore_custom_folder_and_exclude_secrets(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch("desktop.default_folder", return_value=Path(folder) / "defaults"),
+        ):
+            values = desktop.configuration(
+                "127.0.0.1",
+                "5001",
+                str(Path(folder) / "chosen"),
+                True,
+                False,
+                "spark",
+                "8766",
+            )
+            values["SPARK_API_KEY"] = "not-a-real-key"
+            values["LNBITS_DESKTOP_PHOENIX_TERMS"] = "true"
+            desktop.save_launcher_settings(values)
+            restored = desktop.load_launcher_settings()
+            self.assertEqual(
+                restored, {key: values[key] for key in desktop.LAUNCHER_SETTINGS}
+            )
+            self.assertNotIn("SPARK_API_KEY", restored)
+            self.assertNotIn("LNBITS_DESKTOP_PHOENIX_TERMS", restored)
+            self.assertEqual(
+                restored["LNBITS_DATA_FOLDER"], str((Path(folder) / "chosen").resolve())
+            )
+            values["LNBITS_DESKTOP_FUNDING"] = "none"
+            desktop.save_launcher_settings(values)
+            self.assertEqual(
+                desktop.load_launcher_settings()["LNBITS_DESKTOP_FUNDING"], "none"
+            )
+
+    def test_missing_or_malformed_preferences_fall_back(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch("desktop.default_folder", return_value=Path(folder)),
+        ):
+            path = Path(folder) / "launcher.json"
+            self.assertEqual(desktop.load_launcher_settings(), {})
+            for contents in ("{", "[]", "null", '{"PORT": null}', '{"HOST": []}'):
+                with self.subTest(contents=contents):
+                    path.write_text(contents)
+                    self.assertEqual(desktop.load_launcher_settings(), {})
+
+    def test_loading_preferences_does_not_create_data_folder(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch("desktop.default_folder", return_value=Path(folder) / "defaults"),
+        ):
+            desktop.save_launcher_settings(
+                {
+                    key: (
+                        str(Path(folder) / "missing")
+                        if key == "LNBITS_DATA_FOLDER"
+                        else ""
+                    )
+                    for key in desktop.LAUNCHER_SETTINGS
+                }
+            )
+            desktop.load_launcher_settings()
+            self.assertFalse((Path(folder) / "missing").exists())
 
 
 if __name__ == "__main__":

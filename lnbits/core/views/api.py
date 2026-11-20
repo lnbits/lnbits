@@ -4,7 +4,7 @@ from time import time
 from typing import Any
 
 import pyqrcode
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from lnbits.core.models import (
@@ -81,6 +81,12 @@ async def api_wallets(
 
 @api_router.post("/api/v1/account", response_model=None)
 async def api_create_account(data: CreateWallet):
+    if not settings.anonimous_account_creation_allowed:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN,
+            "Anonymous account creation is disabled. Contact the administrator "
+            "for an invitation.",
+        )
     user = await create_user_account(wallet_name=data.name)
     if settings.lnbits_two_factor_enabled and settings.lnbits_two_factor_mandatory:
         from lnbits.core.crud.users import get_account

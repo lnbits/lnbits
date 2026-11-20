@@ -88,6 +88,7 @@ class CreatePayment(BaseModel):
     memo: str
     extra: dict | None = {}
     extension: str | None = None
+    extension_context: dict | None = None
     preimage: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
@@ -120,6 +121,8 @@ class Payment(BaseModel):
     preimage: str | None = None
     tag: str | None = None
     extension: str | None = None
+    # Trusted host context, kept separate from externally supplied metadata.
+    extension_context: dict | None = None
     time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

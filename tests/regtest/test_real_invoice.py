@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from unittest.mock import AsyncMock
 
 import pytest
 from pytest_mock.plugin import MockerFixture
@@ -19,7 +20,7 @@ from lnbits.core.services.payments import (
 )
 from lnbits.core.services.users import create_user_account
 from lnbits.exceptions import PaymentError
-from lnbits.settings import Settings
+from lnbits.settings import Settings, settings
 from lnbits.task_manager import task_manager
 from lnbits.wallets import get_funding_source
 
@@ -226,7 +227,7 @@ async def test_create_real_invoice(
 
     pay_real_invoice(invoice["bolt11"])
 
-    await asyncio.sleep(1)
+    await _wait_for_invoice_listener(on_paid_mock)
     assert on_paid_mock.call_count == 1
     payment = on_paid_mock.call_args_list[0][0][0]
 
@@ -462,7 +463,7 @@ async def test_receive_real_invoice_set_pending_and_check_state(
 
     pay_real_invoice(invoice["bolt11"])
 
-    await asyncio.sleep(1)
+    await _wait_for_invoice_listener(on_paid_mock)
     assert on_paid_mock.call_count == 1
     payment = on_paid_mock.call_args_list[0][0][0]
 
@@ -517,6 +518,15 @@ async def test_check_fee_reserve(client, adminkey_headers_from):
     assert response.status_code < 300
     fee_reserve = response.json()
     assert fee_reserve["fee_reserve"] == fee_reserve_total(1000_000)
+
+
+async def _wait_for_invoice_listener(listener: AsyncMock) -> None:
+    # NWC polls for settlement; other backends retain their one-second wait.
+    attempts = 30 if settings.lnbits_backend_wallet_class == "NWCWallet" else 1
+    for _ in range(attempts):
+        await asyncio.sleep(1)
+        if listener.call_count:
+            return
 
 
 async def _wait_for_invoice_state(

@@ -63,7 +63,7 @@ class FundingTests(unittest.TestCase):
             if provider == "phoenixd" and sys.platform == "win32":
                 continue
             with self.subTest(provider=provider):
-                # Each backing wallet owns a separate LNbits data folder.
+                # Isolate each restart case from the previous case.
                 self.folder = self.folder / provider
                 self.folder.mkdir()
                 self.process.poll.return_value = None
@@ -104,13 +104,16 @@ class FundingTests(unittest.TestCase):
             self.start()
         self.assertEqual(seed.read_text(), "damaged")
 
-    def test_existing_balance_cannot_be_assigned_a_new_backing_wallet(self):
+    def test_existing_database_can_use_bundled_funding(self):
         data = self.folder / "data"
         data.mkdir()
-        (data / "database.sqlite3").touch()
-        with self.assertRaisesRegex(ValueError, "new data folder"):
-            self.start()
-        self.popen.assert_not_called()
+        database = data / "database.sqlite3"
+        database.write_bytes(b"existing database contents")
+        daemon = self.start()
+        self.assertEqual(
+            daemon.environment["LNBITS_BACKEND_WALLET_CLASS"], "SparkL2Wallet"
+        )
+        self.assertEqual(database.read_bytes(), b"existing database contents")
 
     def test_one_owner_per_wallet(self):
         daemon = self.start()
@@ -119,18 +122,71 @@ class FundingTests(unittest.TestCase):
         daemon.close()
         self.start().close()
 
-    def test_provider_change_and_corrupt_profile_are_rejected(self):
+    @unittest.skipIf(
+        sys.platform == "win32", "Bundled Phoenixd is not available on Windows"
+    )
+    def test_switching_providers_reuses_seeds_and_preserves_database(self):
+        data = self.folder / "data"
+        data.mkdir()
+        database = data / "database.sqlite3"
+        database.write_bytes(b"existing database contents")
+        identities = {}
+        for provider in ("spark", "phoenixd", "spark", "phoenixd"):
+            self.process.poll.return_value = None
+            daemon = self.start(provider)
+            seed = daemon.folder / provider / "seed.dat"
+            if provider in identities:
+                self.assertEqual(seed.read_bytes(), identities[provider])
+            else:
+                identities[provider] = seed.read_bytes()
+            self.assertEqual(
+                daemon.environment["LNBITS_BACKEND_WALLET_CLASS"],
+                funding.PROVIDERS[provider],
+            )
+            self.assertEqual(database.read_bytes(), b"existing database contents")
+            daemon.close()
+        self.assertEqual(
+            set(funding.load_profile(data)["initialized_providers"]),
+            {"spark", "phoenixd"},
+        )
+        # Removing an inactive provider's whole directory must not create a new wallet.
+        seed = data / "funding/spark/seed.dat"
+        seed.unlink()
+        seed.parent.rmdir()
+        with self.assertRaisesRegex(ValueError, "seed is missing"):
+            self.start("spark")
+        self.assertFalse(seed.exists())
+
+    @unittest.skipIf(
+        sys.platform == "win32", "Bundled Phoenixd is not available on Windows"
+    )
+    def test_legacy_profile_remembers_old_provider_when_switching(self):
+        daemon = self.start("spark")
+        daemon.close()
+        profile = daemon.folder / "profile.json"
+        values = json.loads(profile.read_text())
+        values.pop("initialized_providers")
+        profile.write_text(json.dumps(values))
+        self.process.poll.return_value = None
+        self.start("phoenixd").close()
+        self.assertEqual(
+            set(funding.load_profile(daemon.folder.parent)["initialized_providers"]),
+            {"spark", "phoenixd"},
+        )
+
+    def test_corrupt_profile_is_rejected(self):
         daemon = self.start()
         daemon.close()
         profile = daemon.folder / "profile.json"
-        data = json.loads(profile.read_text())
-        data["provider"] = "phoenixd"
-        profile.write_text(json.dumps(data))
-        with self.assertRaisesRegex(ValueError, "separate data folder"):
-            self.start()
-        profile.write_text("[]")
-        with self.assertRaisesRegex(ValueError, "profile is invalid"):
-            self.start()
+        for contents in (
+            "[]",
+            '{"provider":"spark","initialized_providers":null}',
+            '{"provider":"spark","initialized_providers":[{}]}',
+        ):
+            with self.subTest(contents=contents):
+                profile.write_text(contents)
+                with self.assertRaisesRegex(ValueError, "profile is invalid"):
+                    self.start()
 
     def test_local_only_authenticated_configuration(self):
         daemon = self.start()

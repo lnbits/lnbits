@@ -367,7 +367,9 @@ async def test_update_user_invalid_username(http_client: AsyncClient, superuser_
 async def test_update_superuser_only_allowed_by_superuser(
     http_client: AsyncClient, user_alan: User, settings: Settings
 ):
-    response = await http_client.post("/api/v1/auth/usr", json={"usr": user_alan.id})
+    response = await http_client.post(
+        "/api/v1/auth", json={"username": user_alan.username, "password": "secret1234"}
+    )
 
     assert response.status_code == 200, "Alan logs in OK."
     alan_access_token = response.json().get("access_token")

@@ -1,5 +1,6 @@
 import importlib
 import re
+import sys
 from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
@@ -19,6 +20,18 @@ from lnbits.core.wasm_ext.storage.crud import migrate_wasm_extension_database
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id
 from lnbits.db import COCKROACH, POSTGRES, SQLITE, Connection
 from lnbits.settings import settings
+
+
+def clear_extension_module_cache(module_name: str) -> None:
+    # Clear submodules too; reload() alone can leave old extension code cached.
+    stale = [
+        name
+        for name in sys.modules
+        if name == module_name or name.startswith(f"{module_name}.")
+    ]
+    for name in stale:
+        del sys.modules[name]
+    importlib.invalidate_caches()
 
 
 async def migrate_extension_database(

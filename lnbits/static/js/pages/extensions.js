@@ -6,7 +6,6 @@ window.PageExtensions = {
   template: '#page-extensions',
   data() {
     return {
-      extbuilderEnabled: false,
       slide: 0,
       fullscreen: false,
       autoplay: true,
@@ -1448,7 +1447,6 @@ window.PageExtensions = {
   },
   async created() {
     this.extensions = await this.fetchAllExtensions()
-    this.extbuilderEnabled = this.g.user.admin || this.g.settings.extBuilder
     this.reviewsUrl = this.g.settings.extensionsReviewsUrl
 
     if (this.g.user.extensions.length === 0) {

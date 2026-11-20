@@ -265,6 +265,12 @@ async def test_wasm_storage_migration_and_owner_scoped_crud(
         owner_row = await storage_get_row(ext_id, "notes", "note-1", "owner-1")
         other_owner_row = await storage_get_row(ext_id, "notes", "note-1", "owner-2")
         public_row = await storage_get_public_row(ext_id, "notes", "note-1")
+        trusted_row = await storage_get_public_row(
+            ext_id, "notes", "note-1", include_owner=True
+        )
+        assert public_row is not None
+        assert trusted_row == {**public_row, OWNER_ID_FIELD: "owner-1"}
+        assert OWNER_ID_FIELD not in public_row
         page = await storage_get_paginated_rows(
             ext_id,
             "notes",

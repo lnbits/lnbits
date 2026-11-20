@@ -58,10 +58,7 @@ def static_url_for(static: str, path: str) -> str:
 
 
 def template_renderer(additional_folders: list | None = None) -> Jinja2Templates:
-    folders = [
-        "lnbits/templates",
-        settings.extension_builder_working_dir_path.as_posix(),
-    ]
+    folders = ["lnbits/templates"]
 
     if additional_folders:
         additional_folders += [
@@ -347,38 +344,6 @@ def normalize_endpoint(endpoint: str, add_proto=True) -> str:
             f"https://{endpoint}" if not endpoint.startswith("http") else endpoint
         )
     return endpoint
-
-
-def camel_to_words(name: str) -> str:
-    # Add space before capital letters (but not at the start)
-    words = re.sub(r"(?<!^)(?=[A-Z])", " ", name)
-    return words.strip()
-
-
-def camel_to_snake(name: str) -> str:
-    name = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
-    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
-    return name.lower()
-
-
-def snake_to_camel(name: str, capitalize_first: bool | None = False) -> str:
-    components = name.split("_")
-    camel = components[0] + "".join(x.capitalize() for x in components[1:])
-    if capitalize_first:
-        camel = camel[0].upper() + camel[1:]
-    return camel
-
-
-def is_camel_case(v: str) -> bool:
-    return re.match(r"^[A-Z][a-z0-9]+([A-Z][a-z0-9]+)*$", v) is not None
-
-
-def is_snake_case(v: str) -> bool:
-    return re.match(r"^[a-z]+(_[a-z0-9]+)*$", v) is not None
-
-
-def lowercase_first_letter(s: str) -> str:
-    return s[:1].lower() + s[1:] if s else s
 
 
 def sha256s(value: str) -> str:

@@ -70,6 +70,14 @@ jobs:
         run: python3 .github/packaging/macos/release.py --prepare-only
       - name: Test launcher and packaging
         run: uv run --no-sync python -m unittest discover -s .github/packaging -v
+      # Intel runners can lose HTTP/3 connections to Apple's ticket service.
+      # Keep HTTPS on TCP for this disposable runner; retain stapling/validation.
+      # https://github.com/actions/runner-images/issues/14924
+      - name: Work around Intel runner notarization connectivity
+        if: matrix.runner == 'macos-15-intel'
+        run: |
+          echo 'block return out quick proto udp from any to any port 443' | sudo /sbin/pfctl -f -
+          sudo /sbin/pfctl -E
       - name: Build signed and notarized release artifacts
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}

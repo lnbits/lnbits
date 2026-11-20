@@ -29,6 +29,7 @@ from lnbits.core.wasm_ext.api.websockets import (
 )
 from lnbits.core.wasm_ext.wasm.events import _wasm_invoice_paid_owner_id
 from lnbits.core.wasm_ext.wasm.invoke import _active_installed_extension
+from lnbits.helpers import sha256s
 from tests.helpers import make_installable_extension
 
 
@@ -923,7 +924,7 @@ async def test_wallet_payment_watch_check_returns_requested_unapproved_grant(
 
 
 @pytest.mark.anyio
-async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
+async def test_invoice_paid_owner_lookup_rejects_unbound_invoice_with_granted_source(
     mocker: MockerFixture,
 ):
     extension = SimpleNamespace(
@@ -940,7 +941,7 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
             ],
         ),
     )
-    payment = SimpleNamespace(extra={"source_id": "source-1"})
+    payment = SimpleNamespace(extra={"source_id": "source-1"}, wallet_id="wallet-1")
     installed_extension = SimpleNamespace(
         permissions=[
             ExtensionPermission(
@@ -954,14 +955,28 @@ async def test_invoice_paid_owner_lookup_uses_stored_granted_policies(
         mocker.AsyncMock(return_value=installed_extension),
     )
     storage_mock = mocker.patch(
-        "lnbits.core.wasm_ext.wasm.events.storage_get_row_owner_id",
-        mocker.AsyncMock(return_value="owner-1"),
+        "lnbits.core.wasm_ext.storage.crud.storage_get_public_row",
+        mocker.AsyncMock(
+            return_value={
+                "wallet_id": "wallet-1",
+                "__lnbits_owner_id__": sha256s("user-1"),
+            }
+        ),
+    )
+
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.events.get_wallet",
+        mocker.AsyncMock(
+            return_value=SimpleNamespace(
+                user="user-1", source_wallet_id="wallet-1", can_receive_payments=True
+            )
+        ),
     )
 
     owner_id = await _wasm_invoice_paid_owner_id(extension, payment)
 
-    assert owner_id == "owner-1"
-    storage_mock.assert_awaited_once_with("demoext", "granted_table", "source-1")
+    assert owner_id is None
+    storage_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio

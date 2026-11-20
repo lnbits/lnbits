@@ -13,10 +13,10 @@ from pydantic import (
     model_validator,
 )
 
-from lnbits.core.models.extensions import ExtensionPermission
+from lnbits.core.models.extensions import EXTENSION_ID_PATTERN, ExtensionPermission
 from lnbits.core.models.scheduler import SchedulePolicy
 
-_EXTENSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_EXTENSION_ID_RE = re.compile(EXTENSION_ID_PATTERN)
 
 
 class _StrictWasmModel(BaseModel):
@@ -26,6 +26,7 @@ class _StrictWasmModel(BaseModel):
 class WasmExtensionExport(_StrictWasmModel):
     name: StrictStr
     visibility: Literal["authenticated", "event", "public"]
+    sync: StrictBool = False
 
 
 class WasmRuntimeConfig(_StrictWasmModel):
