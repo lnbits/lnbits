@@ -496,6 +496,203 @@ async def test_nwc_incoming_settlement_does_not_wait_for_fees(nwc_payment_wallet
     assert status.paid is True
 
 
+def test_nwc_blank_timestamps_are_not_treated_as_expired():
+    wallet = NWCWallet.__new__(NWCWallet)
+
+    assert (
+        wallet._payment_data_is_failed({"created_at": "", "expires_at": None}) is False
+    )
+    assert wallet._payment_data_is_failed({"created_at": "  ", "expires_at": " "}) is (
+        False
+    )
+    assert wallet._payment_data_is_failed({"created_at": 0, "expires_at": 0}) is False
+    assert wallet._payment_data_is_failed({"state": "expired"}) is True
+    assert (
+        wallet._payment_data_is_failed({"created_at": "10", "expires_at": "20"}) is True
+    )
+
+
+@pytest.mark.anyio
+async def test_nwc_lookup_schedule_backs_off_until_notification(
+    nwc_payment_wallet, mocker
+):
+    wallet = nwc_payment_wallet
+    mocker.patch("lnbits.wallets.nwc.random.uniform", return_value=0)
+    invoice: dict[str, float | int] = {"lookup_attempts": 0}
+    now = 1_000.0
+    delays: list[float] = []
+    for _ in range(5):
+        wallet._schedule_next_lookup(invoice, now)
+        delays.append(invoice["next_lookup_at"] - now)
+        now = float(invoice["next_lookup_at"])
+        invoice["lookup_attempts"] = int(invoice["lookup_attempts"]) + 1
+
+    # 5, 10, 15, 25, 35 seconds after the invoice is tracked.
+    assert delays == [5, 5, 5, 10, 10]
+
+    capped = {"lookup_attempts": 99}
+    wallet._schedule_next_lookup(capped, 1_000.0)
+    assert capped["next_lookup_at"] == 1_600.0
+
+    wallet.payment_notifications_seen = True
+    slowed = {"lookup_attempts": 0}
+    wallet._schedule_next_lookup(slowed, 2_000.0)
+    assert slowed["next_lookup_at"] == 2_060.0
+    capped_after_notification = {"lookup_attempts": 99}
+    wallet._schedule_next_lookup(capped_after_notification, 2_000.0)
+    assert capped_after_notification["next_lookup_at"] == 3_800.0
+
+
+@pytest.mark.anyio
+async def test_nwc_first_notification_slows_pending_lookups(nwc_payment_wallet, mocker):
+    wallet = nwc_payment_wallet
+    mocker.patch("lnbits.wallets.nwc.random.uniform", return_value=0)
+    wallet.pending_invoices = ["open-hash"]
+    wallet.pending_invoice_details = {
+        "open-hash": {
+            "checking_id": "open-hash",
+            "lookup_attempts": 4,
+            "next_lookup_at": 0.0,
+        }
+    }
+
+    await wallet._handle_notification(
+        {
+            "notification_type": "payment_received",
+            "notification": {
+                "payment_hash": "paid-hash",
+                "state": "settled",
+                "preimage": "ab",
+            },
+        }
+    )
+
+    assert wallet.payment_notifications_seen is True
+    assert wallet.paid_invoices_queue.qsize() == 0
+    open_invoice = wallet.pending_invoice_details["open-hash"]
+    assert open_invoice["lookup_attempts"] == 0
+    assert open_invoice["next_lookup_at"] == pytest.approx(time.time() + 60, abs=2)
+
+
+@pytest.mark.anyio
+async def test_nwc_create_invoice_passes_expiry_and_blank_timestamps(
+    nwc_payment_wallet,
+):
+    wallet = nwc_payment_wallet
+    wallet.conn.supports_method.side_effect = lambda method: method in {
+        "make_invoice",
+        "lookup_invoice",
+    }
+    wallet.conn.supports_notification_type.return_value = False
+    wallet.conn.call.return_value = {
+        "payment_hash": "hash-1",
+        "invoice": "lnbc1",
+        "created_at": "",
+        "expires_at": None,
+    }
+
+    before = int(time.time())
+    response = await wallet.create_invoice(amount=21, memo="tea", expiry=90)
+    after = int(time.time())
+
+    assert response.ok is True
+    assert response.checking_id == "hash-1"
+    assert response.payment_request == "lnbc1"
+    assert wallet.conn.call.await_args.args == (
+        "make_invoice",
+        {
+            "amount": 21000,
+            "description_hash": None,
+            "description": "tea",
+            "expiry": 90,
+        },
+    )
+    details = wallet.pending_invoice_details["hash-1"]
+    assert before <= details["created_at"] <= after
+    assert details["expires_at"] == details["created_at"] + 90
+
+
+@pytest.mark.anyio
+async def test_nwc_create_invoice_keeps_provider_timestamps(nwc_payment_wallet):
+    wallet = nwc_payment_wallet
+    wallet.conn.supports_method.side_effect = lambda method: method == "make_invoice"
+    wallet.conn.supports_notification_type.return_value = True
+    wallet.conn.call.return_value = {
+        "payment_hash": "hash-0",
+        "invoice": "lnbc1",
+        "created_at": 0,
+        "expires_at": 0,
+    }
+
+    response = await wallet.create_invoice(amount=1, memo="zero", expiry=90)
+
+    assert response.ok is True
+    details = wallet.pending_invoice_details["hash-0"]
+    assert details["created_at"] == 0
+    assert details["expires_at"] == 0
+    assert wallet.conn.call.await_args.args[1]["expiry"] == 90
+
+
+@pytest.mark.anyio
+async def test_nwc_lookup_settles_paid_invoice_with_blank_timestamps(
+    nwc_payment_wallet, mocker
+):
+    wallet = nwc_payment_wallet
+    mocker.patch("lnbits.wallets.nwc.random.uniform", return_value=0)
+    error_log = mocker.patch("lnbits.wallets.nwc.logger.error")
+    wallet.conn.supports_method.side_effect = lambda method: method == "lookup_invoice"
+    wallet.conn.call.return_value = {
+        "state": "settled",
+        "preimage": "ab",
+        "created_at": "",
+        "expires_at": "",
+    }
+    wallet.pending_invoices = ["hash"]
+    wallet.pending_invoice_details = {
+        "hash": {
+            "checking_id": "hash",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        }
+    }
+
+    await wallet._run_fallback_lookups(1_000.0)
+
+    assert wallet.pending_invoices == []
+    assert await wallet.paid_invoices_queue.get() == "hash"
+    error_log.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_nwc_pending_lookup_tolerates_blank_timestamps(
+    nwc_payment_wallet, mocker
+):
+    wallet = nwc_payment_wallet
+    mocker.patch("lnbits.wallets.nwc.random.uniform", return_value=0)
+    error_log = mocker.patch("lnbits.wallets.nwc.logger.error")
+    wallet.conn.supports_method.side_effect = lambda method: method == "lookup_invoice"
+    wallet.conn.call.return_value = {
+        "state": "pending",
+        "created_at": "",
+        "expires_at": None,
+    }
+    wallet.pending_invoices = ["hash"]
+    wallet.pending_invoice_details = {
+        "hash": {
+            "checking_id": "hash",
+            "next_lookup_at": 0.0,
+            "lookup_attempts": 0,
+        }
+    }
+
+    await wallet._run_fallback_lookups(1_000.0)
+
+    assert wallet.pending_invoices == ["hash"]
+    assert wallet.pending_invoice_details["hash"]["lookup_attempts"] == 1
+    assert wallet.pending_invoice_details["hash"]["next_lookup_at"] == 1_005.0
+    error_log.assert_not_called()
+
+
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     "test_data",
