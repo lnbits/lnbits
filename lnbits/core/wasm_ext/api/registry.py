@@ -14,6 +14,7 @@ _EXTENSION_RUNTIME_PERMISSION_IDS = {
     "scheduler.user",
     "scheduler.extension",
     "ui.camera.scan_qr",
+    "ui.storage.local",
     "wallet.pay_invoice",
     "wallet.pay_invoice_background",
     "wallet.payments.watch",

@@ -1,10 +1,11 @@
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from lnbits.core.crud import create_wallet, get_payment, update_payment
 from lnbits.core.db import core_app_extra
-from lnbits.core.models import CreateInvoice, PaymentState
+from lnbits.core.models import CreateInvoice, PaymentExtensionContext, PaymentState
 from lnbits.core.models.wallets import Wallet, WalletPermission, WalletType
 from lnbits.core.services.payments import create_payment_request
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
@@ -18,13 +19,17 @@ from lnbits.core.wasm_ext.wasm.events import (
     dispatch_wasm_invoice_paid,
 )
 from lnbits.helpers import sha256s
+from lnbits.wallets.fake import FakeWallet
 from tests.unit.test_wasm_extension_events import _payment as _event_payment
 from tests.unit.test_wasm_extension_events import _wasm_extension
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("shared", [False, True])
-async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, shared):
+@pytest.mark.parametrize("metadata", [None, "", '[["text/plain","Fortune ⚡"]]'])
+async def test_public_invoice_binds_owner_and_survives_wallet_change(
+    mocker, shared, metadata
+):
     wallet = _wallet(shared=shared)
     owner = sha256s(wallet.user)
     row = {"wallet_id": wallet.id, OWNER_ID_FIELD: owner}
@@ -36,6 +41,11 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
         "lnbits.core.crud.wallets.get_wallet", mocker.AsyncMock(return_value=wallet)
     )
     payment = _payment("tips")
+    if metadata:
+        invoice = await FakeWallet().create_invoice(
+            21, unhashed_description=metadata.encode("utf-8")
+        )
+        payment.payment_request = invoice.payment_request
     create = mocker.patch(
         "lnbits.core.services.payments.create_payment_request",
         mocker.AsyncMock(return_value=payment),
@@ -49,6 +59,7 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
             }
         ],
     )
+    metadata_hex = metadata.encode("utf-8").hex() if metadata is not None else None
     await api.wallet_create_invoice_public(
         CreateInvoicePublicRequest(
             source_id="row-1",
@@ -56,16 +67,18 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
             currency="sat",
             memo="Tip",
             extra={"owner_id": "victim"},
+            unhashed_description=metadata_hex,
         )
     )
+    assert create.await_args.args[1].unhashed_description == metadata_hex
     payment.extension_context = create.await_args.kwargs["extension_context"]
     payment.wallet_id = wallet.source_wallet_id
-    assert payment.extension_context == {
-        "extension_id": "tips",
-        "owner_id": owner,
-        "wallet_id": wallet.source_wallet_id,
-        "source_id": "row-1",
-    }
+    assert payment.extension_context == PaymentExtensionContext(
+        extension_id="tips",
+        owner_id=owner,
+        wallet_id=wallet.source_wallet_id,
+        source_id="row-1",
+    )
     # Current records and permissions may change while the invoice is outstanding.
     row["wallet_id"] = "replacement-wallet"
     source_lookup = mocker.patch(
@@ -81,6 +94,78 @@ async def test_public_invoice_binds_owner_and_survives_wallet_change(mocker, sha
     )
     source_lookup.assert_not_awaited()
     wallet_lookup.assert_not_awaited()
+
+
+@pytest.mark.parametrize("metadata", [None, "", "a" * 8192, "⚡" * 2730 + "ab"])
+def test_public_invoice_metadata_accepts_hex_byte_boundary(metadata):
+    metadata_hex = metadata.encode("utf-8").hex() if metadata is not None else None
+    request = CreateInvoicePublicRequest(
+        source_id="row-1",
+        amount=21,
+        currency="sat",
+        memo="",
+        unhashed_description=metadata_hex,
+    )
+    assert request.unhashed_description == metadata_hex
+
+
+@pytest.mark.parametrize("metadata", ["a" * 8193, "⚡" * 2731, "😀" * 2049])
+def test_public_invoice_metadata_rejects_oversize_hex(metadata):
+    with pytest.raises(ValidationError):
+        CreateInvoicePublicRequest(
+            source_id="row-1",
+            amount=21,
+            currency="sat",
+            memo="",
+            unhashed_description=metadata.encode("utf-8").hex(),
+        )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("backend_metadata", [None, b"different metadata", b"invalid"])
+async def test_public_invoice_rejects_invalid_description_commitment(
+    mocker, backend_metadata
+):
+    wallet = _wallet()
+    mocker.patch(
+        "lnbits.core.wasm_ext.api.host.storage_get_public_row",
+        mocker.AsyncMock(
+            return_value={"wallet_id": wallet.id, OWNER_ID_FIELD: sha256s(wallet.user)}
+        ),
+    )
+    mocker.patch(
+        "lnbits.core.crud.wallets.get_wallet", mocker.AsyncMock(return_value=wallet)
+    )
+    invoice = await FakeWallet().create_invoice(
+        21, memo="Plain description", unhashed_description=backend_metadata
+    )
+    payment = _payment("tips")
+    payment.payment_request = (
+        "invalid" if backend_metadata == b"invalid" else invoice.payment_request
+    )
+    mocker.patch(
+        "lnbits.core.services.payments.create_payment_request",
+        mocker.AsyncMock(return_value=payment),
+    )
+    api = ExtensionHostAPI(
+        "tips",
+        [
+            {
+                "id": "wallet.create_invoice_public",
+                "policies": [{"table": "jars", "wallet_field": "wallet_id"}],
+            }
+        ],
+    )
+    with pytest.raises(ValueError, match="Funding backend returned"):
+        await api.wallet_create_invoice_public(
+            CreateInvoicePublicRequest(
+                source_id="row-1",
+                amount=21,
+                currency="sat",
+                memo="",
+                unhashed_description='[["text/plain","Fortune ⚡"]]'.encode().hex(),
+            )
+        )
 
 
 @pytest.mark.anyio
@@ -142,16 +227,11 @@ async def test_authenticated_shared_wallet_invoice_uses_authenticated_owner(
             },
         )
     )
-    assert create.await_args.kwargs["extension_context"]["source_id"] == (
-        source_id or None
-    )
-    assert create.await_args.kwargs["extension_context"]["owner_id"] == sha256s(
-        wallet.user
-    )
-    assert (
-        create.await_args.kwargs["extension_context"]["wallet_id"]
-        == wallet.source_wallet_id
-    )
+    context = create.await_args.kwargs["extension_context"]
+    assert isinstance(context, PaymentExtensionContext)
+    assert context.source_id == (source_id or None)
+    assert context.owner_id == sha256s(wallet.user)
+    assert context.wallet_id == wallet.source_wallet_id
 
 
 @pytest.mark.anyio
@@ -199,20 +279,21 @@ async def test_unbound_invoices_reject_even_authorised_current_sources(mocker, s
         ("extension_id", "other"),
         ("wallet_id", "other"),
         ("source_id", "other"),
-        ("owner_id", ""),
     ],
 )
 async def test_invalid_binding_fails_closed_without_legacy_fallback(
     mocker, field, value
 ):
     payment = _payment("tips")
-    payment.extension_context = {
-        "extension_id": "tips",
-        "wallet_id": "wallet-1",
-        "source_id": "row-1",
-        "owner_id": "owner",
-    }
-    payment.extension_context[field] = value
+    payment.extension_context = PaymentExtensionContext(
+        **{
+            "extension_id": "tips",
+            "wallet_id": "wallet-1",
+            "source_id": "row-1",
+            "owner_id": "owner",
+            field: value,
+        }
+    )
     lookup = mocker.patch(
         "lnbits.core.wasm_ext.storage.crud.storage_get_public_row", mocker.AsyncMock()
     )
@@ -220,6 +301,16 @@ async def test_invalid_binding_fails_closed_without_legacy_fallback(
         await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), payment) is None
     )
     lookup.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("context", [None, {}, {"owner_id": ""}, "invalid", []])
+async def test_untyped_invoice_context_cannot_authorize_an_event(context):
+    payment = _payment("tips")
+    payment.extension_context = context
+    assert (
+        await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), payment) is None
+    )
 
 
 @pytest.mark.anyio
@@ -308,12 +399,12 @@ async def test_trusted_context_persists_with_invoice_and_survives_updates(
     app, from_user
 ):
     wallet = await create_wallet(user_id=from_user.id)
-    context = {
-        "extension_id": "tips",
-        "owner_id": sha256s(wallet.user),
-        "wallet_id": wallet.id,
-        "source_id": "row-1",
-    }
+    context = PaymentExtensionContext(
+        extension_id="tips",
+        owner_id=sha256s(wallet.user),
+        wallet_id=wallet.id,
+        source_id="row-1",
+    )
     payment = await create_payment_request(
         wallet.id,
         CreateInvoice(amount=1, extension="tips", extra={"source_id": "row-1"}),
@@ -328,11 +419,12 @@ async def test_trusted_context_persists_with_invoice_and_survives_updates(
     assert reloaded.extension_context == context
     assert (
         await _wasm_invoice_paid_owner_id(SimpleNamespace(id="tips"), reloaded)
-        == context["owner_id"]
+        == context.owner_id
     )
     # Ordinary invoices may carry arbitrary metadata but cannot create a binding.
     ordinary = await create_payment_request(
-        wallet.id, CreateInvoice(amount=1, extra={"extension_context": context})
+        wallet.id,
+        CreateInvoice(amount=1, extra={"extension_context": context.model_dump()}),
     )
     assert (await get_payment(ordinary.checking_id)).extension_context is None
 

@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import Query
 from lnurl import LnurlWithdrawResponse
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from lnbits.db import FilterModel
 from lnbits.fiat.base import (
@@ -80,6 +80,17 @@ class ValidatedPaymentRequest(BaseModel):
     is_offer: bool
 
 
+class PaymentExtensionContext(BaseModel):
+    """Trusted extension binding captured by the host when creating an invoice."""
+
+    model_config = ConfigDict(frozen=True)
+
+    extension_id: str = Field(min_length=1)
+    owner_id: str = Field(min_length=1)
+    wallet_id: str = Field(min_length=1)
+    source_id: str | None = None
+
+
 class CreatePayment(BaseModel):
     wallet_id: str
     payment_hash: str
@@ -88,7 +99,7 @@ class CreatePayment(BaseModel):
     memo: str
     extra: dict | None = {}
     extension: str | None = None
-    extension_context: dict | None = None
+    extension_context: PaymentExtensionContext | None = None
     preimage: str | None = None
     expiry: datetime | None = None
     webhook: str | None = None
@@ -122,7 +133,7 @@ class Payment(BaseModel):
     tag: str | None = None
     extension: str | None = None
     # Trusted host context, kept separate from externally supplied metadata.
-    extension_context: dict | None = None
+    extension_context: PaymentExtensionContext | None = None
     time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

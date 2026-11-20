@@ -111,7 +111,7 @@ class StoragePaginatedRequest(BaseModel):
     search_fields: list[str] = Field(default_factory=list)
     sort_by: str | None = Field(None, min_length=1, max_length=128)
     descending: bool = False
-    limit: int = Field(25, ge=1, le=1000)
+    limit: int = Field(25, ge=0, le=1000)
     offset: int = Field(0, ge=0)
 
     @model_validator(mode="before")
@@ -255,6 +255,36 @@ class CreateInvoiceResponse(BaseModel):
     checking_id: str
 
 
+class InvoiceStatusRequest(BaseModel):
+    payment_hash: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    source_id: str = Field(..., min_length=1, max_length=512)
+
+
+class InvoiceStatusResponse(BaseModel):
+    paid: bool
+    pending: bool
+    failed: bool
+    amount_msat: int
+
+
+class CreateFiatInvoicePublicRequest(BaseModel):
+    source_id: str = Field(..., min_length=1, max_length=512)
+    amount: float = Field(..., gt=0, allow_inf_nan=False)
+    currency: str = Field(..., pattern=r"^[A-Z]{3}$")
+    memo: str = Field(default="", max_length=512)
+
+
+class CreateFiatInvoiceResponse(BaseModel):
+    payment_hash: str
+    payment_request: str
+    amount_msat: int
+    fiat_provider: str
+
+
+class ListFiatProvidersResponse(BaseModel):
+    providers: list[str]
+
+
 class UserWalletSummary(BaseModel):
     id: str
     name: str
@@ -280,6 +310,23 @@ class WalletBalanceResponse(BaseModel):
     fee_reserve_msat: int
     fee_reserve_sat: int
     can_send_payments: bool
+
+
+class RefreshPaymentRequest(BaseModel):
+    wallet_id: str = Field(..., min_length=1, max_length=128)
+    checking_id: str = Field(..., min_length=1, max_length=512)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class RefreshPaymentResponse(BaseModel):
+    checking_id: str
+    payment_hash: str
+    status: str
+    amount_msat: int
+    fee_msat: int
+    pending: bool
+    success: bool
 
 
 class PayInvoiceRequest(BaseModel):

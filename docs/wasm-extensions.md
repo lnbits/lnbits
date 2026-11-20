@@ -157,6 +157,16 @@ types and wrappers from those methods. It does not replace building a matching
 WIT component. Repository-specific `lnbits-sdk.js` wrappers can differ; verify
 their behavior rather than treating one copied SDK as the host specification.
 
+`wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
+payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
+It requires `wallet.payments.refresh` and an authenticated user who owns the
+requested wallet, including a shared wallet with permission to view payments.
+The lookup also accepts a payment hash in `checking_id`. Pending payments are
+reconciled with the funding source, or marked failed if an incoming invoice has
+expired. Changes are persisted and can trigger settlement processing and
+notifications. Completed payments return their stored status without refreshing.
+The response contains identifiers, status, amount, fee, and pending/success flags.
+
 Unknown config fields are currently ignored. In particular, copying a
 `wasm.resource_limits` or `wasm.host_api` field does not configure the runtime.
 Unknown requested permission IDs are rejected. See the
@@ -231,12 +241,34 @@ remain in the parent. Supported actions include:
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `context`, `api`                                                 | Obtain UI context and call this extension's registered API routes                                  |
 | `ui.notify`                                                      | Display a browser notification/toast; separate from delivery to a user's notification channels     |
+| `ui.download_csv`                                                | Download a bounded CSV table after parent confirmation; validate filenames and escape formulas     |
+| `ui.print_document`                                              | Print bounded text and table cells after parent confirmation; no extension HTML or scripts         |
 | `navigation.replace`, `navigation.open_new_tab`                  | Parent-mediated navigation; opening an external tab requires confirmation                          |
 | `storage.session.get`, `storage.session.set`                     | Transient session state                                                                            |
 | `ui.scan_qr`                                                     | Parent camera UI, with `ui.camera.scan_qr` and user approval                                       |
 | `permissions.request*`                                           | User permission dialogs, including background-payment and wallet-watch grants                      |
 | `payment.subscribe`, `payment.unsubscribe`                       | Payment updates for hashes accepted by the parent, including hashes returned by approved API calls |
 | `websocket.subscribe`, `websocket.unsubscribe`, `websocket.send` | Parent-managed extension channels                                                                  |
+
+Persistent receipts can use `storage.local.get`, `storage.local.set` and
+`storage.local.remove` with the `ui.storage.local` permission. Keys are limited
+to 128 ASCII letters, digits or `._:-`; values are strings of at most 1024 UTF-8
+bytes. The parent scopes entries by extension, account (or anonymous visitor)
+and page path. Each extension/account namespace permits 128 entries and 64 KiB
+of serialized data; entries expire 180 days after their last write. Query strings
+do not change the scope. Storage requires browser Web Crypto and local storage;
+handle unavailable storage as an optional-feature failure. Browser receipts are
+bearer tokens, never proof of payment: recheck settlement on the server before
+revealing paid content. This grants no access to other parent local-storage keys.
+
+The `context` response includes a read-only `theme` snapshot: `name`, the actual
+`dark` boolean, a `gradient` flag, and an allowlisted `colors` map of Quasar CSS
+colors. The parent sends `lnbits-extension:event` messages with `event: "ui.theme"`
+and the same snapshot in `data` when its theme changes. These notifications do
+not require a subscription or expose parent DOM access. Use the allowlisted
+`_lnbits/bundle.min.css` for LNbits theme styles, apply the supplied colors to
+`--q-*` properties, and set Quasar's dark mode from `theme.dark` rather than the
+iframe's OS preference.
 
 The bridge is not a generic browser-to-core RPC or an arbitrary URL proxy.
 External widgets in some repositories execute on another site's page and have
@@ -259,6 +291,7 @@ Installation approval does not replace per-user wallet grants.
 | Private storage reads and writes               | `ext.storage.read`, `ext.storage.write`; requires an owner                                   |
 | Public reads and public append                 | `ext.storage.read_public`, `ext.storage.append_public`; explicit table/field/source policies |
 | List wallets / read balance                    | `wallet.list`, `wallet.balance.read`; accessible user wallets                                |
+| Refresh payment status                         | `wallet.payments.refresh`; user's wallet with permission to view payments                    |
 | Create invoices                                | `wallet.create_invoice`; user's wallet                                                       |
 | Public invoice creation                        | `wallet.create_invoice_public`; wallet selected through an approved stored source            |
 | Interactive outgoing payments                  | `wallet.pay_invoice`; user's wallet                                                          |
@@ -318,7 +351,9 @@ save the second user's settings. Generate distinct IDs and locate configuration
 through an owner-scoped query.
 
 Private storage supports get, upsert, delete, and pagination. Pages are limited
-to 1,000 rows, with equality filters, search, and one sort key. Pagination is not
+to 1,000 rows, with equality filters, search, and one sort key. A page limit of
+zero returns the scoped total without loading record payloads; the same read
+permission and owner/public-source restrictions apply. Pagination is not
 a transactionally consistent snapshot. Large scans must fit the invocation's
 storage-call and response budgets.
 
@@ -377,11 +412,41 @@ instead of the memo, which LNURL-pay (LUD-06) requires: pass the hex-encoded
 metadata string as `unhashed_description` so the hash matches the payer's
 check. When either field is set, the memo is not stored.
 
+For public invoices with a nonempty `unhashed_description`, the host verifies
+the returned BOLT11 description hash against the decoded metadata bytes. An
+invalid invoice or a missing or mismatched hash is rejected before the invoice
+is returned to the extension. Components that omit both fields retain ordinary
+memo invoices.
+
 Tagged invoice events require the immutable `extension_context` written by the
 core WASM invoice APIs. Caller-supplied `extension`, `extra.tag`, or source IDs
 cannot authenticate an event. Invoices created before that binding was added
 no longer trigger tagged WASM events; recreate outstanding extension invoices.
 Explicit wallet-watch grants continue to authorize additional incoming events.
+
+`wallet.invoice_status` exposes `invoice-status(payment-hash, source-id)` to
+owner-scoped invocations with that permission. The host checks an incoming
+payment's immutable extension, owner, wallet and source binding before returning
+its stored status. It rejects unrelated invoices and legacy invoices without a
+trusted binding. This operation does not query the backend or update payments.
+Pending payments are reconciled by core's background processing; an authenticated
+wallet user can also request reconciliation with `wallet.refresh_payment` and
+the separate `wallet.payments.refresh` permission.
+Only `paid`, `pending`, `failed` and `amount-msat` are returned; no keys, preimages,
+provider identifiers or arbitrary wallet history are exposed.
+
+`wallet.create_fiat_invoice_public` permits `create-fiat-invoice-public` from an
+owner-scoped invocation. Its policies specify `table`, `wallet_field` and
+`provider_field`; both wallet and provider come from that owner's stored source
+row. Core verifies wallet ownership, receive permission and the user's enabled
+provider allowlist. Requests contain only source, amount, ISO currency and memo.
+The host delegates to `create_payment_request`, preserving existing fiat limits,
+fees, provider handling and settlement. Responses contain only payment hash,
+HTTPS checkout URL, millisatoshi amount and provider name. `list-fiat-providers`
+uses the same permission and lists allowed names for an authenticated user.
+No provider credentials/options, spending permission or new authentication mode
+are introduced. Public routes resolve the source owner through their existing
+`ownerContext` policy; they do not accept a caller-supplied owner.
 
 For settlement-driven state changes, verify status/pending state, payment hash,
 amount, wallet, source, and the extension's stored invoice binding. Store enough

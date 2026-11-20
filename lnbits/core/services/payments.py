@@ -10,7 +10,7 @@ from loguru import logger
 from lnbits.core.crud.payments import get_daily_stats
 from lnbits.core.db import db
 from lnbits.core.models import PaymentDailyStats, PaymentFilters
-from lnbits.core.models.payments import CreateInvoice
+from lnbits.core.models.payments import CreateInvoice, PaymentExtensionContext
 from lnbits.core.models.wallets import WalletType
 from lnbits.db import Connection, Filter, Filters
 from lnbits.decorators import check_user_extension_access
@@ -152,7 +152,7 @@ async def create_payment_request(
     wallet_id: str,
     invoice_data: CreateInvoice,
     *,
-    extension_context: dict | None = None,
+    extension_context: PaymentExtensionContext | None = None,
 ) -> Payment:
     """
     Create a lightning invoice or a fiat payment request.
@@ -174,7 +174,7 @@ async def create_fiat_invoice(
     invoice_data: CreateInvoice,
     conn: Connection | None = None,
     *,
-    extension_context: dict | None = None,
+    extension_context: PaymentExtensionContext | None = None,
 ) -> Payment:
     if invoice_data.amount is None:
         raise ValueError("Invoice amount is required.")
@@ -249,7 +249,10 @@ async def create_fiat_invoice(
 
 
 async def create_wallet_invoice(
-    wallet_id: str, data: CreateInvoice, *, extension_context: dict | None = None
+    wallet_id: str,
+    data: CreateInvoice,
+    *,
+    extension_context: PaymentExtensionContext | None = None,
 ) -> Payment:
     if data.amount is None:
         raise ValueError("Invoice amount is required.")
@@ -330,7 +333,7 @@ async def create_invoice(
     internal: bool | None = False,
     payment_hash: str | None = None,
     extension: str | None = None,
-    extension_context: dict | None = None,
+    extension_context: PaymentExtensionContext | None = None,
     labels: list[str] | None = None,
     external_id: str | None = None,
     conn: Connection | None = None,

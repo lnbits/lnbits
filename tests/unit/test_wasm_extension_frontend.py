@@ -1,4 +1,6 @@
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -142,3 +144,23 @@ def test_wasm_admin_frontend_calls_runtime_limit_and_invocation_endpoints():
     assert "/api/v1/extension/wasm/invocations/stats?" in runtime
     assert "/api/v1/extension/wasm/runtime-limits/extensions" in limits
     assert "/api/v1/extension/wasm/runtime-limits/${encodeURIComponent(" in limits
+
+
+def test_wasm_frontend_bridge_validation_and_lifecycle():
+    node = shutil.which("node")
+    assert node is not None, "Node is required for frontend bridge tests."
+    # Execute only fixed repository regression files with the installed Node.
+    result = subprocess.run(  # noqa: S603
+        [
+            node,
+            "--test",
+            "tests/unit/wasm-document-bridge.test.cjs",
+            "tests/unit/wasm-theme-bridge.test.cjs",
+            "tests/unit/wasm-local-storage.test.cjs",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
