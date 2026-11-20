@@ -1,7 +1,7 @@
 [project]
 name = "lnbits"
 version = "1.7.1"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 authors = [{ name = "Alan Bits", email = "alan@lnbits.com" }]
 urls = { Homepage = "https://lnbits.com", Repository = "https://github.com/lnbits/lnbits" }
@@ -15,7 +15,7 @@ dependencies = [
     "jinja2~=3.1.6",
     "lnurl~=2.0.2",
     "pydantic~=2.12.5",
-    "pydantic-settings~=2.12.0",
+    "pydantic-settings~=2.14.2",
     "pyqrcode~=1.2.1",
     "shortuuid~=1.0.13",
     "sse-starlette~=2.3.6",
@@ -35,7 +35,7 @@ dependencies = [
     "websocket-client~=1.9.0",
     "pycryptodomex~=3.23.0",
     "wallycore~=1.5.1",
-    "packaging~=25.0.0",
+    "packaging~=26.3",
     "bolt11~=2.1.1",
     "pyjwt~=2.15.1",
     "itsdangerous~=2.2.0",
@@ -51,7 +51,7 @@ dependencies = [
     "nostr-sdk~=0.44.0",
     "bcrypt~=5.0.0",
     "jsonpath-ng~=1.7.0",
-    "pillow~=12.3.0",
+    "pillow~=13.0.0",
     "python-dotenv~=1.2.1",
     "greenlet~=3.3.0",
     "urllib3>=2.7.0",
@@ -71,7 +71,7 @@ migration = ["psycopg2-binary~=2.9.11"]
 
 [dependency-groups]
 dev = [
-  "black~=26.3.1",
+  "black~=26.10.1",
   "mypy~=1.17.1",
   "types-protobuf~=6.32.1.20251210",
   "pre-commit~=4.5.1",
@@ -81,7 +81,7 @@ dev = [
   "openai~=2.14.0",
   "json5~=0.13.0",
   "asgi-lifespan~=2.1.0",
-  "anyio~=4.12.1",
+  "anyio~=4.14.2",
   "pytest~=9.0.2",
   "pytest-cov~=7.0.0",
   "playwright~=1.61.0",
@@ -112,7 +112,7 @@ packages = [
 
 [tool.poetry.dependencies]
 # Poetry enforces LNURL's declared upper bound. Use uv for Python 3.13.
-python = ">=3.10,<3.13"
+python = ">=3.11,<3.13"
 
 [tool.pyright]
 include = [
@@ -227,7 +227,9 @@ select = ["F", "E", "W", "I", "A", "C", "N", "UP", "RUF", "B", "S"]
 # UP007: pyupgrade: use X | Y instead of Optional. (python3.10)
 # RUF012: mutable-class-default
 # RUF043: pytest-raises-ambiguous-pattern (RUF043)
-ignore = ["RUF012", "RUF043"]
+# UP017: datetime.UTC alias, UP041: builtin TimeoutError (enabled by python 3.11 target)
+#   TODO: remove from ignore and run `ruff check --fix` in a follow-up cleanup PR
+ignore = ["RUF012", "RUF043", "UP017", "UP041"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
