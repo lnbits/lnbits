@@ -42,7 +42,7 @@ async def clnrest_offer_backend(request, monkeypatch, settings):
     "body,definitive",
     [
         ({"error": {"code": -32602, "message": "Invalid parameters"}}, True),
-        ({"error": {"code": 203, "message": "Permanent failure"}}, True),
+        ({"error": {"code": 203, "message": "Permanent failure"}}, False),
         ({"error": {"code": 205, "message": "No route"}}, True),
         ({"error": {"code": 206, "message": "Route too expensive"}}, True),
         ({"error": {"code": 207, "message": "Invoice expired"}}, True),
@@ -78,7 +78,9 @@ async def test_bolt12_clnrest_http_failure_classification(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("stage", ["fetchinvoice", "payment"])
-@pytest.mark.parametrize("error", ["http", "invalid_json", "timeout", "no_route"])
+@pytest.mark.parametrize(
+    "error", ["http", "invalid_json", "timeout", "destination", "no_route"]
+)
 async def test_bolt12_clnrest_ambiguous_errors_do_not_refund(
     app, clnrest_offer_backend, monkeypatch, stage, error
 ):
@@ -92,6 +94,7 @@ async def test_bolt12_clnrest_ambiguous_errors_do_not_refund(
         "http": httpx.Response(500, json={"error": {"message": "Response lost"}}),
         "invalid_json": httpx.Response(500, text="Invalid response"),
         "timeout": httpx.ReadTimeout("Response lost"),
+        "destination": httpx.Response(500, json={"error": {"code": 203}}),
         "no_route": httpx.Response(500, json={"error": {"code": 205}}),
     }[error]
     monkeypatch.setattr(

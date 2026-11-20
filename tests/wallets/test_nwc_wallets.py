@@ -323,6 +323,60 @@ def nwc_payment_wallet(mocker):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("transaction_type", ["outgoing", None])
+@pytest.mark.parametrize(
+    "payment_data,expected",
+    [
+        ({"state": "expired"}, None),
+        ({"state": "pending", "expires_at": 1}, None),
+        ({"state": "pending", "created_at": 1}, None),
+        ({"state": "pending", "expires_at": 4_000_000_000}, None),
+        ({"state": "failed", "expires_at": 1}, False),
+        ({"state": "settled", "expires_at": 1, "fees_paid": 0}, True),
+    ],
+)
+async def test_nwc_outgoing_status_ignores_invoice_expiry(
+    nwc_payment_wallet, mocker, transaction_type, payment_data, expected
+):
+    wallet = nwc_payment_wallet
+    clock = mocker.patch("lnbits.wallets.nwc.time.time", return_value=1_000_000)
+    data = dict(payment_data)
+    if transaction_type:
+        data["type"] = transaction_type
+    wallet.conn.call.return_value = data
+
+    status = await wallet.get_payment_status("payment-hash")
+
+    assert status.paid is expected
+    if expected is None:
+        # Pending results should be refreshed using the shorter cache lifetime.
+        clock.return_value += wallet.payment_status_cache_pending_ttl + 1
+        wallet.conn.call.return_value = {
+            "type": "outgoing",
+            "state": "settled",
+            "preimage": "01" * 32,
+            "fees_paid": 123,
+        }
+        status = await wallet.get_payment_status("payment-hash")
+        assert status.paid is True
+        assert status.fee_msat == 123
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "payment_data",
+    [{"state": "expired"}, {"state": "pending", "expires_at": 1}],
+)
+async def test_nwc_incoming_invoice_expiry(nwc_payment_wallet, payment_data):
+    wallet = nwc_payment_wallet
+    wallet.conn.call.return_value = {"type": "incoming", **payment_data}
+
+    status = await wallet.get_invoice_status("payment-hash")
+
+    assert status.paid is False
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("fee_msat", [0, 123])
 @pytest.mark.parametrize(
     "delayed_lookup",
