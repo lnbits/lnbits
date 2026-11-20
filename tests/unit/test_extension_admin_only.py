@@ -1,4 +1,5 @@
 import json
+import sys
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -11,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from pytest_mock import MockerFixture
 from wasmtime import wat2wasm
 
+from lnbits.app import check_installed_extension_files, check_installed_extensions
 from lnbits.core.crud.extensions import (
     create_installed_extension,
     delete_installed_extension,
@@ -19,6 +21,7 @@ from lnbits.core.crud.extensions import (
 )
 from lnbits.core.models import Account
 from lnbits.core.models.extensions import (
+    ExtensionArchiveValidationError,
     ExtensionConfig,
     ExtensionManifestType,
     GitHubRepo,
@@ -101,6 +104,7 @@ async def test_admin_only_manifest_survives_config_loading(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("runtime", ["python", "wasm"])
+@pytest.mark.parametrize("existing", [False, True])
 @pytest.mark.parametrize(
     "manifest_flag,config_flag", [(True, False), (False, True), (False, False)]
 )
@@ -110,6 +114,7 @@ async def test_admin_only_installation_persists_for_both_runtimes(
     settings: Settings,
     mocker: MockerFixture,
     runtime: str,
+    existing: bool,
     manifest_flag: bool,
     config_flag: bool,
 ):
@@ -124,8 +129,15 @@ async def test_admin_only_installation_persists_for_both_runtimes(
             archive.writestr(f"{ext.id}/extension.wasm", wat2wasm("(component)"))
     mocker.patch("lnbits.core.services.extensions.migrate_extension_database")
     mocker.patch("lnbits.core.services.extensions.warm_wasm_extension")
+    mocker.patch("lnbits.core.services.extensions.stop_extension_background_work")
 
     try:
+        if existing:
+            await create_installed_extension(
+                make_installable_extension(
+                    ext.id, admin_only=not (manifest_flag or config_flag)
+                )
+            )
         await install_extension(ext, skip_download=True)
         stored = await get_installed_extension(ext.id)
         assert stored and stored.meta and stored.meta.installed_release
@@ -146,6 +158,103 @@ async def test_admin_only_installation_persists_for_both_runtimes(
     finally:
         await delete_installed_extension(ext_id=ext.id)
     assert ext.id not in settings.lnbits_admin_only_extensions
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize(
+    "manifest_flag,config_flag", [(True, False), (False, True), (False, None)]
+)
+async def test_startup_preserves_admin_only_policy_across_restarts(
+    app,
+    tmp_path: Path,
+    settings: Settings,
+    mocker: MockerFixture,
+    monkeypatch,
+    existing: bool,
+    manifest_flag: bool,
+    config_flag: bool | None,
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    settings.lnbits_extensions_path = str(tmp_path / "code")
+    settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm")
+    settings.lnbits_extensions_deactivate_all = False
+    ext = make_installable_extension(f"ext_{uuid4().hex[:8]}", admin_only=manifest_flag)
+    assert ext.meta and ext.meta.installed_release
+    release = ext.meta.installed_release
+    settings.lnbits_extensions_default_install = [ext.id]
+    settings.lnbits_admin_extensions = ["configured"]
+    user_id = uuid4().hex
+    config = _config(ext.id, "python", bool(config_flag))
+    if config_flag is None:
+        del config["admin_only"]
+    with zipfile.ZipFile(ext.zip_path, "w") as archive:
+        archive.writestr(f"{ext.id}/config.json", json.dumps(config))
+        archive.writestr(
+            f"{ext.id}/__init__.py",
+            "from fastapi import APIRouter\n"
+            f"{ext.id}_ext = APIRouter(prefix='/{ext.id}')\n",
+        )
+    monkeypatch.syspath_prepend(str(ext.ext_dir.parent))
+    releases = mocker.patch.object(
+        InstallableExtension, "get_extension_releases", return_value=[release]
+    )
+    migrate = mocker.patch("lnbits.app.migrate_extension_database")
+    mocker.patch("lnbits.app.core_app_extra.register_new_ext_routes")
+    mocker.patch(
+        "lnbits.decorators.get_user_active_extensions_ids", return_value=[ext.id]
+    )
+    restricted = manifest_flag or bool(config_flag)
+
+    try:
+        if existing:
+            await create_installed_extension(ext)
+        for _ in range(2):
+            # Simulate a restart: policy must be rebuilt from the database.
+            settings.lnbits_admin_only_extensions.clear()
+            await check_installed_extensions(FastAPI())
+
+            stored = await get_installed_extension(ext.id)
+            assert stored and stored.active and stored.meta
+            assert stored.meta.installed_release
+            assert stored.meta.installed_release.archive == release.archive
+            assert stored.meta.installed_release.source_repo == release.source_repo
+            assert stored.meta.installed_release.admin_only == restricted
+            assert settings.is_admin_extension(ext.id) == restricted
+            assert settings.lnbits_admin_extensions == ["configured"]
+            status = await check_user_extension_access(user_id, ext.id)
+            assert status.success == (not restricted)
+
+        migrate.assert_awaited_once()
+        if existing:
+            releases.assert_not_awaited()
+        else:
+            releases.assert_awaited_once_with(ext.id, include_payment_info=False)
+    finally:
+        await delete_installed_extension(ext_id=ext.id)
+        sys.modules.pop(ext.module_name, None)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("runtime", ["python", "wasm"])
+@pytest.mark.parametrize("admin_only", ["false", 0, None])
+async def test_startup_rejects_invalid_admin_only_before_extracting(
+    tmp_path: Path, settings: Settings, runtime: str, admin_only
+):
+    settings.lnbits_data_folder = str(tmp_path / "data")
+    settings.lnbits_extensions_path = str(tmp_path / "code")
+    settings.lnbits_wasm_extensions_path = str(tmp_path / "wasm")
+    ext = make_installable_extension("invalid_policy")
+    config = _config(ext.id, runtime, False)
+    config["admin_only"] = admin_only
+    with zipfile.ZipFile(ext.zip_path, "w") as archive:
+        archive.writestr(f"{ext.id}/config.json", json.dumps(config))
+
+    with pytest.raises(ExtensionArchiveValidationError, match="must be a boolean"):
+        await check_installed_extension_files(ext)
+
+    assert not ext.ext_dir.exists()
+    assert not ext.wasm_ext_dir.exists()
 
 
 @pytest.mark.anyio
