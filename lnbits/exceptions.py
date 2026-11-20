@@ -5,9 +5,11 @@ from http import HTTPStatus
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from loguru import logger
 from shortuuid import uuid
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from lnbits.settings import settings
 
@@ -162,30 +164,51 @@ def register_exception_handlers(app: FastAPI):  # noqa: C901
 
     @app.exception_handler(404)
     async def error_handler_404(request: Request, exc: HTTPException):
+        # Include missing static files: mounts set an endpoint even for a 404.
+        if request.scope.get("route") is None:
+            handler = getattr(app.state, "unmatched_route_handler", not_found_response)
+            try:
+                return await handler(request, exc)
+            except RateLimitExceeded as limit_exc:
+                # Exceptions raised inside an exception handler need handling here.
+                return _rate_limit_exceeded_handler(request, limit_exc)
+        return await not_found_response(request, exc)
 
-        if not request.url.path.endswith("routes.json"):
-            logger.error(f"404: {request.url.path} {exc.status_code}: {exc.detail}")
 
-        if not _is_browser_request(request):
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={"detail": exc.detail},
-            )
+async def not_found_response(request: Request, exc: HTTPException) -> Response:
+    if not request.url.path.endswith("routes.json"):
+        logger.error(f"404: {request.url.path} {exc.status_code}: {exc.detail}")
 
-        path = path_segments(request.url.path)[0]
-        status_code = HTTPStatus.NOT_FOUND
-        message: str = "Page not found."
-
-        if settings.is_ready_to_install_extension_id(path):
-            status_code = HTTPStatus.FORBIDDEN
-            message = f"Extension '{path}' not installed. Ask the admin to install it."
-
-        return template_renderer().TemplateResponse(
-            request,
-            "error.html",
-            {"status_code": int(status_code), "message": message},
-            int(status_code),
+    if not _is_browser_request(request):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
         )
+
+    path = path_segments(request.url.path)[0]
+    status_code = HTTPStatus.NOT_FOUND
+    message: str = "Page not found."
+
+    if settings.is_ready_to_install_extension_id(path):
+        status_code = HTTPStatus.FORBIDDEN
+        message = f"Extension '{path}' not installed. Ask the admin to install it."
+    elif request.scope.get("route") is None:
+        # Unknown URLs must not render the entire Vue application or public settings.
+        return HTMLResponse(
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            "<title>404 - Page not found</title></head>"
+            "<body><h1>404 - Page not found</h1>"
+            '<p><a href="/">Return to home page</a></p></body></html>',
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+
+    return template_renderer().TemplateResponse(
+        request,
+        "error.html",
+        {"status_code": int(status_code), "message": message},
+        int(status_code),
+    )
 
 
 def _is_browser_request(request: Request) -> bool:
