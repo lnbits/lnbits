@@ -141,10 +141,12 @@ class TaskManager:
         interval: int = 0,
     ) -> Task:
         """Create a task that runs forever and restarts on failure."""
+        # a failed periodic run is retried on its normal schedule
+        restart_interval = interval if interval > 0 else 5
 
         async def wrapper():
             while settings.lnbits_running:
-                await self._catch_everything_and_restart(func)
+                await self._catch_everything_and_restart(func, restart_interval)
                 if interval > 0:
                     await asyncio.sleep(interval)
 
