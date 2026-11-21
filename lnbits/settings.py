@@ -1350,8 +1350,9 @@ class TransientSettings(InstalledExtensionsSettings, ExchangeHistorySettings):
 
     @property
     def lnbits_server_up_time(self) -> str:
-        up_time = int(time() - self.server_startup_time)
-        return strftime("%H:%M:%S", gmtime(up_time))
+        days, seconds = divmod(int(time() - self.server_startup_time), 86400)
+        up_time = strftime("%H:%M:%S", gmtime(seconds))
+        return f"{days}d {up_time}" if days else up_time
 
     @classmethod
     def readonly_fields(cls):
