@@ -25,6 +25,10 @@ from lnbits.core.services.onchain import (
     get_fresh_address,
     require_onchain_payments,
 )
+from lnbits.core.wasm_ext.storage.crud import (
+    OWNER_ID_FIELD,
+    storage_get_public_row,
+)
 from lnbits.db import Connection
 from lnbits.helpers import sha256s
 from lnbits.settings import settings
@@ -42,6 +46,14 @@ _MAX_SATS = 2_100_000_000_000_000
 
 class ReserveOnchainAddressRequest(BaseModel):
     wallet_id: str = Field(..., min_length=1, max_length=128)
+    source_id: str = Field(..., min_length=1, max_length=128)
+    checkout_id: str = Field(..., min_length=1, max_length=128)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ReserveOnchainAddressPublicRequest(BaseModel):
+    table: str = Field(..., min_length=1, max_length=128)
     source_id: str = Field(..., min_length=1, max_length=128)
     checkout_id: str = Field(..., min_length=1, max_length=128)
 
@@ -95,33 +107,33 @@ class ExtensionOnchainAPI:
     async def reserve_address(
         self, request: ReserveOnchainAddressRequest
     ) -> ReserveOnchainAddressResponse:
-        self._authenticated_user()
+        owner_id = sha256s(self._authenticated_user())
+        return await self._reserve_address(request, owner_id)
+
+    @extension_api_method(
+        method_id="onchain.reserve_address_public",
+        namespace="onchain",
+        name="Reserve public checkout address",
+        host_interface="onchain",
+        host_name="reserve_address_public",
+        sdk_name="reserveAddressPublic",
+        description=(
+            "Reserve a fresh core onchain address using an approved saved checkout's "
+            "wallet and source. The extension validates terminal access and saves "
+            "the reservation before returning it; retries must reuse that receipt."
+        ),
+        required_permission="onchain.reserve_address_public",
+        require_auth=False,
+    )
+    async def reserve_address_public(
+        self, request: ReserveOnchainAddressPublicRequest
+    ) -> ReserveOnchainAddressResponse:
         try:
-            await require_onchain_payments()
-            async with db.connect() as conn:
-                wallet = await self._wallet(request.wallet_id, conn)
-                # Core allocation uses a database compare-and-swap, also across workers.
-                address = await get_fresh_address(wallet.id, conn=conn)
-                if (
-                    not address
-                    or address.walet_id != wallet.id
-                    or address.branch_index != 0
-                    or address.has_activity
-                ):
-                    raise ValueError(_UNAVAILABLE)
-                snapshot = await get_address_snapshot(address.id, conn)
-                if snapshot and snapshot.transactions:
-                    raise ValueError(_UNAVAILABLE)
-                token = self._checkout_token(wallet, address, request)
-                # Recheck after allocation: deletion/reconfiguration must fail closed.
-                current = await self._wallet(wallet.id, conn)
-                if token != self._checkout_token(current, address, request):
-                    raise PermissionError(_UNAVAILABLE)
-            return ReserveOnchainAddressResponse(
-                address=address.address,
-                network=wallet.onchain_network or "",
-                status_token=token,
-            )
+            checkout, owner_id = await self._public_checkout(request)
+            response = await self._reserve_address(checkout, owner_id)
+            if await self._public_checkout(request) != (checkout, owner_id):
+                raise PermissionError(_UNAVAILABLE)
+            return response
         except PermissionError:
             raise PermissionError(_UNAVAILABLE) from None
         except Exception:
@@ -183,6 +195,84 @@ class ExtensionOnchainAPI:
         if not self.api.user_id:
             raise PermissionError("An authenticated owner is required.")
         return self.api.user_id
+
+    async def _public_checkout(
+        self, request: ReserveOnchainAddressPublicRequest
+    ) -> tuple[ReserveOnchainAddressRequest, str]:
+        from .permissions import _public_onchain_reservation_sources
+
+        policies = _public_onchain_reservation_sources(
+            self.api.permission_policies.get("onchain.reserve_address_public")
+        )
+        policy = next((p for p in policies if p[0] == request.table), None)
+        if policy is None:
+            raise PermissionError(_UNAVAILABLE)
+        _, wallet_field, source_id_field = policy
+        row = await storage_get_public_row(
+            self.api.extension_id,
+            request.table,
+            request.checkout_id,
+            include_owner=True,
+        )
+        if (
+            not row
+            or row.get("id") != request.checkout_id
+            or row.get(source_id_field) != request.source_id
+        ):
+            raise PermissionError(_UNAVAILABLE)
+        owner_id = row.get(OWNER_ID_FIELD)
+        wallet_id = row.get(wallet_field)
+        if (
+            not isinstance(owner_id, str)
+            or not owner_id
+            or not isinstance(wallet_id, str)
+            or not wallet_id
+        ):
+            raise PermissionError(_UNAVAILABLE)
+        return (
+            ReserveOnchainAddressRequest(
+                wallet_id=wallet_id,
+                source_id=row[source_id_field],
+                checkout_id=row["id"],
+            ),
+            owner_id,
+        )
+
+    async def _reserve_address(
+        self, request: ReserveOnchainAddressRequest, owner_id: str
+    ) -> ReserveOnchainAddressResponse:
+        try:
+            await require_onchain_payments()
+            async with db.connect() as conn:
+                wallet = await self._wallet(request.wallet_id, conn)
+                if sha256s(wallet.user) != owner_id:
+                    raise PermissionError(_UNAVAILABLE)
+                # Core allocation uses a database compare-and-swap, also across workers.
+                address = await get_fresh_address(wallet.id, conn=conn)
+                if (
+                    not address
+                    or address.walet_id != wallet.id
+                    or address.branch_index != 0
+                    or address.has_activity
+                ):
+                    raise ValueError(_UNAVAILABLE)
+                snapshot = await get_address_snapshot(address.id, conn)
+                if snapshot and snapshot.transactions:
+                    raise ValueError(_UNAVAILABLE)
+                token = self._checkout_token(wallet, address, request)
+                # Recheck after allocation: deletion/reconfiguration must fail closed.
+                current = await self._wallet(wallet.id, conn)
+                if token != self._checkout_token(current, address, request):
+                    raise PermissionError(_UNAVAILABLE)
+            return ReserveOnchainAddressResponse(
+                address=address.address,
+                network=wallet.onchain_network or "",
+                status_token=token,
+            )
+        except PermissionError:
+            raise PermissionError(_UNAVAILABLE) from None
+        except Exception:
+            raise ValueError(_UNAVAILABLE) from None
 
     async def _wallet(
         self, wallet_id: str, conn: Connection | None = None
