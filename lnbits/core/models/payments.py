@@ -182,6 +182,10 @@ class Payment(BaseModel):
         return self.amount < 0
 
     @property
+    def is_pending_hold_invoice(self) -> bool:
+        return self.is_in and self.pending and bool(self.extra.get("hold_invoice"))
+
+    @property
     def is_expired(self) -> bool:
         return self.expiry < datetime.now(timezone.utc) if self.expiry else False
 
