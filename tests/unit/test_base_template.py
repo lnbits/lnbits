@@ -30,9 +30,7 @@ def test_base_template_preserves_rendered_route(path, template):
         }
     )
 
-    response = template_renderer().TemplateResponse(
-        request, template, {"public": True}
-    )
+    response = template_renderer().TemplateResponse(request, template, {"public": True})
     html = bytes(response.body).decode()
     route = re.search(r"const RENDERED_ROUTE = (.+)\n", html)
 
