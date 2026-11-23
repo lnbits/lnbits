@@ -15,7 +15,6 @@ from lnbits.core.crud.onchain import (
 from lnbits.core.crud.wallets import (
     get_onchain_sync_status,
     get_onchain_wallet,
-    get_wallets,
 )
 from lnbits.core.db import db
 from lnbits.core.models.onchain import Address, Snapshot
@@ -31,7 +30,6 @@ from lnbits.helpers import sha256s
 from lnbits.settings import settings
 from lnbits.utils.onchain import address_script
 
-from .models import EmptyRequest, ListUserWalletsResponse, UserWalletSummary
 from .registry import extension_api_method
 
 if TYPE_CHECKING:
@@ -72,33 +70,14 @@ class ExtensionOnchainAPI:
     def __init__(self, api: ExtensionHostAPI) -> None:
         self.api = api
 
-    async def list_user_wallets(self, request: EmptyRequest) -> ListUserWalletsResponse:
-        self.api.require_permission("wallet.list")
-        user_id = self._authenticated_user()
-        wallets = await get_wallets(user_id)
-        summaries = []
-        for wallet in wallets:
-            if wallet.user != user_id or wallet.deleted:
-                raise PermissionError(_UNAVAILABLE)
-            ready = wallet.can_receive_payments
-            if wallet.is_onchain_wallet:
-                try:
-                    await require_onchain_payments()
-                    await self._wallet(wallet.id)
-                    ready = True
-                except (PermissionError, ValueError):
-                    ready = False
-            summaries.append(
-                UserWalletSummary(
-                    id=wallet.id,
-                    name=wallet.name,
-                    currency=wallet.currency,
-                    wallet_type=wallet.wallet_type,
-                    onchain_network=wallet.onchain_network,
-                    receiving_ready=ready,
-                )
-            )
-        return ListUserWalletsResponse(wallets=summaries)
+    async def receiving_ready(self, wallet_id: str) -> bool:
+        self._authenticated_user()
+        try:
+            await require_onchain_payments()
+            await self._wallet(wallet_id)
+            return True
+        except (PermissionError, ValueError):
+            return False
 
     @extension_api_method(
         method_id="onchain.reserve_address",

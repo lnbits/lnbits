@@ -285,6 +285,12 @@ class ListFiatProvidersResponse(BaseModel):
     providers: list[str]
 
 
+class ListUserWalletsRequest(BaseModel):
+    wallet_type: Literal["lightning", "lightning-shared", "onchain", "fiat"] | None = (
+        None
+    )
+
+
 class UserWalletSummary(BaseModel):
     id: str
     name: str

@@ -175,12 +175,20 @@ and key backup, a configured wallet and network, and the wallet backup for hot
 wallets. Other wallet types use their existing receive permission. The summary
 contains no keys, descriptors, seeds or explorer configuration.
 
+The optional request field `wallet_type` filters by `lightning`,
+`lightning-shared`, `onchain` or `fiat`. Omitting it or passing `null` lists all
+wallet types owned by the authenticated user. Unknown types are rejected.
+The SDK accepts `wallet.listUserWallets({walletType: 'onchain'})` and still
+accepts `wallet.listUserWallets()`.
+
 The existing `lnbits:extension/host` wallet-list import remains compatible with
 components declaring only `id`, `name` and `currency`: Wasmtime lowers records
 using the importing component's declared fields. New components can add
 `wallet-type: string`, `onchain-network: option<string>` and
 `receiving-ready: bool` to their wallet record. Both shapes are exercised by
 component tests. No existing field or import is renamed.
+Existing no-argument imports still work. To use the filter, declare a request
+record with `wallet-type: option<string>` and pass it to `list-user-wallets`.
 
 The new `lnbits:extension/onchain` interface provides:
 

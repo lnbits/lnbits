@@ -22,7 +22,7 @@ from lnbits.core.models.onchain import Snapshot
 from lnbits.core.models.wallets import WalletType
 from lnbits.core.services.onchain import OnchainKeyStatus
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
-from lnbits.core.wasm_ext.api.models import EmptyRequest
+from lnbits.core.wasm_ext.api.models import ListUserWalletsRequest
 from lnbits.core.wasm_ext.api.onchain import (
     OnchainPaymentStatusRequest,
     ReserveOnchainAddressRequest,
@@ -71,7 +71,7 @@ async def checkout(wallets):
 @pytest.mark.anyio
 async def test_listing_is_owned_safe_and_uses_core_readiness(wallets):
     wallet = wallets[0]
-    response = await _api().wallet_list_user_wallets(EmptyRequest())
+    response = await _api().wallet_list_user_wallets(ListUserWalletsRequest())
     summary = next(w for w in response.wallets if w.id == wallet.id)
     assert summary.model_dump() == {
         "id": wallet.id,
@@ -86,7 +86,7 @@ async def test_listing_is_owned_safe_and_uses_core_readiness(wallets):
         "UPDATE wallets SET onchain_wallet_kind = 'hot' WHERE id = :id",
         {"id": wallet.id},
     )
-    response = await _api().wallet_list_user_wallets(EmptyRequest())
+    response = await _api().wallet_list_user_wallets(ListUserWalletsRequest())
     assert not next(w for w in response.wallets if w.id == wallet.id).receiving_ready
 
 
@@ -95,7 +95,7 @@ async def test_listing_is_owned_safe_and_uses_core_readiness(wallets):
 async def test_owner_context_is_not_authentication(wallets, context):
     api = _api(None, context=context, owner_id=sha256s("alice"))
     with pytest.raises(PermissionError):
-        await api.wallet_list_user_wallets(EmptyRequest())
+        await api.wallet_list_user_wallets(ListUserWalletsRequest())
     with pytest.raises(PermissionError):
         await api.onchain.reserve_address(
             ReserveOnchainAddressRequest(
@@ -379,7 +379,7 @@ async def test_server_setup_checks_apply_to_listing_and_both_operations(
             )
         ),
     )
-    summaries = await _api().wallet_list_user_wallets(EmptyRequest())
+    summaries = await _api().wallet_list_user_wallets(ListUserWalletsRequest())
     assert not next(w for w in summaries.wallets if w.id == wallet.id).receiving_ready
     with pytest.raises(ValueError, match="unavailable"):
         await _api().onchain.reserve_address(request)
@@ -499,7 +499,7 @@ async def test_permissions_are_required_for_every_operation(checkout):
     _, request, response = checkout
     api = ExtensionHostAPI("pos", [], user_id="alice")
     with pytest.raises(PermissionError, match="wallet.list"):
-        await api.wallet_list_user_wallets(EmptyRequest())
+        await api.wallet_list_user_wallets(ListUserWalletsRequest())
     with pytest.raises(PermissionError, match="onchain.receive"):
         await api.onchain.reserve_address(request)
     with pytest.raises(PermissionError, match="onchain.payments.read"):

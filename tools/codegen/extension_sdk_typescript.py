@@ -252,8 +252,10 @@ def _render_sdk_type_node(lines: list[str], node: dict[str, Any], level: int) ->
         if _is_empty_model(method.request_model):
             lines.append(f"{indent}{method.sdk_name}(): Promise<{response}>")
         else:
+            optional = "?" if _has_optional_request(method.request_model) else ""
             lines.append(
-                f"{indent}{method.sdk_name}(input: {request}): Promise<{response}>"
+                f"{indent}{method.sdk_name}(input{optional}: {request}): "
+                f"Promise<{response}>"
             )
 
 
@@ -273,7 +275,8 @@ def _render_create_sdk_node(lines: list[str], node: dict[str, Any], level: int) 
             signature = f"{method.sdk_name}()"
             host_call = f"{host_call_target}()"
         else:
-            signature = f"{method.sdk_name}(input)"
+            default = " = {}" if _has_optional_request(method.request_model) else ""
+            signature = f"{method.sdk_name}(input{default})"
             host_call = f"{host_call_target}(input)"
         lines.extend(
             [
@@ -338,6 +341,10 @@ def _ts_access(value: str) -> str:
 
 def _is_empty_model(model: type[BaseModel]) -> bool:
     return not model.model_fields
+
+
+def _has_optional_request(model: type[BaseModel]) -> bool:
+    return all(not field.is_required() for field in model.model_fields.values())
 
 
 def main(argv: Sequence[str] | None = None) -> int:
