@@ -244,7 +244,7 @@ class SparkWallet(Wallet):
             return PaymentPendingStatus()
 
         if not r["pays"]:
-            return PaymentFailedStatus()
+            return PaymentPendingStatus()
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
