@@ -46,6 +46,7 @@
     </div>
 
     <script type="text/javascript">
+      const RENDERED_ROUTE = {{ normalize_path(request.path) | tojson }}
       const SETTINGS = {{ SETTINGS | tojson | safe }}
       const CURRENCIES = {{ CURRENCIES | tojson | safe }}
     </script>
