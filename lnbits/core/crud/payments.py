@@ -260,11 +260,7 @@ async def create_payment(
     # note: this can be removed if the db uniqueness constraints are set appropriately
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     if previous_payment is not None:
-        if (
-            not previous_payment.is_pending_hold_invoice
-            or data.amount_msat >= 0
-            or previous_payment.wallet_id == data.wallet_id
-        ):
+        if not _allows_outgoing_payment(previous_payment, data):
             raise ValueError("Payment already exists")
     extra = data.extra or {}
 
@@ -629,3 +625,16 @@ async def _only_user_wallets_statement(
     # wallet ids are safe to use in sql queries
     wallet_ids_str = [f"'{w}'" for w in wallet_ids]
     return f""" wallet_id IN ({", ".join(wallet_ids_str)}) """
+
+
+def _allows_outgoing_payment(previous_payment: Payment, payment: CreatePayment) -> bool:
+    if not previous_payment.is_pending_hold_invoice:
+        return False
+
+    if payment.amount_msat >= 0:
+        return False
+
+    if previous_payment.wallet_id == payment.wallet_id:
+        return False
+
+    return True
