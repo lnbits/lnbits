@@ -234,6 +234,7 @@ window.i18n = new VueI18n.createI18n({
 window.app.mixin({
   data() {
     return {
+      RENDERED_ROUTE,
       api: window._lnbitsApi,
       utils: window._lnbitsUtils,
       g: window.g
