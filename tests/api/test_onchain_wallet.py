@@ -80,6 +80,7 @@ async def add_watch(client, headers, single_path=False):
         },
     )
     assert response.status_code == 200, response.text
+    assert "user" not in response.json()
     return response.json()
 
 
@@ -105,11 +106,13 @@ async def test_one_bitcoin_wallet_per_core_wallet(http_client, onchain_wallet, k
     assert sorted(r.status_code for r in results) == [200, 409]
     rejected = next(r for r in results if r.status_code == 409)
     assert "already configured" in rejected.json()["detail"]
-    accounts = await http_client.get("/api/v1/wallet/onchain", headers=headers)
+    accounts = await http_client.get(
+        "/api/v1/wallet/onchain", headers={"X-API-KEY": wallet.inkey}
+    )
     assert accounts.status_code == 200
     account = accounts.json()
     assert account["id"] == wallet.id
-    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
+    assert not {"adminkey", "inkey", "user", "onchain_encrypted_seed"} & account.keys()
     stored_keys = await db.fetchall(
         """SELECT id FROM wallets WHERE id = :wallet
            AND onchain_encrypted_seed IS NOT NULL""",
@@ -161,7 +164,7 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert response.status_code == 200, response.text
     account = response.json()
     assert account["id"] == wallet.id
-    assert not {"adminkey", "inkey", "onchain_encrypted_seed"} & account.keys()
+    assert not {"adminkey", "inkey", "user", "onchain_encrypted_seed"} & account.keys()
     assert "mnemonic" not in response.text and "encrypted_seed" not in response.text
     account_id = account["id"]
     path = f"/api/v1/onchain/hot-wallet/{account_id}/backup"
@@ -177,9 +180,9 @@ async def test_onchain_api_ownership_recovery_and_network(http_client, onchain_w
     assert len(export.json()["mnemonic"].split()) == 24
     receive = f"/api/v1/onchain/address/{account_id}"
     assert (await http_client.get(receive, headers=headers)).status_code == 409
-    assert (
-        await http_client.post(path + "/confirm", headers=headers)
-    ).status_code == 200
+    confirmed = await http_client.post(path + "/confirm", headers=headers)
+    assert confirmed.status_code == 200
+    assert "user" not in confirmed.json()
     responses = await asyncio.gather(
         *(
             http_client.get(receive, headers={"X-API-KEY": wallet.inkey})
