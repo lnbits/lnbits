@@ -641,7 +641,7 @@ def _wasm_host_call_category(method_id: str) -> str:
         return "http"
     if method_id.startswith("storage."):
         return "storage"
-    if method_id.startswith("wallet."):
+    if method_id.startswith(("wallet.", "onchain.")):
         return "wallet"
     return "host"
 
