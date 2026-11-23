@@ -261,9 +261,7 @@ async def create_payment(
     previous_payment = await get_standalone_payment(checking_id, conn=conn)
     if previous_payment is not None and not (
         data.amount_msat < 0
-        and previous_payment.is_in
-        and previous_payment.pending
-        and previous_payment.extra.get("hold_invoice")
+        and previous_payment.is_pending_hold_invoice
         and previous_payment.wallet_id != data.wallet_id
     ):
         raise ValueError("Payment already exists")
