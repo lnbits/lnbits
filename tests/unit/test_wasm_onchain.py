@@ -1,4 +1,6 @@
 import asyncio
+import shutil
+import subprocess
 import time
 from pathlib import Path
 from runpy import run_path
@@ -532,6 +534,9 @@ def test_registry_sdk_and_permissions_expose_only_receive_and_status():
     sdk = generate(
         method_ids=[
             "wallet.list_user_wallets",
+            "wallet.balance",
+            "system.now",
+            "utils.currencies.convert",
             "onchain.reserve_address",
             "onchain.payment_status",
         ]
@@ -539,7 +544,102 @@ def test_registry_sdk_and_permissions_expose_only_receive_and_status():
     assert "walletType" in sdk and "receivingReady" in sdk
     assert "host.onchain.reserveAddress(input)" in sdk
     assert "host.onchain.paymentStatus(input)" in sdk
-    assert "receivedSat: number" in sdk
+    for field in ("receivedSat", "confirmedSat", "unconfirmedSat", "checkedAt"):
+        assert f"{field}: bigint" in sdk
+        assert f"{field}: number" not in sdk
+    assert "balanceSat: number" in sdk
+    assert "timestamp: number" in sdk
+    assert "amount: number" in sdk
+
+
+@pytest.fixture
+def onchain_sdk_consumer(tmp_path):
+    generate = run_path(
+        str(Path(__file__).parents[2] / "tools/codegen/extension_sdk_typescript.py")
+    )["generate_typescript_sdk"]
+    (tmp_path / "sdk.ts").write_text(
+        generate(method_ids=["onchain.payment_status"]), encoding="utf-8"
+    )
+    (tmp_path / "consumer.ts").write_text(
+        """import {createExtensionSdk} from './sdk.js';
+const expected = {
+  receivedSat: 9007199254740999n,
+  confirmedSat: 9007199254740993n,
+  unconfirmedSat: 6n,
+  checkedAt: 18446744073709551615n
+};
+const request = {
+  walletId: 'wallet', sourceId: 'source', checkoutId: 'checkout',
+  address: 'address', statusToken: 'token'
+};
+for (const paymentStatus of [() => expected, async () => expected]) {
+  const sdk = createExtensionSdk({onchain: {paymentStatus}});
+  const result = await sdk.onchain.paymentStatus(request);
+  if (result !== expected) throw new Error('SDK changed the host response');
+  const values = [result.receivedSat, result.confirmedSat,
+                  result.unconfirmedSat, result.checkedAt];
+  if (values.some(value => typeof value !== 'bigint')) {
+    throw new Error('SDK converted a bigint');
+  }
+  const total = result.confirmedSat + result.unconfirmedSat + 0n;
+  if (total !== result.receivedSat || total !== 9007199254740999n) {
+    throw new Error('Payment totals lost precision');
+  }
+  if (result.receivedSat - 1n !== 9007199254740998n ||
+      result.checkedAt + 1n !== 18446744073709551616n) {
+    throw new Error('Bigint arithmetic lost precision');
+  }
+}
+""",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_onchain_sdk_preserves_bigint_values(onchain_sdk_consumer):
+    node = shutil.which("node")
+    assert node is not None, "Node is required for SDK tests."
+    sdk = (onchain_sdk_consumer / "sdk.ts").read_text(encoding="utf-8")
+    factory = sdk[sdk.index("export function createExtensionSdk(") :]
+    # Erase only the factory's type annotations for Node 20; keep its body intact.
+    factory = factory.replace("host: ExtensionHost", "host", 1).replace(
+        "): ExtensionSdk {", ") {", 1
+    )
+    consumer = (onchain_sdk_consumer / "consumer.ts").read_text(encoding="utf-8")
+    result = subprocess.run(  # noqa: S603
+        [node, "--input-type=module", "-"],
+        input=factory + "\n" + consumer.split("\n", 1)[1],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_onchain_sdk_typescript_bigint_arithmetic(onchain_sdk_consumer):
+    tsc = shutil.which("tsc")
+    if tsc is None:
+        pytest.skip("TypeScript compiler is required for SDK type checking.")
+    result = subprocess.run(  # noqa: S603
+        [
+            tsc,
+            "--strict",
+            "--noEmit",
+            "--target",
+            "ES2020",
+            "--module",
+            "ES2022",
+            "--moduleResolution",
+            "bundler",
+            "--lib",
+            "ES2020",
+            str(onchain_sdk_consumer / "consumer.ts"),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.anyio

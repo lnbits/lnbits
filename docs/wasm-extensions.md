@@ -204,7 +204,9 @@ use kebab case; all request fields are strings except `status-token`, which is
 `option<string>`; a nonempty token is required for every status read. Reservation
 response fields are strings. Status response fields
 are `u64` (JavaScript WIT bindings use `BigInt`); `checked-at` is Unix seconds.
-The generated TypeScript SDK uses camel case names.
+The generated TypeScript SDK uses camel case names and declares all four status
+fields as `bigint`. It returns the host values unchanged; use bigint arithmetic
+such as `confirmedSat + unconfirmedSat` or `receivedSat + 1n`.
 
 `onchain.reserve_address` requires an authenticated wallet owner. The owner
 supplies extension-local source and checkout identifiers, thereby approving that

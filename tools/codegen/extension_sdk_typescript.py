@@ -105,6 +105,11 @@ def _render_model_type(model: type[BaseModel]) -> list[str]:
     for field_name, field in fields.items():
         optional = "?" if not field.is_required() else ""
         ts_type = _python_type_to_ts(field.annotation)
+        if (
+            isinstance(field.json_schema_extra, dict)
+            and field.json_schema_extra.get("format") == "uint64"
+        ):
+            ts_type = "bigint"
         lines.append(f"  {_camel(field_name)}{optional}: {ts_type}")
     lines.append("}")
     return lines

@@ -72,10 +72,10 @@ class OnchainPaymentStatusRequest(ReserveOnchainAddressRequest):
 
 
 class OnchainPaymentStatusResponse(BaseModel):
-    received_sat: int
-    confirmed_sat: int
-    unconfirmed_sat: int
-    checked_at: int
+    received_sat: int = Field(json_schema_extra={"format": "uint64"})
+    confirmed_sat: int = Field(json_schema_extra={"format": "uint64"})
+    unconfirmed_sat: int = Field(json_schema_extra={"format": "uint64"})
+    checked_at: int = Field(json_schema_extra={"format": "uint64"})
 
 
 class ExtensionOnchainAPI:
