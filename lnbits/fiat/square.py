@@ -1,6 +1,7 @@
 import asyncio
 import json
 from collections.abc import AsyncGenerator
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Literal
 
 import httpx
@@ -24,6 +25,8 @@ from .base import (
 )
 
 FiatMethod = Literal["checkout", "subscription"]
+
+SQUARE_ZERO_DECIMAL_CURRENCIES = {"JPY"}
 
 
 class SquareCheckoutOptions(BaseModel):
@@ -247,6 +250,20 @@ class SquareWallet(FiatProvider):
             value = await mock_queue.get()
             yield value
 
+    @classmethod
+    def amount_to_minor_units(cls, amount: float, currency: str) -> int:
+        scale = Decimal(10) ** cls.currency_exponent(currency)
+        return int((Decimal(str(amount)) * scale).quantize(Decimal("1"), ROUND_HALF_UP))
+
+    @classmethod
+    def minor_units_to_amount(cls, amount: int, currency: str) -> float:
+        scale = Decimal(10) ** cls.currency_exponent(currency)
+        return float(Decimal(amount) / scale)
+
+    @classmethod
+    def currency_exponent(cls, currency: str) -> int:
+        return 0 if currency.upper() in SQUARE_ZERO_DECIMAL_CURRENCIES else 2
+
     async def _get_order_status(self, order_id: str) -> FiatPaymentStatus:
         order = await self._get_order(order_id)
         payment_id = self._payment_id_from_order(order)
@@ -430,7 +447,7 @@ class SquareWallet(FiatProvider):
         opts: SquareCreateInvoiceOptions,
         memo: str | None = None,
     ) -> FiatInvoiceResponse:
-        amount_cents = int(amount * 100)
+        amount_minor = self.amount_to_minor_units(amount, currency)
         co = opts.checkout or SquareCheckoutOptions()
         success_url = (
             co.success_url
@@ -454,7 +471,7 @@ class SquareWallet(FiatProvider):
                         "name": line_item_name,
                         "quantity": "1",
                         "base_price_money": {
-                            "amount": amount_cents,
+                            "amount": amount_minor,
                             "currency": currency.upper(),
                         },
                     }

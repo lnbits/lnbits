@@ -637,6 +637,57 @@ async def test_square_wallet_create_invoice(settings: Settings):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "amount, currency, expected",
+    [
+        (19.99, "USD", 1999),
+        (4.35, "EUR", 435),
+        (1.1, "GBP", 110),
+        (15, "USD", 1500),
+        (1500, "JPY", 1500),
+    ],
+)
+async def test_square_wallet_create_invoice_minor_units(
+    settings: Settings, amount: float, currency: str, expected: int
+):
+    settings.square_api_endpoint = "https://connect.squareupsandbox.com"
+    settings.square_access_token = "square-token"
+    settings.square_location_id = "LOC123"
+    settings.square_api_version = "2026-01-22"
+
+    wallet = SquareWallet()
+    client = MockHTTPClient(
+        [
+            MockHTTPResponse(
+                json_data={
+                    "payment_link": {
+                        "order_id": "ORDER123",
+                        "url": "https://square.link/u/abc123",
+                    }
+                }
+            )
+        ]
+    )
+    wallet.client = client  # type: ignore[assignment]
+
+    response = await wallet.create_invoice(
+        amount=amount, payment_hash="hash123", currency=currency
+    )
+
+    assert response.ok is True
+    payload = client.calls[0][1]["json"]
+    assert payload["order"]["line_items"][0]["base_price_money"] == {
+        "amount": expected,
+        "currency": currency,
+    }
+
+
+def test_square_wallet_minor_units_to_amount():
+    assert SquareWallet.minor_units_to_amount(1999, "USD") == 19.99
+    assert SquareWallet.minor_units_to_amount(1500, "jpy") == 1500
+
+
+@pytest.mark.anyio
 async def test_square_wallet_create_subscription(settings: Settings):
     settings.lnbits_running = False
     settings.square_api_endpoint = "https://connect.squareupsandbox.com"
