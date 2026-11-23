@@ -185,7 +185,7 @@ async def api_put_stored_paylinks(
     return wallet.stored_paylinks.links
 
 
-@wallet_router.patch("")
+@wallet_router.patch("", response_model_exclude={"user"})
 async def api_update_wallet(
     name: str | None = Body(None),
     icon: str | None = Body(None),
@@ -276,7 +276,7 @@ async def api_create_wallet(
     )
 
 
-@wallet_router.get("/onchain", response_model_exclude={"adminkey", "inkey"})
+@wallet_router.get("/onchain", response_model_exclude={"adminkey", "inkey", "user"})
 async def api_wallets_retrieve(
     network: Literal["Mainnet", "Testnet", "Testnet4"] | None = Query(None),
     auth: OnchainAuth = Depends(require_onchain_read),
@@ -289,7 +289,7 @@ async def api_wallets_retrieve(
     return wallet
 
 
-@wallet_router.post("/onchain", response_model_exclude={"adminkey", "inkey"})
+@wallet_router.post("/onchain", response_model_exclude={"adminkey", "inkey", "user"})
 async def api_wallet_create_or_update(
     data: CreateOnchainWallet,
     auth: OnchainAuth = Depends(require_onchain_admin),

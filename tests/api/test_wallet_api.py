@@ -163,6 +163,7 @@ async def test_wallet_api_paginated_update_reset_and_store_paylinks(
         json={"icon": "bolt", "color": "amber", "pinned": True},
     )
     assert updated.status_code == 200
+    assert "user" not in updated.json()
     assert updated.json()["extra"]["icon"] == "bolt"
     assert updated.json()["extra"]["color"] == "amber"
     assert updated.json()["extra"]["pinned"] is True
