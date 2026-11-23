@@ -457,6 +457,25 @@ def test_settings_helper_methods(settings: Settings, mocker: MockerFixture):
     assert settings.is_ready_to_install_extension_id("installed") is False
 
 
+@pytest.mark.parametrize(
+    "seconds, expected",
+    [
+        (0, "00:00:00"),
+        (17, "00:00:17"),
+        (86399, "23:59:59"),
+        (86400, "1d 00:00:00"),
+        (9 * 86400 + 17, "9d 00:00:17"),
+    ],
+)
+def test_lnbits_server_up_time_includes_days(
+    settings: Settings, mocker: MockerFixture, seconds: int, expected: str
+):
+    mocker.patch.object(settings, "server_startup_time", 1_000_000)
+    mocker.patch("lnbits.settings.time", return_value=1_000_000 + seconds)
+
+    assert settings.lnbits_server_up_time == expected
+
+
 def test_asset_security_and_notification_helpers(
     settings: Settings, mocker: MockerFixture
 ):
