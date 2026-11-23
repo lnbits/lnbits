@@ -570,6 +570,38 @@ async def test_spark_invoice_uses_exact_terminal_status(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
+    ("provider_status", "expected"),
+    [(None, None), ("pending", None), ("failed", False), ("complete", True)],
+)
+async def test_spark_payment_uses_exact_terminal_status(
+    mocker: MockerFixture,
+    provider_status: str | None,
+    expected: bool | None,
+):
+    wallet = object.__new__(SparkWallet)
+    payment_hash = "01" * 32
+    pays = (
+        [
+            {
+                "payment_hash": payment_hash,
+                "status": provider_status,
+                "amount_msat": "1000msat",
+                "amount_sent_msat": "1001msat",
+                "preimage": "02" * 32,
+            }
+        ]
+        if provider_status is not None
+        else []
+    )
+    mocker.patch.object(wallet, "listpays", return_value={"pays": pays})
+
+    status = await wallet.get_payment_status(payment_hash)
+
+    assert status.paid is expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
     ("state", "expected"),
     [
         (boltzrpc_pb2.SwapState.ERROR, False),
