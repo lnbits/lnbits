@@ -229,7 +229,7 @@ async def hot_wallet_status(
 @onchain_router.post(
     "/hot-wallet",
     response_model=OnchainWallet,
-    response_model_exclude={"adminkey", "inkey"},
+    response_model_exclude={"adminkey", "inkey", "user"},
 )
 async def create_hot_wallet(
     data: NewHotWallet,
@@ -312,7 +312,7 @@ async def backup_hot_wallet(
 @onchain_router.post(
     "/hot-wallet/{wallet_id}/backup/confirm",
     response_model=OnchainWallet,
-    response_model_exclude={"adminkey", "inkey"},
+    response_model_exclude={"adminkey", "inkey", "user"},
 )
 async def confirm_backup(
     wallet_id: str,
