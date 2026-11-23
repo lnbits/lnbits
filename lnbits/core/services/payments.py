@@ -887,6 +887,9 @@ async def _pay_internal_invoice(
     ):
         raise PaymentError("Invalid invoice. Bolt11 changed.", status="failed")
 
+    if internal_invoice.extra.get("hold_invoice"):
+        return None
+
     fee_reserve_total_msat = fee_reserve_total(amount_msat, internal=True)
     create_payment_model.fee = abs(fee_reserve_total_msat)
 
