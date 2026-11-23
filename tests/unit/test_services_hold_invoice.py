@@ -34,6 +34,7 @@ async def upstream(monkeypatch):
     def handler(request):
         if request.url.path.endswith("/settle"):
             state["status"] = "success"
+            state["preimage"] = json.loads(request.content)["preimage"]
             return httpx.Response(200, json={"ok": True})
         if request.url.path.endswith("/cancel"):
             state["status"] = "failed"
@@ -41,9 +42,18 @@ async def upstream(monkeypatch):
         if request.method == "GET":
             return httpx.Response(
                 200,
-                json={"paid": state["status"] == "success", "status": state["status"]},
+                json={
+                    "paid": state["status"] == "success",
+                    "status": state["status"],
+                    "preimage": state.get("preimage"),
+                    "details": {"fee": 0},
+                },
             )
         data = json.loads(request.content)
+        if data.get("out"):
+            return httpx.Response(
+                201, json={"checking_id": decode(data["bolt11"]).payment_hash}
+            )
         return httpx.Response(
             201,
             json={"checking_id": data["payment_hash"], "bolt11": _invoice(data)},
@@ -116,6 +126,10 @@ async def test_hold_service_forwards_optional_fields(
 @pytest.mark.anyio
 @pytest.mark.parametrize("settle", [True, False])
 async def test_hold_service_accounting(recipient, upstream, settle, monkeypatch):
+    payer = await create_wallet(user_id=recipient.user)
+    await service.update_wallet_balance(wallet=payer, amount=2000)
+    pay = AsyncMock(wraps=upstream.pay_invoice)
+    monkeypatch.setattr(upstream, "pay_invoice", pay)
     preimage, payment_hash = random_secret_and_hash()
     payment = await service.create_invoice(
         wallet_id=recipient.id, amount=1000, memo="hold", payment_hash=payment_hash
@@ -137,6 +151,27 @@ async def test_hold_service_accounting(recipient, upstream, settle, monkeypatch)
 
     monkeypatch.setattr(upstream, "paid_invoices_stream", paid_invoices)
     monkeypatch.setattr(notifications, "send_ws_payment_notification", notify)
+
+    outgoing = await service.pay_invoice(
+        wallet_id=payer.id, payment_request=payment.bolt11
+    )
+    pay.assert_awaited_once_with(payment.bolt11, service.fee_reserve(1_000_000))
+    assert outgoing.pending and not outgoing.is_internal
+    assert not outgoing.preimage
+    balance = await get_wallet(payer.id)
+    assert balance and balance.balance_msat == (
+        1_000_000 - service.fee_reserve_total(1_000_000)
+    )
+
+    second_payer = await create_wallet(user_id=recipient.user)
+    await service.update_wallet_balance(wallet=second_payer, amount=2000)
+    with pytest.raises(ValueError, match="Payment already exists"):
+        await service.pay_invoice(
+            wallet_id=second_payer.id, payment_request=payment.bolt11
+        )
+    pay.assert_awaited_once()
+    balance = await get_wallet(second_payer.id)
+    assert balance and balance.balance_msat == 2_000_000
 
     # Upstream reports accepted HTLCs as unpaid/pending until settlement.
     payment = await service.update_pending_payment(payment)
@@ -178,6 +213,15 @@ async def test_hold_service_accounting(recipient, upstream, settle, monkeypatch)
     balance = await get_wallet(recipient.id)
     assert balance and balance.balance_msat == (1_000_000 if settle else 0)
     assert len(await get_payments(wallet_id=recipient.id, incoming=True)) == 1
+
+    outgoing = await service.update_pending_payment(outgoing)
+    assert outgoing.success if settle else outgoing.failed
+    if settle:
+        assert outgoing.preimage == preimage
+    balance = await get_wallet(payer.id)
+    assert balance and balance.balance_msat == (
+        1_000_000 - service.service_fee(1_000_000) if settle else 2_000_000
+    )
 
 
 def _invoice(data):
