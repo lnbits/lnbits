@@ -15,6 +15,10 @@ from ..wasm.loader import WasmExtension
 
 WASM_EXTENSION_CORE_ASSET_PREFIX = "_lnbits"
 WASM_EXTENSION_CORE_STATIC_ASSETS = {
+    "browser-sdk.mjs": (
+        "static/js/wasm-browser-sdk.mjs",
+        "text/javascript; charset=utf-8",
+    ),
     "bundle.min.css": ("static/bundle.min.css", "text/css; charset=utf-8"),
     "material-icons-v50.woff2": (
         "static/fonts/material-icons-v50.woff2",
@@ -54,13 +58,15 @@ WASM_EXTENSION_STATIC_MIME_TYPES = {
     ".jpeg": "image/jpeg",
     ".jpg": "image/jpeg",
     ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
+    ".wasm": "application/wasm",
     ".ogg": "audio/ogg",
     ".png": "image/png",
     ".webp": "image/webp",
     ".woff": "font/woff",
     ".woff2": "font/woff2",
 }
-WASM_EXTENSION_TEXT_STATIC_EXTENSIONS = {".css", ".js"}
+WASM_EXTENSION_TEXT_STATIC_EXTENSIONS = {".css", ".js", ".mjs"}
 WASM_EXTENSION_HTML_PREFIXES = (b"<!doctype", b"<html", b"<script")
 
 
@@ -87,6 +93,9 @@ class GuardedWasmExtensionStaticFiles(StaticFiles):
         response.headers["Content-Type"] = WASM_EXTENSION_STATIC_MIME_TYPES[suffix]
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Cache-Control"] = "no-store"
+        # Opaque sandbox origins need CORS for modules and WASM fetches. This
+        # applies only to public, allowlisted assets, never application APIs.
+        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
 
@@ -122,6 +131,7 @@ def _wasm_extension_core_asset_response(path: str) -> Response:
         response = Response(content=content, media_type=content_type)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Cache-Control"] = "no-store"
+        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
     asset_config = WASM_EXTENSION_CORE_STATIC_ASSETS.get(asset_name)
@@ -137,4 +147,5 @@ def _wasm_extension_core_asset_response(path: str) -> Response:
     response.headers["Content-Type"] = content_type
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return response

@@ -993,6 +993,39 @@ async def test_wasm_invocation_requires_installed_active_extension(
         await _active_installed_extension(cast(Any, extension))
 
 
+@pytest.mark.parametrize("capability", ["ui.network.https", "ui.network.websocket"])
+def test_browser_network_policies_require_explicit_origins_and_subset_grants(
+    capability,
+):
+    scheme = "https" if capability == "ui.network.https" else "wss"
+    origin = f"{scheme}://relay.example"
+    config = _wasm_config("demoext", [{"id": capability, "policies": [origin]}])
+    extension = make_installable_extension("demoext")
+    grant = ExtensionPermission(id=capability, policies=[origin + ":443/"])
+    assert (
+        validate_wasm_extension_permissions(extension, [grant], config)[0].id
+        == capability
+    )
+    grant.policies = [f"{scheme}://other.example"]
+    with pytest.raises(ValueError, match="broader policies"):
+        validate_wasm_extension_permissions(extension, [grant], config)
+    for policies in [
+        None,
+        [],
+        ["*"],
+        ["http://relay.example"],
+        [origin + "/path"],
+        [origin + "?query=1"],
+        [origin + ":0"],
+        [f"{scheme}://127.0.0.1"],
+        [f"{scheme}://user:pass@relay.example"],
+        [f"{scheme}://printer.local"],
+    ]:
+        config["permissions"][0]["policies"] = policies
+        with pytest.raises(ValueError):
+            validate_wasm_extension_permissions(extension, [], config)
+
+
 def _wasm_config(ext_id: str, permissions: list[dict]) -> dict:
     return {
         "id": ext_id,

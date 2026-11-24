@@ -4,6 +4,7 @@ window.WasmExtensionComponent = {
       <q-inner-loading :showing="loading && !frameUrl">
         <q-spinner-dots size="40px"></q-spinner-dots>
       </q-inner-loading>
+      <div ref="browserSurface" aria-label="Extension browser controls"></div>
       <q-banner v-if="error" class="q-ma-md bg-negative text-white">
         {{ error }}
       </q-banner>
@@ -18,6 +19,7 @@ window.WasmExtensionComponent = {
         allow="clipboard-write; autoplay; pointer-lock; fullscreen"
         allowfullscreen
         referrerpolicy="no-referrer"
+        @load="onFrameLoad"
       ></iframe>
       <q-dialog v-model="cameraPrompt.show" persistent>
         <q-card style="width: min(520px, calc(100vw - 32px)); max-width: 520px">
@@ -190,6 +192,9 @@ window.WasmExtensionComponent = {
         routeParams: {}
       },
       bridgePort: null,
+      browserSession: null,
+      frameLoaded: false,
+      bridgeConnected: false,
       themeObserver: null,
       lastTheme: '',
       cameraPrompt: {
@@ -394,6 +399,8 @@ window.WasmExtensionComponent = {
       this.loading = true
       this.error = ''
       this.frameUrl = ''
+      this.frameLoaded = false
+      this.bridgeConnected = false
       this.bridge = this.emptyBridge()
       this.allowedPaymentHashes.clear()
       this.rejectCameraPrompt('Camera scan cancelled.')
@@ -448,6 +455,54 @@ window.WasmExtensionComponent = {
     },
     extensionFrameWindow() {
       return this.$refs.frame?.contentWindow
+    },
+    onFrameLoad() {
+      if (this.frameLoaded) {
+        this.endBrowserFrame()
+        return
+      }
+      this.frameLoaded = true
+    },
+    endBrowserFrame() {
+      this.closeBridgePort()
+      this.frameUrl = ''
+      this.error = 'Browser session ended. Reload this page to start again.'
+    },
+    connectBrowser(reply, id) {
+      if (this.browserSession)
+        throw new Error('Browser session already connected.')
+      const channel = new MessageChannel()
+      const extensionId = this.bridge.extensionId
+      this.browserSession = Vue.markRaw(
+        new window.LNbitsBrowserSession({
+          port: channel.port1,
+          extensionId,
+          extensionName: this.extensionName || extensionId,
+          surface: this.$refs.browserSurface,
+          destroyFrame: () => this.endBrowserFrame(),
+          readPolicy: async () => {
+            const response = await fetch(
+              `/api/v1/ext/${encodeURIComponent(extensionId)}/_ui/browser-policy`,
+              {
+                credentials: 'omit',
+                cache: 'no-store',
+                signal: AbortSignal.timeout(10000)
+              }
+            )
+            if (!response.ok) throw new Error('Browser policy is unavailable.')
+            return response.json()
+          }
+        })
+      )
+      reply(
+        {
+          type: 'lnbits-extension:response',
+          id,
+          ok: true,
+          data: {port: channel.port2}
+        },
+        [channel.port2]
+      )
     },
     sendResponse(reply, id, payload) {
       reply({
@@ -1230,6 +1285,8 @@ window.WasmExtensionComponent = {
       }
     },
     closeBridgePort() {
+      this.browserSession?.close()
+      this.browserSession = null
       this.closePaymentSubscriptions()
       this.closeWebsocketSubscriptions()
       this.bridgePort?.close()
@@ -1521,6 +1578,10 @@ window.WasmExtensionComponent = {
       if (!message || message.type !== 'lnbits-extension:request') return
 
       try {
+        if (message.action === 'browser.connect') {
+          this.connectBrowser(reply, message.id)
+          return
+        }
         if (message.action === 'context') {
           this.sendResponse(reply, message.id, {
             ok: true,
@@ -1692,6 +1753,7 @@ window.WasmExtensionComponent = {
     },
     onWindowMessage(event) {
       if (event.source !== this.extensionFrameWindow()) return
+      if (event.origin !== 'null' || this.bridgeConnected) return
       const message = event.data
       if (!message || message.type !== 'lnbits-extension:connect') return
 
@@ -1699,11 +1761,13 @@ window.WasmExtensionComponent = {
       if (!port) return
 
       this.closeBridgePort()
+      this.bridgeConnected = true
       this.bridgePort = port
       this.lastTheme = ''
       this.bridgePort.addEventListener('message', portEvent => {
-        this.handleBridgeRequest(portEvent.data, response => {
-          port.postMessage(response)
+        if (this.bridgePort !== port) return
+        this.handleBridgeRequest(portEvent.data, (response, transfer = []) => {
+          if (this.bridgePort === port) port.postMessage(response, transfer)
         })
       })
       this.bridgePort.start()

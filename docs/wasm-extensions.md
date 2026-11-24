@@ -316,7 +316,9 @@ Sources: [API routing](../lnbits/core/wasm_ext/routes/api.py),
 The iframe has `sandbox allow-scripts allow-pointer-lock`, without
 `allow-same-origin`, `allow-forms`, or `allow-popups`. Its CSP permits scripts and
 styles only from the extension asset prefix, forbids inline scripts and
-`unsafe-eval`, and sets `connect-src 'none'` and `form-action 'none'`.
+JavaScript `unsafe-eval`, and sets `form-action 'none'`. `wasm-unsafe-eval` allows
+browser WASM compilation. `connect-src` permits only the extension asset prefix
+for loading modules; external networking requires the trusted broker.
 
 Consequences for implementation:
 
@@ -331,20 +333,25 @@ Consequences for implementation:
 - Use explicit button click handlers and bridge API calls for save actions.
   Use `type="button"` where appropriate. Do not depend on native form submission,
   including a submit button inside a Quasar form.
-- Direct `fetch`, XHR, browser WebSockets, workers, nested frames, and popup flows
-  are unavailable. Use the parent bridge for its supported operations.
+- Direct external `fetch`, XHR and WebSockets, nested frames, and popup flows
+  are unavailable. Blob workers inherit the iframe's CSP. Use the browser SDK
+  below for external networking, media, and a compatible worker bootstrap.
 - The opaque iframe does not share the parent's DOM, cookies, or normal origin
   storage. Use the session-storage bridge for transient UI state and host storage
   for durable state. Do not assume browser wallet or Nostr providers are injected.
 
 Allowed static file suffixes are `.css`, `.gif`, `.ico`, `.jpeg`, `.jpg`, `.js`,
-`.ogg`, `.png`, `.webp`, `.woff`, and `.woff2`. **SVG files, JSON files, HTML files,
-and WASM binaries are not served by the static asset route.** Use supported image
+`.mjs`, `.wasm`, `.ogg`, `.png`, `.webp`, `.woff`, and `.woff2`. WASM is served as
+`application/wasm`, and JS/modules as `text/javascript`, with `nosniff`. Only these
+public assets have credential-free CORS (`Access-Control-Allow-Origin: *`), so
+opaque frames can import modules and fetch WASM. **SVG, JSON, and HTML files
+are not served by the static asset route.** Use supported image
 formats, canvas, or bundled JavaScript data as appropriate. This restriction on
 SVG files is separate from generating DOM elements in JavaScript.
 
 Core exposes a small asset proxy at `/ext-assets/<id>/_lnbits/`: Vue, Quasar,
-QR-code JavaScript, bundled/Quasar CSS, and Material Icons CSS/font. Use its
+QR-code JavaScript, bundled/Quasar CSS, Material Icons CSS/font, and the optional
+`browser-sdk.mjs`. Use its
 allowlist rather than referencing arbitrary `/static/` paths.
 
 ### Parent bridge
@@ -393,6 +400,248 @@ their own CSP/CORS constraints. They do not relax the LNbits iframe policy;
 Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 [asset allowlist](../lnbits/core/wasm_ext/routes/assets.py),
 [parent bridge implementation](../lnbits/static/js/wasm-extension-component.js).
+
+## Session browser capabilities
+
+These capabilities run in the visitor's browser, including anonymous visitors to
+public extension pages. They add no Wasmtime imports, wallet access, backend
+network proxy, or payment approval. Core does not implement Iroh or a room server.
+
+| Permission             | Meaning                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `ui.network.https`     | Bounded HTTPS requests to explicit administrator-approved origins        |
+| `ui.network.websocket` | Binary WSS connections to explicit approved origins                      |
+| `ui.media.camera`      | Camera capture, recording and muted trusted preview                      |
+| `ui.media.microphone`  | Microphone capture and recording                                         |
+| `ui.media.screen`      | Browser screen/window picker for each capture, optionally selected audio |
+| `ui.media.playback`    | Trusted audio/video playback of extension-supplied encoded data          |
+
+Declare capabilities in `config.json`, using the existing installation permission
+flow. Network policies are exact origins, with no wildcards, credentials, query
+strings or paths (a trailing slash is accepted). Administrators may grant a subset
+of declared origins. Up to 32 origins per network permission are supported.
+
+```json
+{
+  "permissions": [
+    {
+      "id": "ui.network.https",
+      "policies": ["https://dns.iroh.link", "https://euc1-1.relay.n0.iroh.link"]
+    },
+    {
+      "id": "ui.network.websocket",
+      "policies": ["wss://euc1-1.relay.n0.iroh.link"]
+    },
+    {"id": "ui.media.camera"},
+    {"id": "ui.media.microphone"},
+    {"id": "ui.media.screen"},
+    {"id": "ui.media.playback"}
+  ]
+}
+```
+
+The destinations above are an **extension configuration example**, not core
+relay defaults. The extension supplies its defaults and settings UI. Alternative
+relays must fit the declared/admin-approved origins, then receive fresh runtime
+approval on this device. Changing the manifest requires the usual installation
+permission review. General capture never uses `ui.camera.scan_qr`.
+
+### Approval and lifetime
+
+The existing bridge accepts one connection from the actual opaque iframe window.
+It transfers a dedicated browser `MessagePort` to that frame. Server-supplied
+extension identity and installation policy determine what it may request; request
+fields claiming another identity, a grant ID, or prior approval have no authority.
+The public browser-policy endpoint exposes only the intersection of declared and
+administrator-granted browser capabilities, never wallet grants.
+
+The broker validates every requested capability/destination before showing a
+core-owned dialog. It displays the extension name and ID, plain-language access,
+and each external origin. `approve()` batches related permissions. Denial and
+Escape/cancellation return structured errors without starting an operation.
+Installation approval does **not** substitute for this runtime dialog.
+
+Grants live only in memory for the loaded frame, shared by its browser operations.
+They are not stored in cookies, local storage, user accounts, or the backend.
+Reload/navigation/reconnection starts a new session; another tab, participant or
+extension cannot reuse them. Camera and microphone still use browser permission
+prompts. Every screen capture opens a new trusted dialog and invokes
+`getDisplayMedia` synchronously from its Allow click, preserving activation.
+Browser denial/cancellation, absent/busy devices, unsupported APIs and stopped
+tracks are normal errors, not implicit permission.
+
+Core-owned **Stop sharing**, individual **Stop**, native playback controls, and
+**Revoke access** remain above the extension. Stop sharing ends capture tracks;
+revocation also closes connections, aborts HTTP, drops grants, clears playback
+and destroys the iframe (and thus its workers, contexts and URLs). Frame load,
+route changes, wrapper teardown and pagehide clean up the broker. SDK pagehide
+also signals unload; a 30-second heartbeat deadline covers abandoned ports.
+Policy is refreshed before control operations and every 10 seconds while active.
+Binary I/O requires a valid 30-second policy lease. Policy changes or refresh
+failure revoke the session; revocation is not instantaneous across other tabs.
+
+### Browser SDK and media path
+
+Import the core SDK from the extension's asset prefix:
+
+```js
+import {connectBrowser} from '/ext-assets/myextension/_lnbits/browser-sdk.mjs'
+const browser = await connectBrowser()
+const support = await browser.capabilities()
+
+await browser.approve([
+  {capability: 'ui.media.camera'},
+  {capability: 'ui.media.microphone'},
+  {capability: 'ui.media.playback'},
+  {
+    capability: 'ui.network.websocket',
+    destination: 'wss://euc1-1.relay.n0.iroh.link'
+  }
+])
+
+// Local preview appears in core UI; the extension receives only an opaque handle.
+const capture = await browser.capture({camera: true, microphone: true})
+const mimeType = 'video/webm;codecs=vp8,opus'
+const playback = await browser.playback(mimeType)
+capture.onData = buffer => playback.append(buffer) // local loopback example
+capture.onEvent = event => console.log(event.event, event.reason)
+await capture.record(mimeType)
+// Each participant calls capture themselves; an owner's grant cannot apply here.
+const screen = await browser.capture({screen: true, screenAudio: false})
+// Close individual resources, or stop the session and destroy this frame:
+await screen.close()
+await browser.stop()
+```
+
+Existing extension SDKs should use `attachBrowser(request)` instead of opening a
+second control bridge. `request(action, params)` must resolve `response.data` via
+structured clone without JSON-serializing the transferred port. The standalone
+`connectBrowser()` also exposes `.request(action, params)` for existing bridge
+operations. Payment/API actions retain their existing authentication and approval.
+
+Captured `MediaStream`s stay in core. `MediaRecorder` produces encoded WebM chunks
+(100 ms timeslices, up to 2 Mbps video and 96 kbps audio); transferable
+`ArrayBuffer`s travel over the separate data port, **not** the JSON control bridge.
+The sandbox may process them in JS/WASM, transfer them to its workers, encrypt and
+transport them. `onData` must finish consuming the chunk before its promise
+resolves: that returns receive credit. A slow or missing consumer closes the
+resource rather than accumulating media. MediaRecorder timeslices are not an
+exact clock and browsers may coalesce chunks.
+
+Received media is appended with `playback.append(buffer)` to core's `MediaSource`
+and native video/audio controls. Await each append. Playback requires compatible
+container initialization/codec data in order, and a user Play click if browser
+autoplay policy requires it. The extension handles framing, synchronization,
+late-join initialization/keyframes, multiplexing and codecs; arbitrary Iroh
+packets are not directly playable. No extension-provided script, HTML, WASM,
+AudioWorklet or decoder executes in the trusted parent.
+
+`capabilities()` reports supported capture/screen APIs, record/playback MIME
+lists and limits. Currently supported formats are WebM VP8+Opus, VP8-only, and
+Opus-only, subject to `MediaRecorder`/`MediaSource` support. Unsupported platforms
+must show a fallback message; SharedArrayBuffer/cross-origin isolation, raw
+sockets, WebRTC and arbitrary codec plugins are not provided.
+
+Use `browser.createWorker('/ext-assets/myextension/processor.mjs')` for sandboxed
+processing, and `browser.stopWorker(worker)` when finished. The SDK uses a classic
+blob worker with dynamic module import because Chromium rejects module blob
+workers in opaque origins. Bundle worker dependencies under the same asset prefix.
+Blob workers inherit the frame CSP; allowing workers does not grant networking.
+The SDK tracks four workers and revokes their blob URLs on disposal; malicious
+code cannot preserve workers after core destroys the frame. A data port can be
+transferred to a worker using exported `BrowserClient` there, with one client per
+port. Do not run two clients on the same port.
+
+### Generic network and resource API
+
+```js
+const response = await browser.https({
+  url: 'https://dns.iroh.link/pkarr/<endpoint-id>',
+  method: 'GET'
+}) // {status, headers, buffer}; ArrayBuffer body
+const socket = await browser.websocket(
+  'wss://euc1-1.relay.n0.iroh.link/relay',
+  []
+)
+socket.onEvent = event => {
+  // event.event: open or close; protocol, reason and closeCode where applicable
+}
+socket.onData = async buffer => {
+  /* consume binary data, then return credit */
+}
+// After the open event:
+await socket.send(new Uint8Array([1, 2, 3]).buffer)
+await socket.close()
+```
+
+HTTPS supports GET/HEAD/POST/PUT/PATCH/DELETE/OPTIONS, optional ArrayBuffer `body`,
+and only Accept/Content-Type headers. Requests use browser CORS, omit credentials
+and referrers, reject redirects, and time out after 15 seconds. The broker rejects
+LNbits' hostname even on another port, local names and private literal addresses.
+It does not resolve DNS on the backend: administrators must approve destinations
+they trust, and browser DNS/CORS/private-network protections still apply.
+Browser WebSockets can attach cookies for their approved external origin; they
+never receive LNbits keys or an extension-supplied authentication bypass.
+
+Limits per session: 12 total resources, 8 WSS connections, 4 concurrent HTTPS
+requests, 3 captures, 6 playback surfaces, and 8 pending browser requests.
+Individual binary messages are at most 1 MiB. HTTP responses and WSS send/receive
+buffers are at most 4 MiB. At most 16 unacknowledged receive packets are allowed.
+Playback holds at most 16 MiB, retains roughly 10 seconds behind playback, and
+closes if more than 15 seconds ahead or if an append stalls for 10 seconds.
+Transfer operations detach supplied ArrayBuffers; copy a WASM memory view first.
+
+SDK promises reject with `.code` and a safe message. Codes include `user_denied`,
+`cancelled`, `policy_denied`, `browser_denied`, `unsupported`, `device_missing`,
+`device_unavailable`, `invalid_handle`, `invalid_destination`, `limit_exceeded`,
+`slow_consumer`, `prompt_busy`, `revoked`, and `operation_failed`. Resource close
+events report `reason` (including `track_ended`, `network_error` or `timeout`).
+Handles are unguessable and looked up exclusively in the requesting session.
+
+### Supplying an Iroh adapter
+
+The [compatibility adapter](examples/iroh-browser-adapter.mjs) is **extension-side
+example code**, not a core dependency. It adapts the native WebSocket/fetch imports
+used by Iroh's `ws_stream_wasm` and reqwest WASM backends to this SDK. Install it
+inside the sandbox before initializing the WASM module. Pre-approve the configured
+relay WSS origins and any HTTPS discovery origins as a batch; libraries can start
+several requests concurrently. Iroh's default map also probes relay HTTPS origins;
+declare and approve those as well, and let the extension queue or retry requests
+when the broker's concurrency limit is reached. The adapter removes the default
+relay map's trailing DNS dot before matching declared origins.
+Copying the adapter to the trusted parent is
+unsupported and would violate the security boundary.
+
+The adapter preserves the response URL required by reqwest, asynchronous socket
+open/close events, binary delivery, send ordering and bounded local buffering.
+It copies WASM views before transfer. It is deliberately a small compatibility
+surface, not a complete browser WebSocket/fetch polyfill. A protocol library using
+other constructors, WebTransport, UDP, different headers, streaming HTTP, or
+shared memory needs its own compatible extension adapter/build.
+
+The reference investigation used Anagram only to identify its browser media and
+Iroh bindings; no Anagram implementation or binary is shipped or depended upon.
+Compatibility smoke work uses the independent upstream
+[Iroh browser echo example](https://github.com/n0-computer/iroh-examples/tree/main/browser-echo).
+The extension still owns endpoint keys, encryption, discovery/relay selection,
+room permissions, media framing, chat/reactions, moderation, admission and tips.
+Use existing LNbits payment APIs and payment approval flows for the latter.
+
+Compatibility smoke on 2026-11-24 used Chrome 158.0.8127.88 with isolated fake
+camera/microphone/screen devices. Trusted approval/denial, screen activation,
+camera recording, transferred chunks, native preview/playback, worker WASM,
+blocked direct networking/parent DOM access and revocation were exercised. Two
+upstream browser-echo endpoints exchanged 26 echoed bytes using public relays
+through the generic HTTPS/WSS broker. The downloaded upstream WASM SHA-256 was
+`b37e868d682718b54964908094d38adbf8b5b5fecfbcb8f5f5866091a7eda854`;
+neither that binary nor its dependencies are included in core. Physical devices,
+manual browser/OS permission prompts, other browsers, and a complete streaming
+application remain unverified. The fixture used core browser sources and the
+real iframe CSP, with isolated test policy responses.
+
+After changing the bundled frontend sources, rebuild assets using `make bundle`
+before running a production instance. Generated bundles are not source files to
+edit by hand.
 
 ## Permissions and execution context
 

@@ -8,6 +8,16 @@
   }
 
   function permissionLabel(permission, translateFn) {
+    const browserLabels = {
+      'ui.network.https': 'Browser HTTPS requests (session approval required)',
+      'ui.network.websocket': 'Browser WebSockets (session approval required)',
+      'ui.media.camera': 'Camera capture (session approval required)',
+      'ui.media.microphone': 'Microphone capture (session approval required)',
+      'ui.media.screen': 'Screen sharing (approval for every capture)',
+      'ui.media.playback': 'Audio/video playback (session approval required)'
+    }
+    if (Object.hasOwn(browserLabels, permission.id))
+      return browserLabels[permission.id]
     const key = permissionI18nKey(permission)
     const label = translate(translateFn, key)
     return label === key ? permission.id : label
@@ -77,6 +87,12 @@
   }
 
   function permissionRiskForPermission(permission, extensions, translateFn) {
+    if (
+      permission.id.startsWith('ui.media.') ||
+      permission.id.startsWith('ui.network.')
+    ) {
+      return mediumRisk(translateFn)
+    }
     if (
       ['wallet.pay_invoice', 'wallet.pay_invoice_background'].includes(
         permission.id
@@ -314,7 +330,11 @@
       }))
     }
 
-    if (permission.id === 'http.request') {
+    if (
+      ['http.request', 'ui.network.https', 'ui.network.websocket'].includes(
+        permission.id
+      )
+    ) {
       item.httpHosts = httpRequestPermissionHosts(permission)
     }
 

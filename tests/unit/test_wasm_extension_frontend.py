@@ -157,6 +157,7 @@ def test_wasm_frontend_bridge_validation_and_lifecycle():
             "tests/unit/wasm-document-bridge.test.cjs",
             "tests/unit/wasm-theme-bridge.test.cjs",
             "tests/unit/wasm-local-storage.test.cjs",
+            "tests/unit/wasm-browser.test.cjs",
         ],
         cwd=ROOT,
         capture_output=True,
