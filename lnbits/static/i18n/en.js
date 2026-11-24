@@ -752,6 +752,7 @@ window.localisation.en = {
   extension_permission_websocket_publish_limits: 'Publish limits',
   extension_permission_websocket_publish_max_messages_per_second:
     'Max messages per second',
+  extension_permission_websocket_connect: 'Connect to remote WebSocket servers',
   extension_permission_websocket_publish: 'Publish websocket messages',
   extension_permission_websocket_subscribe: 'Subscribe to websocket messages',
   extension_permission_wallet_payments_watch: 'Watch wallet payments',

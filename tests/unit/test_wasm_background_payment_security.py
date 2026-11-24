@@ -11,7 +11,7 @@ from lnbits.wallets.fake import FakeWallet
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("method", ["invoice", "lnurl", "lnurl_fetch"])
-@pytest.mark.parametrize("context", ["event", "schedule", "user"])
+@pytest.mark.parametrize("context", ["event", "schedule", "user", "websocket"])
 @pytest.mark.parametrize("owner", ["alice", "bob", None])
 async def test_background_payment_requires_invocation_wallet_owner(
     mocker, method, context, owner

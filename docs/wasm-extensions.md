@@ -417,6 +417,7 @@ Installation approval does not replace per-user wallet grants.
 | Another extension's API                        | `extension.api.request`; approved target/read-write policy and interactive account token     |
 | Core user notifications                        | `notifications.send_user_notification`; resolved user's saved channel settings               |
 | Server-published channel messages              | `websocket.publish`; approved rate policy                                                    |
+| Outbound WebSocket connections                 | `websocket.connect` in an admin-only extension, with an `events.onWebSocket` handler         |
 | Browser channel access                         | `websocket.subscribe`; parent-managed connection                                             |
 | User / shared schedules                        | `scheduler.user` / `scheduler.extension`; approved handler, cron, timezone                   |
 
@@ -667,9 +668,46 @@ payments from peer messages. The current hub is in-memory and process-local,
 not durable storage or a cross-worker message bus. Use authoritative API reads
 and polling/reconnection recovery where needed.
 
+### Outbound WebSockets for admin-only extensions
+
+Declare the `websocket.connect` permission and set `events.onWebSocket` to the
+name of a WASM export with `event` visibility. Once an administrator grants the
+permission, an authenticated action or a scheduled task can open a connection
+to a public `wss://` URL. LNbits validates the destination and verifies TLS.
+
+| Host import on `lnbits:extension/host` | Request fields                          | Response field          |
+| -------------------------------------- | --------------------------------------- | ----------------------- |
+| `websocket-open`                       | `url: string`, `name: option<string>`   | `connection-id: string` |
+| `websocket-send`                       | `connection-id: string`, `text: string` | `sent: bool`            |
+| `websocket-close`                      | `connection-id: string`                 | `closed: bool`          |
+
+Core keeps each connection open after the invocation returns. Within an
+extension and owner, concurrent opens with the same name and URL share a
+connection ID. Reusing a live name for a different URL fails. Unnamed opens
+create separate connections.
+
+The callback receives one JSON object per event. A text message has this shape.
+
+```json
+{"type": "message", "connectionId": "…", "text": "hello"}
+```
+
+Messages arrive in order per connection. The callback runs with the original
+owner's current background permissions and receives no login token. A close
+event carries `type: "closed"`, `connectionId`, numeric `code`, and `reason`.
+A binary message closes the socket with code 1003. The extension decides
+whether to reconnect.
+
+Each user gets eight open or connecting sockets per extension by default. User
+actions and user schedules share that quota. All extension-wide jobs share
+one separate quota. Administrators can change the limit in **WASM Limit Config**.
+As with other runtime limits, zero removes the cap. Connections are local to
+the LNbits process and close on disablement or shutdown.
+
 Sources: [HTTP client](../lnbits/core/wasm_ext/client/http.py),
 [extension API client](../lnbits/core/wasm_ext/client/extensions.py),
 [websocket channels and limits](../lnbits/core/wasm_ext/api/websockets.py),
+[outbound connections](../lnbits/core/wasm_ext/api/outbound_websockets.py),
 [parent bridge](../lnbits/static/js/wasm-extension-component.js).
 
 ## Resource limits
@@ -686,6 +724,7 @@ extension overrides. Design bounded work even when a deployment relaxes limits.
 | WASM stack                          | 1 MiB                                                   |
 | Component resources                 | 10,000 table elements, 8 instances, 10 tables, 1 memory |
 | Concurrent invocations, per process | 16 globally; 4 per extension; 4 per user                |
+| Outbound WebSockets per extension   | 8 per user and 8 shared by extension-wide jobs          |
 | Host calls per invocation           | 1,000 total; 100 storage; 20 HTTP; 20 wallet            |
 | Outbound HTTP                       | 5,000 ms timeout; 1 MiB response                        |
 

@@ -64,6 +64,7 @@ from lnbits.core.services.extensions import (
     update_wasm_extension_runtime_limits,
     validate_wasm_runtime_limit_overrides,
 )
+from lnbits.core.wasm_ext.api.outbound_websockets import outbound_websockets
 from lnbits.core.wasm_ext.api.permissions import (
     validate_extension_permissions,
     validate_wasm_extension_permissions,
@@ -394,6 +395,7 @@ async def api_disable_extension(
     logger.info(f"Disabling extension: {ext_id}.")
     user_ext.active = False
     await update_user_extension(user_ext)
+    await outbound_websockets.stop(ext_id, account_id.id)
     return SimpleStatus(success=True, message=f"Extension '{ext_id}' disabled.")
 
 
@@ -553,6 +555,8 @@ async def api_update_extension_permissions(
             allow_admin_policy_overrides=True,
         )
         await update_installed_extension(installed_ext)
+        if not any(p.id == "websocket.connect" for p in installed_ext.permissions):
+            await outbound_websockets.stop(ext_id)
     except ValueError as exc:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,

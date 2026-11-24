@@ -139,6 +139,23 @@ class StoragePaginatedResponse(BaseModel):
     total: int = 0
 
 
+class WebsocketOpenRequest(BaseModel):
+    url: str = Field(min_length=1, max_length=8192)
+    name: str | None = Field(None, min_length=1, max_length=128)
+
+
+class WebsocketConnectionId(BaseModel):
+    connection_id: str
+
+
+class WebsocketSendRequest(WebsocketConnectionId):
+    text: str
+
+
+class WebsocketCloseResponse(BaseModel):
+    closed: bool = True
+
+
 class WebsocketPublishRequest(BaseModel):
     item_id: str = Field(..., min_length=1, max_length=128)
     data: Any = Field(default_factory=dict)

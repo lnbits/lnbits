@@ -101,7 +101,7 @@
           )
         : mediumRisk(translateFn)
     }
-    if (permission.id === 'http.request') {
+    if (['http.request', 'websocket.connect'].includes(permission.id)) {
       return mediumRisk(translateFn)
     }
     if (permission.id === 'wallet.payments.watch') {
