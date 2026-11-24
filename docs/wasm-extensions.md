@@ -405,7 +405,8 @@ Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 
 These capabilities run in the visitor's browser, including anonymous visitors to
 public extension pages. They add no Wasmtime imports, wallet access, backend
-network proxy, or payment approval. Core does not implement Iroh or a room server.
+network proxy, or payment approval. Extensions implement their chosen protocols
+and application logic using these generic browser APIs.
 
 | Permission             | Meaning                                                                  |
 | ---------------------- | ------------------------------------------------------------------------ |
@@ -426,11 +427,11 @@ of declared origins. Up to 32 origins per network permission are supported.
   "permissions": [
     {
       "id": "ui.network.https",
-      "policies": ["https://dns.iroh.link", "https://euc1-1.relay.n0.iroh.link"]
+      "policies": ["https://api.example.com"]
     },
     {
       "id": "ui.network.websocket",
-      "policies": ["wss://euc1-1.relay.n0.iroh.link"]
+      "policies": ["wss://relay.example.com"]
     },
     {"id": "ui.media.camera"},
     {"id": "ui.media.microphone"},
@@ -440,11 +441,11 @@ of declared origins. Up to 32 origins per network permission are supported.
 }
 ```
 
-The destinations above are an **extension configuration example**, not core
-relay defaults. The extension supplies its defaults and settings UI. Alternative
-relays must fit the declared/admin-approved origins, then receive fresh runtime
-approval on this device. Changing the manifest requires the usual installation
-permission review. General capture never uses `ui.camera.scan_qr`.
+The destinations above are examples. Each extension supplies its default
+destinations and settings UI. Alternative destinations must fit the
+declared/admin-approved origins, then receive fresh runtime approval on this
+device. Changing the manifest requires the usual installation permission review.
+General capture never uses `ui.camera.scan_qr`.
 
 ### Approval and lifetime
 
@@ -495,7 +496,7 @@ await browser.approve([
   {capability: 'ui.media.playback'},
   {
     capability: 'ui.network.websocket',
-    destination: 'wss://euc1-1.relay.n0.iroh.link'
+    destination: 'wss://relay.example.com'
   }
 ])
 
@@ -532,7 +533,7 @@ Received media is appended with `playback.append(buffer)` to core's `MediaSource
 and native video/audio controls. Await each append. Playback requires compatible
 container initialization/codec data in order, and a user Play click if browser
 autoplay policy requires it. The extension handles framing, synchronization,
-late-join initialization/keyframes, multiplexing and codecs; arbitrary Iroh
+late-join initialization/keyframes, multiplexing and codecs; arbitrary network
 packets are not directly playable. No extension-provided script, HTML, WASM,
 AudioWorklet or decoder executes in the trusted parent.
 
@@ -556,13 +557,10 @@ port. Do not run two clients on the same port.
 
 ```js
 const response = await browser.https({
-  url: 'https://dns.iroh.link/pkarr/<endpoint-id>',
+  url: 'https://api.example.com/resources/<resource-id>',
   method: 'GET'
 }) // {status, headers, buffer}; ArrayBuffer body
-const socket = await browser.websocket(
-  'wss://euc1-1.relay.n0.iroh.link/relay',
-  []
-)
+const socket = await browser.websocket('wss://relay.example.com/stream', [])
 socket.onEvent = event => {
   // event.event: open or close; protocol, reason and closeCode where applicable
 }
@@ -598,46 +596,26 @@ SDK promises reject with `.code` and a safe message. Codes include `user_denied`
 events report `reason` (including `track_ended`, `network_error` or `timeout`).
 Handles are unguessable and looked up exclusively in the requesting session.
 
-### Supplying an Iroh adapter
+### Supplying a protocol adapter
 
-The [compatibility adapter](examples/iroh-browser-adapter.mjs) is **extension-side
-example code**, not a core dependency. It adapts the native WebSocket/fetch imports
-used by Iroh's `ws_stream_wasm` and reqwest WASM backends to this SDK. Install it
-inside the sandbox before initializing the WASM module. Pre-approve the configured
-relay WSS origins and any HTTPS discovery origins as a batch; libraries can start
-several requests concurrently. Iroh's default map also probes relay HTTPS origins;
-declare and approve those as well, and let the extension queue or retry requests
-when the broker's concurrency limit is reached. The adapter removes the default
-relay map's trailing DNS dot before matching declared origins.
-Copying the adapter to the trusted parent is
-unsupported and would violate the security boundary.
+An extension can adapt its chosen protocol library to `browser.https()` and
+`browser.websocket()`. Keep the adapter and protocol implementation inside the
+extension's sandbox or workers. Verify the library's network imports: an
+unmodified library using native `fetch` or `WebSocket` does not automatically use
+the bridge. Initialize the adapter before starting the library, and batch runtime
+approval for its declared HTTPS/WSS destinations.
 
-The adapter preserves the response URL required by reqwest, asynchronous socket
-open/close events, binary delivery, send ordering and bounded local buffering.
-It copies WASM views before transfer. It is deliberately a small compatibility
-surface, not a complete browser WebSocket/fetch polyfill. A protocol library using
-other constructors, WebTransport, UDP, different headers, streaming HTTP, or
-shared memory needs its own compatible extension adapter/build.
+Map the library's connection lifecycle, binary sends/receives and errors to the
+SDK, preserving send ordering and bounded buffering. Await data consumption before
+returning receive credit, copy WASM memory views before transfer, and queue or
+retry requests when concurrency limits are reached. If adapting HTTPS results to
+browser response objects, preserve metadata the library requires. Unsupported
+transport features require a compatible extension build.
 
-The reference investigation used Anagram only to identify its browser media and
-Iroh bindings; no Anagram implementation or binary is shipped or depended upon.
-Compatibility smoke work uses the independent upstream
-[Iroh browser echo example](https://github.com/n0-computer/iroh-examples/tree/main/browser-echo).
-The extension still owns endpoint keys, encryption, discovery/relay selection,
-room permissions, media framing, chat/reactions, moderation, admission and tips.
-Use existing LNbits payment APIs and payment approval flows for the latter.
-
-Compatibility smoke on 2026-11-24 used Chrome 158.0.8127.88 with isolated fake
-camera/microphone/screen devices. Trusted approval/denial, screen activation,
-camera recording, transferred chunks, native preview/playback, worker WASM,
-blocked direct networking/parent DOM access and revocation were exercised. Two
-upstream browser-echo endpoints exchanged 26 echoed bytes using public relays
-through the generic HTTPS/WSS broker. The downloaded upstream WASM SHA-256 was
-`b37e868d682718b54964908094d38adbf8b5b5fecfbcb8f5f5866091a7eda854`;
-neither that binary nor its dependencies are included in core. Physical devices,
-manual browser/OS permission prompts, other browsers, and a complete streaming
-application remain unverified. The fixture used core browser sources and the
-real iframe CSP, with isolated test policy responses.
+Test the integration under the actual iframe CSP, including denial, cancellation,
+slow consumers and revocation. The extension owns protocol identities, encryption,
+discovery, destination selection and application state. Existing LNbits payment
+APIs retain their separate authentication and approval flows.
 
 After changing the bundled frontend sources, rebuild assets using `make bundle`
 before running a production instance. Generated bundles are not source files to
