@@ -10,11 +10,13 @@ from pytest_mock.plugin import MockerFixture
 import lnbits.wallets.breez as breez_wallet_module
 import lnbits.wallets.breez_liquid as breez_liquid_wallet_module
 from lnbits.wallets.alby import AlbyWallet
-from lnbits.wallets.base import PaymentPendingStatus
+from lnbits.wallets.base import PaymentPendingStatus, PaymentStatus
 from lnbits.wallets.blink import BlinkWallet
 from lnbits.wallets.boltz import BoltzWallet
 from lnbits.wallets.boltz_grpc_files import boltzrpc_pb2
+from lnbits.wallets.clnrest import CLNRestWallet
 from lnbits.wallets.corelightning import CoreLightningWallet
+from lnbits.wallets.corelightningrest import CoreLightningRestWallet
 from lnbits.wallets.eclair import EclairWallet
 from lnbits.wallets.lnd_grpc_files.lightning_pb2 import Payment as LndPayment
 from lnbits.wallets.lndgrpc import LndWallet
@@ -258,7 +260,7 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    ("error", "expected"),
+    ("error", "status_after_error", "expected"),
     [
         (
             {
@@ -266,6 +268,7 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
                 "message": "destination is not reachable",
                 "attempts": [{"status": "failed"}],
             },
+            None,
             False,
         ),
         (
@@ -275,22 +278,31 @@ async def test_lndgrpc_in_flight_payment_is_pending(mocker: MockerFixture, setti
                 "attempts": [{"status": "pending"}],
             },
             None,
+            None,
         ),
-        ({"code": 0, "message": "unclassified RPC error"}, None),
-        ({"code": 205, "message": "unable to find a route"}, False),
+        ({"code": 0, "message": "unclassified RPC error"}, None, None),
+        ({"code": 203, "message": "permanent failure at destination"}, None, None),
+        ({"code": 203, "message": "permanent failure at destination"}, False, False),
+        ({"code": 205, "message": "unable to find a route"}, None, False),
     ],
 )
 async def test_corelightning_only_terminal_rpc_errors_are_failed(
     mocker: MockerFixture,
+    settings,
     error: dict,
+    status_after_error: bool | None,
     expected: bool | None,
 ):
-    wallet = object.__new__(CoreLightningWallet)
-    wallet.pay = "pay"
-    wallet.pay_failure_error_codes = [-32602, 201, 203, 205, 206, 207, 210]
-    cast(Any, wallet).ln = SimpleNamespace(
-        call=mocker.Mock(side_effect=RpcError("pay", {}, cast(Any, error)))
+    settings.corelightning_rpc = "lightning-rpc"
+    mocker.patch(
+        "lnbits.wallets.corelightning.LightningRpc",
+        return_value=SimpleNamespace(
+            help=mocker.Mock(return_value={"help": [{"command": "invoice"}]}),
+            listinvoices=mocker.Mock(return_value={"invoices": []}),
+            call=mocker.Mock(side_effect=RpcError("pay", {}, cast(Any, error))),
+        ),
     )
+    wallet = CoreLightningWallet()
     mocker.patch(
         "lnbits.wallets.corelightning.bolt11_decode",
         return_value=SimpleNamespace(
@@ -300,10 +312,49 @@ async def test_corelightning_only_terminal_rpc_errors_are_failed(
         ),
     )
     mocker.patch.object(
-        wallet, "get_payment_status", return_value=PaymentPendingStatus()
+        wallet,
+        "get_payment_status",
+        side_effect=[PaymentPendingStatus(), PaymentStatus(paid=status_after_error)],
     )
 
     response = await wallet.pay_invoice("bolt11", 1_000)
+
+    assert response.ok is expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("wallet_class", [CLNRestWallet, CoreLightningRestWallet])
+@pytest.mark.parametrize(("code", "expected"), [(203, None), (205, False)])
+async def test_cln_rest_payment_error_classification(
+    mocker: MockerFixture, settings, wallet_class, code, expected
+):
+    settings.clnrest_url = "https://wallet.test"
+    settings.clnrest_readonly_rune = "read"
+    settings.clnrest_pay_rune = "pay"
+    settings.clnrest_renepay_rune = None
+    settings.corelightning_rest_url = "https://wallet.test"
+    settings.corelightning_rest_macaroon = "test-macaroon"
+    client = SimpleNamespace(
+        post=mocker.AsyncMock(
+            return_value=_response(
+                500, json={"error": {"code": code, "message": "payment error"}}
+            )
+        )
+    )
+    mocker.patch.object(CLNRestWallet, "_create_client", return_value=client)
+    mocker.patch(
+        "lnbits.wallets.corelightningrest.httpx.AsyncClient", return_value=client
+    )
+    mocker.patch(
+        "lnbits.wallets.corelightningrest.load_macaroon", return_value="test-macaroon"
+    )
+    for module in ("clnrest", "corelightningrest"):
+        mocker.patch(
+            f"lnbits.wallets.{module}.decode",
+            return_value=SimpleNamespace(amount_msat=1_000, description=""),
+        )
+
+    response = await wallet_class().pay_invoice("bolt11", 1_000)
 
     assert response.ok is expected
 
