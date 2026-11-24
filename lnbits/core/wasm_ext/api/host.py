@@ -14,7 +14,7 @@ from loguru import logger
 
 from lnbits.core.models.payments import Payment, PaymentExtensionContext
 from lnbits.core.models.users import Account, UserNotifications
-from lnbits.core.models.wallets import Wallet
+from lnbits.core.models.wallets import Wallet, WalletType
 from lnbits.helpers import sha256s
 
 from ..client.extensions import send_extension_api_request
@@ -48,6 +48,7 @@ from .models import (
     InvoiceStatusRequest,
     InvoiceStatusResponse,
     ListFiatProvidersResponse,
+    ListUserWalletsRequest,
     ListUserWalletsResponse,
     LogRequest,
     LogResponse,
@@ -106,8 +107,10 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
+        from .onchain import ExtensionOnchainAPI
         from .utils import ExtensionAPIUtils
 
+        self.onchain = ExtensionOnchainAPI(self)
         self.scheduler = ExtensionSchedulerAPI(self)
         self.utils = ExtensionAPIUtils(
             self.extension_id,
@@ -635,26 +638,43 @@ class ExtensionHostAPI:
         required_permission="wallet.list",
     )
     async def wallet_list_user_wallets(
-        self, request: EmptyRequest
+        self, request: ListUserWalletsRequest
     ) -> ListUserWalletsResponse:
+        from lnbits.core.crud.wallets import get_wallets
+
         if not self.user_id:
             raise PermissionError(
                 "Listing user wallets requires an authenticated user context."
             )
 
-        from lnbits.core.crud.wallets import get_wallets
-
-        user_wallets = await get_wallets(self.user_id)
-        if user_wallets is None:
-            raise PermissionError(
-                "Listing user wallets requires an authenticated user context."
-            )
-        return ListUserWalletsResponse(
-            wallets=[
-                UserWalletSummary(id=w.id, name=w.name, currency=w.currency)
-                for w in user_wallets
-            ]
+        wallets = await get_wallets(
+            self.user_id,
+            wallet_type=(
+                WalletType(request.wallet_type)
+                if request.wallet_type is not None
+                else None
+            ),
         )
+        summaries = []
+        for wallet in wallets:
+            if wallet.user != self.user_id or wallet.deleted:
+                raise PermissionError("Listing this wallet is not allowed.")
+            ready = (
+                await self.onchain.receiving_ready(wallet.id)
+                if wallet.is_onchain_wallet
+                else wallet.can_receive_payments
+            )
+            summaries.append(
+                UserWalletSummary(
+                    id=wallet.id,
+                    name=wallet.name,
+                    currency=wallet.currency,
+                    wallet_type=wallet.wallet_type,
+                    onchain_network=wallet.onchain_network,
+                    receiving_ready=ready,
+                )
+            )
+        return ListUserWalletsResponse(wallets=summaries)
 
     @extension_api_method(
         method_id="wallet.balance",

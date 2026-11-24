@@ -9,7 +9,7 @@ from lnbits.core.models.payments import PaymentExtensionContext
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.models import (
     CreateInvoicePublicRequest,
-    EmptyRequest,
+    ListUserWalletsRequest,
     PayInvoiceRequest,
     PayLnurlRequest,
     StorageAppendPublicRequest,
@@ -452,16 +452,26 @@ async def test_host_api_wallet_methods_require_permissions_and_user_wallets(
 ):
     api_without_permission = ExtensionHostAPI("demoext", [], user_id="user-1")
     with pytest.raises(PermissionError, match="wallet.list"):
-        await api_without_permission.wallet_list_user_wallets(EmptyRequest())
+        await api_without_permission.wallet_list_user_wallets(ListUserWalletsRequest())
 
-    wallet = SimpleNamespace(id="wallet-1", name="Wallet", currency="USD")
+    wallet = SimpleNamespace(
+        id="wallet-1",
+        name="Wallet",
+        currency="USD",
+        user="user-1",
+        deleted=False,
+        can_receive_payments=True,
+        is_onchain_wallet=False,
+        wallet_type="lightning",
+        onchain_network=None,
+    )
     mocker.patch(
         "lnbits.core.crud.wallets.get_wallets",
         mocker.AsyncMock(return_value=[wallet]),
     )
     api = ExtensionHostAPI("demoext", ["wallet.list"], user_id="user-1")
 
-    response = await api.wallet_list_user_wallets(EmptyRequest())
+    response = await api.wallet_list_user_wallets(ListUserWalletsRequest())
 
     assert response.wallets[0].id == "wallet-1"
     assert response.wallets[0].name == "Wallet"

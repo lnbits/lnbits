@@ -18,6 +18,7 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "ext.storage.read_public",
     "extension.api.request",
     "http.request",
+    "onchain.reserve_address_public",
     "scheduler.user",
     "scheduler.extension",
     "wallet.create_invoice_public",
@@ -175,6 +176,10 @@ def _permission_grant_is_subset(
         return _public_fiat_invoice_sources(granted.policies).issubset(
             _public_fiat_invoice_sources(requested.policies)
         )
+    if requested.id == "onchain.reserve_address_public":
+        return _public_onchain_reservation_sources(granted.policies).issubset(
+            _public_onchain_reservation_sources(requested.policies)
+        )
     checker = {
         "http.request": _http_request_grant_is_subset,
         "extension.api.request": _extension_api_grant_is_subset,
@@ -192,6 +197,8 @@ def _validate_requested_permission_policies(
     for permission in permissions:
         if permission.id == "wallet.create_fiat_invoice_public":
             _public_fiat_invoice_sources(permission.policies)
+        if permission.id == "onchain.reserve_address_public":
+            _public_onchain_reservation_sources(permission.policies)
         if permission.id in {"scheduler.user", "scheduler.extension"}:
             try:
                 policies = SchedulePolicy.parse_policies(
@@ -511,4 +518,36 @@ def _public_fiat_invoice_sources(
         if not all(isinstance(value, str) and value for value in fields):
             raise ValueError("Invalid public fiat invoice source fields.")
         sources.add(fields)
+    return sources
+
+
+def _public_onchain_reservation_sources(
+    policies: list[Any] | None,
+) -> set[tuple[str, str, str]]:
+    if not isinstance(policies, list) or not policies:
+        raise ValueError("Public onchain reservations require checkout policies.")
+    sources: set[tuple[str, str, str]] = set()
+    tables: set[str] = set()
+    for policy in policies:
+        if not isinstance(policy, dict) or set(policy) != {
+            "table",
+            "wallet_field",
+            "source_id_field",
+        }:
+            raise ValueError("Invalid public onchain checkout policy.")
+        table, wallet_field, source_id_field = (
+            policy[key] for key in ("table", "wallet_field", "source_id_field")
+        )
+        if (
+            not all(
+                isinstance(value, str) and value.strip()
+                for value in (table, wallet_field, source_id_field)
+            )
+            or table in tables
+            or wallet_field in {"id", _OWNER_ID_FIELD}
+            or source_id_field in {wallet_field, _OWNER_ID_FIELD}
+        ):
+            raise ValueError("Invalid public onchain checkout fields.")
+        tables.add(table)
+        sources.add((table, wallet_field, source_id_field))
     return sources

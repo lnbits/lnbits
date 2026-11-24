@@ -37,6 +37,8 @@ from lnbits.core.services.extensions import (
     stop_wasm_invocation,
     uninstall_extension,
 )
+from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
+from lnbits.core.wasm_ext.api.runtime import ExtensionAPIHost
 from lnbits.core.wasm_ext.wasm.component import _wasm_engine
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
@@ -844,6 +846,112 @@ async def test_wasm_invocation_host_call_limits(mocker: MockerFixture):
         record_wasm_invocation_host_call(invocation.id, "storage.get")
 
     await finish_wasm_invocation(invocation.id, status="failed")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "first_method, second_method, limit_name",
+    [
+        ("onchain.reserve_address", "onchain.reserve_address", "wallet"),
+        ("onchain.reserve_address_public", "onchain.reserve_address_public", "wallet"),
+        ("onchain.payment_status", "onchain.payment_status", "wallet"),
+        ("wallet.list_user_wallets", "onchain.reserve_address", "wallet"),
+        ("onchain.payment_status", "wallet.list_user_wallets", "wallet"),
+        ("onchain.reserve_address", "onchain.payment_status", "host"),
+        ("onchain.reserve_address_public", "system.now", "host"),
+    ],
+)
+async def test_wasm_onchain_host_call_limits(
+    mocker: MockerFixture, first_method: str, second_method: str, limit_name: str
+):
+    _reset_wasm_invocation_state()
+    for function in (
+        "ensure_wasm_invocation_monitoring_ready",
+        "create_wasm_invocation",
+        "update_wasm_invocation",
+    ):
+        mocker.patch.object(extension_services, function, mocker.AsyncMock())
+    limits = extension_services.wasm_runtime_limit_defaults()
+    limits["wasm_runtime_max_host_calls"] = 10
+    limits["wasm_runtime_max_wallet_calls"] = 10
+    limits[f"wasm_runtime_max_{limit_name}_calls"] = 1
+    invocation = await start_wasm_invocation(
+        extension_id="demoext", export_name="checkout", runtime_limits=limits
+    )
+    api = ExtensionHostAPI("demoext", [], invocation_id=invocation.id)
+    host = ExtensionAPIHost(api)
+    checkout = {
+        "wallet_id": "wallet-1",
+        "source_id": "terminal-1",
+        "checkout_id": "checkout-1",
+    }
+    reservation = {
+        "address": "address-1",
+        "network": "Testnet4",
+        "status_token": "token-1",
+    }
+    requests = {
+        "onchain.reserve_address": checkout,
+        "onchain.reserve_address_public": {
+            "table": "checkouts",
+            "source_id": "terminal-1",
+            "checkout_id": "checkout-1",
+        },
+        "onchain.payment_status": {
+            **checkout,
+            "address": reservation["address"],
+            "status_token": reservation["status_token"],
+        },
+        "wallet.list_user_wallets": {},
+        "system.now": {},
+    }
+    handlers = {
+        "onchain.reserve_address": mocker.patch.object(
+            api.onchain, "reserve_address", mocker.AsyncMock(return_value=reservation)
+        ),
+        "onchain.reserve_address_public": mocker.patch.object(
+            api.onchain,
+            "reserve_address_public",
+            mocker.AsyncMock(return_value=reservation),
+        ),
+        "onchain.payment_status": mocker.patch.object(
+            api.onchain,
+            "payment_status",
+            mocker.AsyncMock(
+                return_value={
+                    "received_sat": 0,
+                    "confirmed_sat": 0,
+                    "unconfirmed_sat": 0,
+                    "checked_at": 0,
+                }
+            ),
+        ),
+        "wallet.list_user_wallets": mocker.patch.object(
+            api,
+            "wallet_list_user_wallets",
+            mocker.AsyncMock(return_value={"wallets": []}),
+        ),
+        "system.now": mocker.patch.object(
+            api, "system_now", mocker.AsyncMock(return_value={"timestamp": 0})
+        ),
+    }
+    try:
+        await host.invoke(first_method, requests[first_method])
+        handlers[first_method].assert_awaited_once()
+        message = (
+            "^WASM wallet host call limit exceeded\\.$"
+            if limit_name == "wallet"
+            else "^WASM host call limit exceeded\\.$"
+        )
+        with pytest.raises(ValueError, match=message):
+            await host.invoke(second_method, requests[second_method])
+
+        assert invocation.host_call_count == 2
+        for method, handler in handlers.items():
+            assert handler.call_count == int(method == first_method)
+            assert handler.await_count == int(method == first_method)
+    finally:
+        await finish_wasm_invocation(invocation.id, status="failed")
 
 
 @pytest.mark.anyio
