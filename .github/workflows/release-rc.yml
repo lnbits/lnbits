@@ -10,14 +10,19 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
 
   release:
     runs-on: ubuntu-24.04
+    # gh release create
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
       - name: Verify tag matches package version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -62,13 +67,15 @@ jobs:
     if: github.repository == 'lnbits/lnbits'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.10"
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
       - name: Build the project
         run: uv build
       - name: Publish to pypi
@@ -78,18 +85,27 @@ jobs:
 
   appimage:
     needs: [ release ]
+    # appimage.yml attaches the AppImage to the release
+    permissions:
+      contents: write
     uses: ./.github/workflows/appimage.yml
     with:
       tag_name: ${{ github.ref_name }}
 
   windows:
     needs: [ release ]
+    # windows.yml attaches the executable to the release
+    permissions:
+      contents: write
     uses: ./.github/workflows/windows.yml
     with:
       tag_name: ${{ github.ref_name }}
 
   macos:
     needs: [ release ]
+    # macos.yml attaches the DMGs to the release
+    permissions:
+      contents: write
     uses: ./.github/workflows/macos.yml
     with:
       tag_name: ${{ github.ref_name }}

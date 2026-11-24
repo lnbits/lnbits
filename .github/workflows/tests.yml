@@ -23,6 +23,9 @@ on:
       CODECOV_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ${{ inputs.os-version }}
@@ -44,7 +47,9 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install PostgreSQL 18 client
         if: ${{ inputs.db-url != '' }}
@@ -55,12 +60,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends postgresql-client-18
           echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
 
-      - uses: ./.github/actions/prepare
+      - uses: $/.github/actions/prepare
         with:
           python-version: ${{ inputs.python-version }}
 
       - name: Run pytest
-        uses: pavelzw/pytest-action@v2
+        uses: pavelzw/pytest-action@v2.2.0
         env:
           LNBITS_DATABASE_URL: ${{ inputs.db-url }}
           LNBITS_BACKEND_WALLET_CLASS: FakeWallet
@@ -75,7 +80,7 @@ jobs:
           report-title: "test (${{ inputs.python-version }}, ${{ inputs.db-url }})"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@v7.1.1
         with:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}

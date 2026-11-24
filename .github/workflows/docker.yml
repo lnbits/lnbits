@@ -17,27 +17,32 @@ on:
       DOCKER_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   push_to_dockerhub:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.7.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v3.7.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.4.0
         with:
             context: .
             push: true
@@ -47,7 +52,7 @@ jobs:
             cache-to: type=gha,mode=max,scope=lnbits
 
       - name: Build and push boltz
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.4.0
         with:
             context: docker/boltzclient
             push: true
@@ -58,7 +63,7 @@ jobs:
             build-args: LNBITS_TAG=${{ inputs.tag }}
 
       - name: Build and push sparkl2
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.4.0
         with:
             context: docker/sparkl2
             push: true

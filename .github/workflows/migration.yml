@@ -8,6 +8,9 @@ on:
         type: string
         default: "3.10"
 
+permissions:
+  contents: read
+
 jobs:
   make:
     name: migration (${{ inputs.python-version }})
@@ -30,8 +33,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/prepare
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/prepare
         with:
           python-version: ${{ inputs.python-version }}
       - run: make test-migration
