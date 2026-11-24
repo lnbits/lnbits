@@ -7,6 +7,7 @@ from typing import cast
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.routing import APIRoute
 
 from lnbits.core.wasm_ext.routes.api import (
     WasmRequestBodyTooLargeError,
@@ -163,7 +164,12 @@ def test_wasm_frame_csp_is_locked_to_extension_assets(tmp_path: Path):
 
     assert "sandbox allow-scripts" in csp
     assert "default-src 'none'" in csp
-    assert "connect-src 'none'" in csp
+    assert "connect-src http://testserver/ext-assets/demoext/;" in csp
+    assert "script-src http://testserver/ext-assets/demoext/ 'wasm-unsafe-eval';" in csp
+    assert "worker-src blob:;" in csp
+    assert "allow-same-origin" not in csp
+    assert "'unsafe-eval'" not in csp
+    assert "https:" not in csp
     assert "frame-ancestors 'self'" in csp
     assert "http://testserver/ext-assets/demoext/" in csp
 
@@ -586,6 +592,90 @@ def test_wasm_static_core_assets_and_html_like_text_assets_are_guarded(tmp_path:
     with pytest.raises(HTTPException) as html_like:
         _reject_html_like_wasm_static_asset(script_path)
     assert html_like.value.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_public_browser_policy_contains_only_declared_admin_browser_grants(
+    tmp_path, mocker
+):
+    from types import SimpleNamespace
+
+    from lnbits.core.models.extensions import ExtensionPermission
+
+    extension = _wasm_extension(tmp_path)
+    extension.config.permissions = [
+        ExtensionPermission(id="ui.media.camera"),
+        ExtensionPermission(
+            id="ui.network.websocket", policies=["wss://relay.example"]
+        ),
+    ]
+    installed = SimpleNamespace(
+        active=True,
+        permissions=[
+            *extension.config.permissions,
+            ExtensionPermission(id="ui.media.microphone"),
+            ExtensionPermission(id="wallet.pay_invoice"),
+        ],
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.routes.ui.get_installed_extension", return_value=installed
+    )
+    registry = mocker.patch(
+        "lnbits.core.wasm_ext.routes.ui.core_app_extra.wasm_extension_registry.get",
+        return_value=extension,
+    )
+    mocker.patch(
+        "lnbits.core.wasm_ext.routes.ui.settings.lnbits_extensions_deactivate_all",
+        False,
+    )
+    (tmp_path / "index.html").write_text("<!doctype html>")
+    app = FastAPI()
+    register_wasm_extension_ui_routes(app, extension)
+    route = next(
+        route
+        for route in app.routes
+        if isinstance(route, APIRoute) and route.path.endswith("/_ui/browser-policy")
+    )
+    response = await route.endpoint()
+    assert response.headers["cache-control"] == "no-store"
+    assert json.loads(response.body) == {
+        "permissions": {
+            "ui.media.camera": [],
+            "ui.network.websocket": ["wss://relay.example"],
+        }
+    }
+    installed.active = False
+    with pytest.raises(HTTPException) as denied:
+        await route.endpoint()
+    assert denied.value.status_code == 403
+    installed.active = True
+    registry.return_value = None
+    with pytest.raises(HTTPException):
+        await route.endpoint()
+
+
+@pytest.mark.anyio
+async def test_browser_module_assets_have_scoped_cors_and_mime_types(tmp_path):
+    from lnbits.core.wasm_ext.routes.assets import GuardedWasmExtensionStaticFiles
+
+    (tmp_path / "module.wasm").write_bytes(b"\x00asm\x01\x00\x00\x00")
+    (tmp_path / "worker.mjs").write_text("export const value = 1")
+    assets = GuardedWasmExtensionStaticFiles(directory=tmp_path)
+    scope = {"type": "http", "method": "GET", "headers": []}
+    for name, mime in [
+        ("module.wasm", "application/wasm"),
+        ("worker.mjs", "text/javascript; charset=utf-8"),
+    ]:
+        response = await assets.get_response(name, scope)
+        assert response.headers["content-type"] == mime
+        assert response.headers["access-control-allow-origin"] == "*"
+        assert "access-control-allow-credentials" not in response.headers
+        assert response.headers["x-content-type-options"] == "nosniff"
+    for name in ["config.json", "frame.html", "image.svg"]:
+        with pytest.raises(HTTPException):
+            await assets.get_response(name, scope)
+    sdk = _wasm_extension_core_asset_response("_lnbits/browser-sdk.mjs")
+    assert sdk.headers["access-control-allow-origin"] == "*"
 
 
 class _FakeRequest:

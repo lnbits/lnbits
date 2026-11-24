@@ -7,6 +7,7 @@ from typing import Any, TypeVar, cast, get_type_hints
 
 from pydantic import BaseModel
 
+from ..browser import BROWSER_PERMISSIONS
 from .models import ExtensionAPIMethod, ExtensionAPIMethodExport
 
 _EXTENSION_API_METHOD_ATTR = "__lnbits_extension_api_method__"
@@ -110,6 +111,7 @@ def extension_api_permission_ids(api_cls: type[Any] | None = None) -> set[str]:
         if method.required_permission
     }
     permissions.update(_EXTENSION_RUNTIME_PERMISSION_IDS)
+    permissions.update(BROWSER_PERMISSIONS)
     return permissions
 
 

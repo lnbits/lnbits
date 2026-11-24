@@ -164,6 +164,7 @@
       "js/components/lnbits-label-selector.js",
       "js/components/extension-settings.js",
       "js/components.js",
+      "js/wasm-browser.js",
       "js/wasm-extension-component.js",
       "js/components/onchain/address-list.js",
       "js/components/onchain/fee-rate.js",

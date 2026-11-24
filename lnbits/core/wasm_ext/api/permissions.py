@@ -7,6 +7,10 @@ from lnbits.core.wasm_ext.api.registry import extension_api_permission_ids
 from lnbits.core.wasm_ext.api.websockets import (
     WEBSOCKET_PUBLISH_MAX_MESSAGES_PER_SECOND_LIMIT,
 )
+from lnbits.core.wasm_ext.browser import (
+    BROWSER_NETWORK_PERMISSIONS,
+    browser_policy_origins,
+)
 from lnbits.core.wasm_ext.client.http import _request_origin
 from lnbits.core.wasm_ext.wasm.config import (
     WasmExtensionConfig,
@@ -24,7 +28,7 @@ _POLICY_AWARE_PERMISSION_IDS = {
     "wallet.create_invoice_public",
     "wallet.create_fiat_invoice_public",
     "websocket.publish",
-}
+} | BROWSER_NETWORK_PERMISSIONS
 _OWNER_ID_FIELD = "__lnbits_owner_id__"
 _PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
 PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT = 1_000_000
@@ -153,6 +157,10 @@ def _permission_grant_is_subset(
         return False
     if requested.id not in _POLICY_AWARE_PERMISSION_IDS:
         return True
+    if requested.id in BROWSER_NETWORK_PERMISSIONS:
+        return browser_policy_origins(granted.id, granted.policies).issubset(
+            browser_policy_origins(requested.id, requested.policies)
+        )
     if requested.id == "ext.storage.append_public":
         return _public_storage_append_grant_is_subset(
             requested.policies,
@@ -195,6 +203,8 @@ def _validate_requested_permission_policies(
     event_handlers: set[str],
 ) -> None:
     for permission in permissions:
+        if permission.id in BROWSER_NETWORK_PERMISSIONS:
+            browser_policy_origins(permission.id, permission.policies)
         if permission.id == "wallet.create_fiat_invoice_public":
             _public_fiat_invoice_sources(permission.policies)
         if permission.id == "onchain.reserve_address_public":

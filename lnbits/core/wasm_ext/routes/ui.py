@@ -4,17 +4,24 @@ from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import UUID4
 
 from lnbits.core.crud import get_installed_extension, get_user_from_account
+from lnbits.core.db import core_app_extra
 from lnbits.core.models import Account
 from lnbits.decorators import (
     check_access_token,
     check_account_exists,
     optional_user_id,
 )
+from lnbits.settings import settings
 
+from ..browser import (
+    BROWSER_NETWORK_PERMISSIONS,
+    BROWSER_PERMISSIONS,
+    browser_policy_origins,
+)
 from ..wasm.loader import WasmExtension
 from .api import (
     WasmRequestBodyTooLargeError,
@@ -37,6 +44,7 @@ from .security import (
 
 def register_wasm_extension_ui_routes(app: FastAPI, extension: WasmExtension) -> None:
     _add_wasm_extension_frame_config_route(app, extension)
+    _add_wasm_extension_browser_policy_route(app, extension)
 
     for route_index, route_config in enumerate(extension.config.ui_routes):
         route_path = _wasm_extension_ui_route_path(extension, route_config.path)
@@ -101,6 +109,47 @@ def _add_wasm_extension_frame_config_route(
         name=f"{extension.id}:frame-config",
         include_in_schema=False,
     )
+
+
+def _add_wasm_extension_browser_policy_route(
+    app: FastAPI, extension: WasmExtension
+) -> None:
+    path = f"/api/v1/ext/{extension.id}/_ui/browser-policy"
+    if _has_route(app, path, "GET"):
+        return
+
+    async def browser_policy() -> JSONResponse:
+        # Public visitors can inspect only browser capabilities, never wallet grants.
+        installed = await get_installed_extension(extension.id)
+        current = core_app_extra.wasm_extension_registry.get(extension.id)
+        if (
+            not installed
+            or not current
+            or not installed.active
+            or settings.lnbits_extensions_deactivate_all
+        ):
+            raise HTTPException(status_code=403, detail="Extension is inactive.")
+        declared = {p.id: p for p in current.config.permissions}
+        permissions: dict[str, list[str]] = {}
+        for grant in installed.permissions:
+            if grant.id not in BROWSER_PERMISSIONS or grant.id not in declared:
+                continue
+            if grant.id in BROWSER_NETWORK_PERMISSIONS:
+                try:
+                    origins = browser_policy_origins(grant.id, grant.policies)
+                    origins &= browser_policy_origins(
+                        grant.id, declared[grant.id].policies
+                    )
+                except ValueError:
+                    continue
+                permissions[grant.id] = sorted(origins)
+            else:
+                permissions[grant.id] = []
+        return JSONResponse(
+            {"permissions": permissions}, headers={"Cache-Control": "no-store"}
+        )
+
+    app.add_api_route(path, browser_policy, methods=["GET"], include_in_schema=False)
 
 
 def _add_wasm_extension_wrapper_route(
@@ -168,7 +217,7 @@ def _add_wasm_extension_frame_route(
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         # Extension access goes through the parent bridge.
         response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=(), payment=(), "
+            "camera=(), microphone=(), display-capture=(), geolocation=(), payment=(), "
             "clipboard-read=(), usb=()"
         )
         response.headers["Referrer-Policy"] = "no-referrer"
