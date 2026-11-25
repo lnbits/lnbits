@@ -7,6 +7,7 @@ import importlib.util
 import json
 import multiprocessing as mp
 import os
+import runpy
 import signal
 import socket
 import sys
@@ -637,6 +638,14 @@ def should_show_gui():
 
 def main():
     mp.freeze_support()
+    if sys.argv[1:2] == ["--wasm-compiler"]:
+        # Run the bundled worker without importing the LNbits server in this process.
+        del sys.argv[1]
+        script = (
+            Path(__file__).resolve().parent / "lnbits/core/wasm_ext/wasm/compiler.py"
+        )
+        runpy.run_path(str(script), run_name="__main__")
+        return
     parser = argparse.ArgumentParser(description="LNbits desktop launcher")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--gui", action="store_true", help="Open the desktop window")

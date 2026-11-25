@@ -233,12 +233,13 @@ async def install_extension(
     )
 
     if extension_config.get("extension_type") == "wasm":
-        ext_info.extract_wasm_archive()
-        await asyncio.to_thread(
-            warm_wasm_extension,
-            load_wasm_extension(ext_info.id),
-            resolve_wasm_runtime_limits(ext_info),
-        )
+        limits = resolve_wasm_runtime_limits(ext_info)
+
+        def prepare(extracted_dir: Path) -> None:
+            warm_wasm_extension(load_wasm_extension(ext_info.id, extracted_dir), limits)
+
+        # Check the worker budget before replacing a working installation.
+        await asyncio.to_thread(ext_info.extract_wasm_archive, prepare)
     else:
         ext_info.extract_archive()
 
@@ -681,7 +682,7 @@ async def uninstall_extension(ext_id: str):
 async def activate_extension(ext: Extension):
     if ext.is_wasm:
 
-        core_app_extra.register_new_wasm_ext_routes(ext.code)
+        await core_app_extra.register_new_wasm_ext_routes(ext.code)
         await update_installed_extension_state(ext_id=ext.code, active=True)
         return await _ensure_wasm_extension_schedules(ext)
 

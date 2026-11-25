@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from time import perf_counter
 
 from fastapi import FastAPI
 from loguru import logger
 
 from lnbits.core.db import core_app_extra
+from lnbits.core.services.extensions import get_wasm_runtime_limits_for_extension
 from lnbits.core.services.scheduler import scheduler
 from lnbits.settings import settings
 
@@ -20,12 +22,13 @@ from .assets import mount_wasm_extension_static
 from .ui import register_wasm_extension_ui_routes
 
 
-def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
+async def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     load_started_at = perf_counter()
     loaded = load_wasm_extension(ext_id)
+    limits = await get_wasm_runtime_limits_for_extension(ext_id)
+    await asyncio.to_thread(warm_wasm_extension, loaded, limits)
     core_app_extra.wasm_extension_registry.require_available(loaded)
-
-    warm_wasm_extension(loaded)
+    module_size = _format_wasm_extension_size(loaded.module_path.stat().st_size)
     mount_wasm_extension_static(app, loaded)
     register_wasm_extension_ui_routes(app, loaded)
     register_wasm_extension_api_routes(app, loaded)
@@ -34,7 +37,6 @@ def register_wasm_extension(app: FastAPI, ext_id: str) -> WasmExtension:
     register_wasm_schedule_handlers(loaded)
 
     settings.activate_extension_paths(ext_id, [])
-    module_size = _format_wasm_extension_size(loaded.module_path.stat().st_size)
     load_seconds = perf_counter() - load_started_at
     logger.info(
         f"Loaded WASM extension '{loaded.id}' "

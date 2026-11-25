@@ -3,6 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from pytest_mock.plugin import MockerFixture
 from wasmtime import Store, component, wat2wasm
 
@@ -10,7 +11,24 @@ from lnbits.core.wasm_ext.wasm.component import (
     _cached_wasm_component,
     _wasm_engine,
 )
-from lnbits.settings import Settings
+from lnbits.settings import (
+    ExtensionsSettings,
+    Settings,
+    UpdateSettings,
+    WasmRuntimeLimits,
+)
+
+
+def test_compiler_memory_limit_is_a_global_admin_and_environment_setting(monkeypatch):
+    field = "lnbits_wasm_compiler_memory_limit_mb"
+    assert ExtensionsSettings.model_fields[field].default == 200
+    assert field in UpdateSettings.model_fields
+    assert field not in WasmRuntimeLimits.model_fields
+    monkeypatch.setenv(field.upper(), "350")
+    loaded = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    assert loaded.lnbits_wasm_compiler_memory_limit_mb == 350
+    with pytest.raises(ValueError):
+        UpdateSettings(lnbits_wasm_compiler_memory_limit_mb=0)
 
 
 def test_wasm_compilation_cache_survives_restart_and_tracks_content(tmp_path: Path):
@@ -40,6 +58,32 @@ def test_wasm_compilation_cache_survives_restart_and_tracks_content(tmp_path: Pa
     assert _compile_in_process(data_dir, module_path, "otherext") == 8
     assert len(_cache_files(data_dir, "otherext")) == 1
     assert len(_cache_files(data_dir)) == 2
+
+
+def test_compiler_limit_stops_cold_build_but_allows_retry_and_cache_hits(
+    tmp_path: Path, settings: Settings, mocker: MockerFixture
+):
+    mocker.patch.object(settings, "lnbits_data_folder", str(tmp_path))
+    mocker.patch.object(settings, "lnbits_wasm_compiler_memory_limit_mb", 1)
+    path = tmp_path / "extension.wasm"
+    path.write_bytes(_component_bytes(7))
+    engine = _wasm_engine("memorytest", 512 * 1024)
+    stat = path.stat()
+    args = (engine, str(path), stat.st_mtime_ns, stat.st_size)
+
+    with pytest.raises(ValueError, match="memorytest.*1 MB memory limit"):
+        _cached_wasm_component(*args)
+    assert not _cache_files(tmp_path, "memorytest")
+
+    settings.lnbits_wasm_compiler_memory_limit_mb = 200
+    _cached_wasm_component(*args)
+    _cached_wasm_component.cache_clear()
+    settings.lnbits_wasm_compiler_memory_limit_mb = 1
+    mocker.patch(
+        "lnbits.core.wasm_ext.wasm.component._run_compiler",
+        side_effect=AssertionError("cache hit spawned a compiler"),
+    )
+    _cached_wasm_component(*args)
 
 
 def test_wasm_component_remains_usable_after_engine_cache_eviction(
@@ -82,8 +126,8 @@ def _component_bytes(value: int) -> bytearray:
 def _cache_files(data_dir: Path, ext_id: str = "demoext") -> set[Path]:
     return {
         path
-        for path in (data_dir / "wasm_cache" / ext_id / "modules").glob("*/*")
-        if path.is_file() and not path.suffix
+        for path in (data_dir / "wasm_cache" / ext_id).glob("*/*.cwasm")
+        if path.is_file()
     }
 
 

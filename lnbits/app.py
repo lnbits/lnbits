@@ -486,8 +486,8 @@ def register_new_ext_routes(app: FastAPI) -> Callable:
 
 
 def register_new_wasm_ext_routes(app: FastAPI) -> Callable:
-    def register_new_wasm_ext_routes_fn(ext_id: str):
-        register_wasm_extension(app, ext_id)
+    async def register_new_wasm_ext_routes_fn(ext_id: str):
+        await register_wasm_extension(app, ext_id)
 
     return register_new_wasm_ext_routes_fn
 
@@ -571,7 +571,7 @@ async def check_and_register_extensions(app: FastAPI) -> None:
     for ext in await get_valid_extensions(False):
         try:
             if is_wasm_extension_id(ext.code):
-                register_wasm_extension(app, ext.code)
+                await register_wasm_extension(app, ext.code)
                 await ensure_wasm_extension_schedules(ext.code)
                 continue
             register_ext_routes(app, ext)

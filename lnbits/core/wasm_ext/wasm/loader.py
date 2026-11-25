@@ -45,8 +45,8 @@ def load_wasm_extension_config(ext_id: str) -> WasmExtensionConfig | None:
     return parse_wasm_extension_config(ext_id, config)
 
 
-def load_wasm_extension(ext_id: str) -> WasmExtension:
-    ext_dir = Path(settings.wasm_extensions_dir, ext_id)
+def load_wasm_extension(ext_id: str, ext_dir: Path | None = None) -> WasmExtension:
+    ext_dir = ext_dir or Path(settings.wasm_extensions_dir, ext_id)
     raw_config = _load_json(ext_dir / "config.json")
     if not raw_config:
         raise FileNotFoundError(f"Missing WASM extension config for '{ext_id}'.")

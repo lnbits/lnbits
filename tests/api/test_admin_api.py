@@ -25,6 +25,7 @@ async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
     result = response.json()
     assert "super_user" not in result
     assert result["lnbits_wasm_extensions_manifests"] == DEFAULT_WASM_MANIFESTS
+    assert result["lnbits_wasm_compiler_memory_limit_mb"] == 200
 
 
 @pytest.mark.anyio
@@ -34,7 +35,10 @@ async def test_admin_update_settings(
     new_site_title = "UPDATED SITETITLE"
     response = await client.put(
         "/admin/api/v1/settings",
-        json={"lnbits_site_title": new_site_title},
+        json={
+            "lnbits_site_title": new_site_title,
+            "lnbits_wasm_compiler_memory_limit_mb": 350,
+        },
         headers={"Authorization": f"Bearer {superuser_token}"},
     )
     assert response.status_code == 200
@@ -42,6 +46,9 @@ async def test_admin_update_settings(
     assert "status" in result
     assert result.get("status") == "Success"
     assert settings.lnbits_site_title == new_site_title
+    assert settings.lnbits_wasm_compiler_memory_limit_mb == 350
+    stored = await get_settings_field("lnbits_wasm_compiler_memory_limit_mb")
+    assert stored and stored.value == 350
 
 
 @pytest.mark.anyio

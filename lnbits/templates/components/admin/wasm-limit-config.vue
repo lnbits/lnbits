@@ -51,6 +51,18 @@
       </div>
 
       <template v-if="!isExtensionLimitRoute">
+        <q-input
+          filled
+          dense
+          class="q-mb-lg"
+          type="number"
+          min="1"
+          step="1"
+          v-model.number="formData.lnbits_wasm_compiler_memory_limit_mb"
+          label="Compiler memory limit"
+          suffix="MB"
+          hint="LNbits stops a compiler process when its observed memory exceeds this limit."
+        ></q-input>
         <div
           v-for="(group, index) in wasmRuntimeLimitGroups"
           :key="group.title"

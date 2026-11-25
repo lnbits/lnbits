@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from fastapi import FastAPI
 from pytest_mock.plugin import MockerFixture
 from wasmtime import wat2wasm
 
@@ -39,6 +40,10 @@ from lnbits.core.services.extensions import (
 )
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.runtime import ExtensionAPIHost
+from lnbits.core.wasm_ext.routes.register import (
+    register_wasm_extension,
+    unregister_wasm_extension,
+)
 from lnbits.core.wasm_ext.wasm.component import _wasm_engine
 from lnbits.settings import Settings
 from tests.helpers import make_installable_extension
@@ -168,6 +173,7 @@ async def test_install_extension_updates_existing_upgrade_and_preserves_payments
 
 
 @pytest.mark.anyio
+@pytest.mark.usefixtures("app")
 async def test_install_wasm_extension_requires_permissions_and_skips_background_work(
     tmp_path,
     settings: Settings,
@@ -178,6 +184,8 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
     assert ext_info.meta
     assert ext_info.meta.installed_release
     ext_info.meta.installed_release.manifest_type = ExtensionManifestType.WASM
+    ext_info.wasm_runtime_limits = {"wasm_runtime_max_wasm_stack_bytes": 512 * 1024}
+    app = FastAPI()
     original_data_folder = settings.lnbits_data_folder
     original_extensions_path = settings.lnbits_extensions_path
     original_wasm_extensions_path = settings.lnbits_wasm_extensions_path
@@ -205,14 +213,33 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
                 policies=[{"host": "https://api.example.com"}],
             )
         ]
+        # A rejected replacement must not remove the installed extension's files.
+        wasm_ext_dir.mkdir(parents=True)
+        previous = wasm_ext_dir / "previous.wasm"
+        previous.write_bytes(b"prior release")
+        with pytest.MonkeyPatch.context() as scoped:
+            scoped.setattr(settings, "lnbits_wasm_compiler_memory_limit_mb", 1)
+            with pytest.raises(ValueError, match="1 MB memory limit"):
+                await install_extension(
+                    ext_info,
+                    skip_download=True,
+                    granted_permissions=granted_permissions,
+                )
+        assert previous.read_bytes() == b"prior release"
         extension = await install_extension(
             ext_info,
             skip_download=True,
             granted_permissions=granted_permissions,
         )
         stored = await get_installed_extension(ext_id)
-        assert list((tmp_path / "data" / "wasm_cache" / ext_id / "modules").glob("*/*"))
+        assert list((tmp_path / "data" / "wasm_cache" / ext_id).glob("*/*.cwasm"))
+        # Registration must reuse the build made with the extension's stack setting.
+        with pytest.MonkeyPatch.context() as scoped:
+            scoped.setattr(settings, "lnbits_wasm_compiler_memory_limit_mb", 1)
+            await register_wasm_extension(app, ext_id)
     finally:
+        unregister_wasm_extension(app, ext_id)
+        settings.lnbits_installed_extensions_ids.discard(ext_id)
         _wasm_engine.cache_clear()
         await delete_installed_extension(ext_id=ext_id)
         settings.lnbits_data_folder = original_data_folder

@@ -14,6 +14,19 @@ import desktop
 
 
 class DesktopTests(unittest.TestCase):
+    def test_compiler_mode_dispatches_to_bundled_script(self):
+        args = ["extension.wasm", "output.cwasm", "cache", "1048576"]
+        with (
+            patch("desktop.sys.argv", ["LNbits", "--wasm-compiler", *args]),
+            patch("desktop.runpy.run_path") as run,
+        ):
+            desktop.main()
+            script = (
+                Path(desktop.__file__).parent / "lnbits/core/wasm_ext/wasm/compiler.py"
+            )
+            run.assert_called_once_with(str(script), run_name="__main__")
+            self.assertEqual(sys.argv[1:], args)
+
     def test_macos_finder_launch_and_data_folder(self):
         with (
             patch("desktop.sys.platform", "darwin"),

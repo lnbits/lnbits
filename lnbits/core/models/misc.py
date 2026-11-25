@@ -12,10 +12,14 @@ def _do_nothing(*_):
     pass
 
 
+async def _do_nothing_async(*_):
+    pass
+
+
 class CoreAppExtra:
     local_lnurl_app: ASGIApp | None = None
     register_new_ext_routes: Callable = _do_nothing
-    register_new_wasm_ext_routes: Callable = _do_nothing
+    register_new_wasm_ext_routes: Callable = _do_nothing_async
     unregister_wasm_ext_routes: Callable = _do_nothing
     register_new_ratelimiter: Callable
 
