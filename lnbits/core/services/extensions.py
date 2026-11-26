@@ -39,6 +39,7 @@ from lnbits.core.crud.extensions import (
 from lnbits.core.crud.scheduler import delete_namespace_schedules
 from lnbits.core.helpers import clear_extension_module_cache, migrate_extension_database
 from lnbits.core.services.scheduler import scheduler
+from lnbits.core.wasm_ext.api.outbound_websockets import outbound_websockets
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
 from lnbits.core.wasm_ext.wasm.component import warm_wasm_extension
 from lnbits.core.wasm_ext.wasm.loader import is_wasm_extension_id, load_wasm_extension
@@ -703,6 +704,7 @@ async def stop_extension_background_work(ext_id: str) -> bool:
     Stop background work for extension (like asyncio.Tasks, WebSockets, etc).
     Extension must expose a `myextension_stop()` function if it is starting tasks.
     """
+    await outbound_websockets.stop(ext_id)
     await scheduler.stop_namespace(f"extension:{ext_id}")
     if is_wasm_extension_id(ext_id):
         return True

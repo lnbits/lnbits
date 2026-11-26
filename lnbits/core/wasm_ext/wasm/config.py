@@ -68,6 +68,7 @@ class WasmAPIRouteConfig(_StrictWasmModel):
 
 
 class WasmEventsConfig(_StrictWasmModel):
+    on_websocket: StrictStr | None = Field(None, alias="onWebSocket")
     on_invoice_paid: StrictStr | None = Field(None, alias="onInvoicePaid")
 
 
@@ -93,7 +94,15 @@ class WasmExtensionConfig(_StrictWasmModel):
     schedules: list[SchedulePolicy] = Field(default_factory=list, max_length=100)
 
     @model_validator(mode="after")
-    def validate_schedules(self):
+    def validate_event_handlers(self):
+        callback = self.events.on_websocket
+        if callback is not None and not any(
+            export.name == callback and export.visibility == "event"
+            for export in self.wasm.exports
+        ):
+            raise ValueError("onWebSocket must name an event export.")
+        if any(p.id == "websocket.connect" for p in self.permissions) and not callback:
+            raise ValueError("websocket.connect requires an onWebSocket event export.")
         schedules = self.schedules
         wasm = self.wasm
         handlers = [schedule.handler for schedule in schedules]

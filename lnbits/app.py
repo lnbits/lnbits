@@ -56,6 +56,7 @@ from lnbits.core.tasks import (
     refresh_extension_cache,
     scheduled_extension_updates,
 )
+from lnbits.core.wasm_ext.api.outbound_websockets import outbound_websockets
 from lnbits.core.wasm_ext.routes.register import (
     register_wasm_extension,
     unregister_wasm_extension,
@@ -158,6 +159,7 @@ async def shutdown():
     settings.lnbits_running = False
 
     # shutdown event
+    await outbound_websockets.stop()
     await stop_scheduler_safely()
     task_manager.cancel_all_tasks()
 

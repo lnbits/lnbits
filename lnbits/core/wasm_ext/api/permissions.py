@@ -89,6 +89,10 @@ def validate_wasm_extension_permissions(
         ext_info.id,
         granted_permissions,
     )
+    if not ext_info.is_admin_only and any(
+        permission.id == "websocket.connect" for permission in granted_permissions
+    ):
+        raise ValueError("Outbound WebSockets require an admin-only extension.")
     requested_by_id = _permission_index(ext_info.id, requested_permissions, "requested")
     granted_by_id = _permission_index(ext_info.id, granted_permissions, "granted")
 

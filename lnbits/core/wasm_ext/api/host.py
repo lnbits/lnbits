@@ -76,9 +76,14 @@ from .models import (
     UserWalletSummary,
     WalletBalanceRequest,
     WalletBalanceResponse,
+    WebsocketCloseResponse,
+    WebsocketConnectionId,
+    WebsocketOpenRequest,
     WebsocketPublishRequest,
     WebsocketPublishResponse,
+    WebsocketSendRequest,
 )
+from .outbound_websockets import outbound_websockets
 from .registry import extension_api_method
 from .scheduler import ExtensionSchedulerAPI
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
@@ -347,6 +352,60 @@ class ExtensionHostAPI:
             self._require_owner_id(),
         )
         return StorageDeleteResponse()
+
+    @extension_api_method(
+        method_id="websocket.open",
+        namespace="websocket",
+        name="Open outbound WebSocket",
+        host_name="websocket_open",
+        sdk_name="open",
+        description="Open an owner-scoped WSS connection or reuse a named connection.",
+        required_permission="websocket.connect",
+    )
+    async def websocket_open(
+        self, request: WebsocketOpenRequest
+    ) -> WebsocketConnectionId:
+        connection_id = await outbound_websockets.open(
+            self.extension_id, self._websocket_user(), request.url, request.name
+        )
+        return WebsocketConnectionId(connection_id=connection_id)
+
+    @extension_api_method(
+        method_id="websocket.send",
+        namespace="websocket",
+        name="Send WebSocket text",
+        host_name="websocket_send",
+        sdk_name="send",
+        description="Send text on an owned outbound connection.",
+        required_permission="websocket.connect",
+    )
+    async def websocket_send(
+        self, request: WebsocketSendRequest
+    ) -> WebsocketPublishResponse:
+        await outbound_websockets.send(
+            self.extension_id,
+            self._websocket_user(),
+            request.connection_id,
+            request.text,
+        )
+        return WebsocketPublishResponse()
+
+    @extension_api_method(
+        method_id="websocket.close",
+        namespace="websocket",
+        name="Close outbound WebSocket",
+        host_name="websocket_close",
+        sdk_name="close",
+        description="Close an owned outbound connection.",
+        required_permission="websocket.connect",
+    )
+    async def websocket_close(
+        self, request: WebsocketConnectionId
+    ) -> WebsocketCloseResponse:
+        await outbound_websockets.close(
+            self.extension_id, self._websocket_user(), request.connection_id
+        )
+        return WebsocketCloseResponse()
 
     @extension_api_method(
         method_id="websocket.publish",
@@ -782,7 +841,7 @@ class ExtensionHostAPI:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            if self.user_id and self.context != "schedule":
+            if self.user_id and self.context not in {"schedule", "websocket"}:
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError(
@@ -847,7 +906,7 @@ class ExtensionHostAPI:
             raise PermissionError("Paying from this wallet is not allowed.")
 
         try:
-            if self.user_id and self.context != "schedule":
+            if self.user_id and self.context not in {"schedule", "websocket"}:
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError("Paying from this wallet is not allowed.")
@@ -874,7 +933,7 @@ class ExtensionHostAPI:
                 extra["fiat_currency"] = unit
                 extra["fiat_amount"] = str(request.amount)
 
-            if not self.user_id or self.context == "schedule":
+            if not self.user_id or self.context in {"schedule", "websocket"}:
                 amount_msat = invoice_amount_msat(str(action.pr))
                 extra = {
                     **extra,
@@ -1247,6 +1306,15 @@ class ExtensionHostAPI:
             )
         return sources
 
+    def _websocket_user(self) -> str | None:
+        if self.context in {"user", "schedule", "websocket"} and self.user_id:
+            return self.user_id
+        if self.context in {"schedule", "websocket"} and self.owner_id == (
+            f"extension:{self.extension_id}"
+        ):
+            return None
+        raise PermissionError("Outbound WebSockets require a user or schedule owner.")
+
     def _websocket_publish_max_messages_per_second(self) -> int:
         policies = self.permission_policies.get("websocket.publish")
         if not isinstance(policies, list) or len(policies) != 1:
@@ -1276,7 +1344,7 @@ class ExtensionHostAPI:
             )
 
     def has_authenticated_context(self) -> bool:
-        return bool(self.user_id) or self.context in {"event", "schedule"}
+        return bool(self.user_id) or self.context in {"event", "schedule", "websocket"}
 
     def _require_owner_id(self) -> str:
         if not self.owner_id:
@@ -1295,7 +1363,7 @@ class ExtensionHostAPI:
     def _can_pay_from_wallet(self, wallet: Wallet | None) -> TypeGuard[Wallet]:
         if wallet is None or self.owner_id != sha256s(wallet.user):
             return False
-        return self.context != "schedule" or (
+        return self.context not in {"schedule", "websocket"} or (
             bool(self.user_id) and wallet.user == self.user_id
         )
 

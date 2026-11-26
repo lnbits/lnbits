@@ -38,6 +38,7 @@ from lnbits.core.services.two_factor import (
     sync_two_factor_policy,
     validate_two_factor_policy,
 )
+from lnbits.core.wasm_ext.api.outbound_websockets import outbound_websockets
 from lnbits.decorators import access_token_payload, check_admin, check_super_user
 from lnbits.server import server_restart
 from lnbits.settings import (
@@ -164,6 +165,7 @@ async def api_update_settings(
     update_cached_settings(
         stored_settings.model_dump(exclude={"super_user", "auth_all_methods"})
     )
+    await outbound_websockets.apply_admin_settings()
     core_app_extra.register_new_ratelimiter()
     if policy_changed:
         from lnbits.core.views.auth_api import _auth_success_response
