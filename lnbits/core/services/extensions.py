@@ -77,8 +77,22 @@ class WasmInvocationHandle:
 _wasm_invocation_lock = RLock()
 _wasm_invocation_ready_lock = asyncio.Lock()
 _wasm_invocation_handles: dict[str, WasmInvocationHandle] = {}
+_wasm_capacity_changed = asyncio.Event()
 _wasm_invocations_marked_stale = False
 _wasm_invocations_last_cleanup_at: datetime | None = None
+
+
+class WasmInvocationCapacityError(ValueError):
+    def __init__(self, message: str):
+        super().__init__(message)
+        # A release between rejection and waiting must still wake the caller.
+        self.capacity_changed = _wasm_capacity_changed
+
+
+def notify_wasm_capacity_changed() -> None:
+    global _wasm_capacity_changed
+    _wasm_capacity_changed.set()
+    _wasm_capacity_changed = asyncio.Event()
 
 
 def wasm_runtime_limit_defaults() -> dict[str, int]:
@@ -190,6 +204,7 @@ async def update_wasm_extension_runtime_limits(
         ext_id=ext_id,
         limits=validated_limits,
     )
+    notify_wasm_capacity_changed()
     return validated_limits
 
 
@@ -328,11 +343,6 @@ async def start_wasm_invocation(
     runtime_limits: dict[str, int] | None = None,
 ) -> WasmInvocation:
     await ensure_wasm_invocation_monitoring_ready()
-    _check_wasm_invocation_concurrency(
-        extension_id=extension_id,
-        user_id=user_id,
-        limits=runtime_limits,
-    )
 
     invocation = WasmInvocation(
         id=uuid4().hex,
@@ -350,14 +360,20 @@ async def start_wasm_invocation(
         request_bytes=request_bytes,
         context=_safe_wasm_invocation_context(context or {}),
     )
-    await create_wasm_invocation(invocation)
-
+    # Reserve before the database await so concurrent starts see each other.
     with _wasm_invocation_lock:
+        _check_wasm_invocation_concurrency(
+            extension_id=extension_id, user_id=user_id, limits=runtime_limits
+        )
         _wasm_invocation_handles[invocation.id] = WasmInvocationHandle(
             invocation,
             runtime_limits=runtime_limits,
         )
-
+    try:
+        await create_wasm_invocation(invocation)
+    except BaseException:
+        _release_wasm_invocation(invocation.id)
+        raise
     return invocation
 
 
@@ -464,8 +480,7 @@ async def finish_wasm_invocation(
     error_message: str | None = None,
     stop_reason: str | None = None,
 ) -> None:
-    with _wasm_invocation_lock:
-        handle = _wasm_invocation_handles.pop(invocation_id, None)
+    handle = _release_wasm_invocation(invocation_id)
 
     invocation = (
         handle.invocation if handle else await get_wasm_invocation(invocation_id)
@@ -521,36 +536,30 @@ def _check_wasm_invocation_concurrency(
     if not limits:
         return
 
-    with _wasm_invocation_lock:
-        handles = list(_wasm_invocation_handles.values())
-        if _wasm_limit_exceeded(
-            limits["wasm_runtime_max_concurrent_invocations"],
-            len(handles) + 1,
-        ):
-            raise ValueError("WASM runtime has too many active invocations.")
-
-        extension_invocations = sum(
-            1 for handle in handles if handle.invocation.extension_id == extension_id
+    handles = _wasm_invocation_handles.values()
+    if _wasm_limit_exceeded(
+        limits["wasm_runtime_max_concurrent_invocations"], len(handles) + 1
+    ):
+        raise WasmInvocationCapacityError(
+            "WASM runtime has too many active invocations."
         )
-        if _wasm_limit_exceeded(
-            limits["wasm_runtime_max_concurrent_invocations_per_extension"],
-            extension_invocations + 1,
-        ):
-            raise ValueError(
-                f"WASM extension '{extension_id}' has too many active invocations."
-            )
 
-        if not user_id:
-            return
-
-        user_invocations = sum(
-            1 for handle in handles if handle.invocation.user_id == user_id
+    extension_invocations = sum(
+        1 for handle in handles if handle.invocation.extension_id == extension_id
+    )
+    if _wasm_limit_exceeded(
+        limits["wasm_runtime_max_concurrent_invocations_per_extension"],
+        extension_invocations + 1,
+    ):
+        raise WasmInvocationCapacityError(
+            f"WASM extension '{extension_id}' has too many active invocations."
         )
-        if _wasm_limit_exceeded(
-            limits["wasm_runtime_max_concurrent_invocations_per_user"],
-            user_invocations + 1,
-        ):
-            raise ValueError("WASM user has too many active invocations.")
+
+    if user_id and _wasm_limit_exceeded(
+        limits["wasm_runtime_max_concurrent_invocations_per_user"],
+        sum(1 for handle in handles if handle.invocation.user_id == user_id) + 1,
+    ):
+        raise WasmInvocationCapacityError("WASM user has too many active invocations.")
 
 
 def _check_wasm_host_call_limit(
@@ -933,3 +942,11 @@ async def _extract_wasm_archive(ext_info: InstallableExtension) -> None:
         if not worker.cancelled():
             worker.exception()
         raise
+
+
+def _release_wasm_invocation(invocation_id: str) -> WasmInvocationHandle | None:
+    with _wasm_invocation_lock:
+        handle = _wasm_invocation_handles.pop(invocation_id, None)
+        if handle:
+            notify_wasm_capacity_changed()
+        return handle

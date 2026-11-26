@@ -924,6 +924,38 @@ async def test_wasm_invocation_concurrency_limits(mocker: MockerFixture):
 
 
 @pytest.mark.anyio
+async def test_wasm_invocation_reserves_slot_while_saving(mocker: MockerFixture):
+    mocker.patch.object(extension_services, "ensure_wasm_invocation_monitoring_ready")
+    saving = asyncio.Event()
+
+    async def save(_invocation):
+        saving.set()
+        await asyncio.Event().wait()
+
+    mocker.patch.object(extension_services, "create_wasm_invocation", side_effect=save)
+    limits = extension_services.wasm_runtime_limit_defaults()
+    limits["wasm_runtime_max_concurrent_invocations_per_extension"] = 1
+
+    def start():
+        return start_wasm_invocation(
+            extension_id="busy", export_name="job", runtime_limits=limits
+        )
+
+    first = asyncio.create_task(start())
+    try:
+        await asyncio.wait_for(saving.wait(), 2)
+        with pytest.raises(extension_services.WasmInvocationCapacityError) as busy:
+            await asyncio.wait_for(start(), 2)
+    finally:
+        first.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await first
+
+    assert busy.value.capacity_changed.is_set()
+    assert not get_current_wasm_invocations("busy")
+
+
+@pytest.mark.anyio
 async def test_wasm_invocation_host_call_limits(mocker: MockerFixture):
     _reset_wasm_invocation_state()
     mocker.patch(

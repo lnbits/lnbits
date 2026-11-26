@@ -25,6 +25,7 @@ from lnbits.core.services import (
     get_balance_delta,
     update_cached_settings,
 )
+from lnbits.core.services.extensions import notify_wasm_capacity_changed
 from lnbits.core.services.notifications import send_email_notification
 from lnbits.core.services.onchain import (
     OnchainKeyStatus,
@@ -166,6 +167,7 @@ async def api_update_settings(
         stored_settings.model_dump(exclude={"super_user", "auth_all_methods"})
     )
     await outbound_websockets.apply_admin_settings()
+    notify_wasm_capacity_changed()
     core_app_extra.register_new_ratelimiter()
     if policy_changed:
         from lnbits.core.views.auth_api import _auth_success_response

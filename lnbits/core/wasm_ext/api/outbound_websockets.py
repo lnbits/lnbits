@@ -34,7 +34,10 @@ class OutboundConnection:
     task: asyncio.Task[None] = field(init=False, repr=False)
     waiters: int = 0
     claimed: bool = False
-    finished: bool = False
+    slot_released: bool = False
+
+    def release_slot(self) -> None:
+        self.slot_released = True
 
 
 class OutboundWebsockets:
@@ -68,10 +71,19 @@ class OutboundWebsockets:
             for c in self.connections.values()
             if c.extension_id == extension_id
             and c.user_id == user_id
-            and not c.finished
-            and (c.socket is None or c.socket.close_code is None)
+            and not c.slot_released
+            and not c.task.done()
         ]
-        conn = next((c for c in owned if name is not None and c.name == name), None)
+        conn = next(
+            (
+                c
+                for c in owned
+                if name is not None
+                and c.name == name
+                and (not c.ready.done() or (c.socket and c.socket.close_code is None))
+            ),
+            None,
+        )
         if conn:
             if conn.url != url:
                 raise ValueError(
@@ -99,7 +111,7 @@ class OutboundWebsockets:
             # A cancelled caller must not strand a socket or cancel another
             # caller's pending handshake for the same name.
             if not conn.waiters and not conn.claimed and not conn.task.done():
-                conn.finished = True
+                conn.release_slot()
                 conn.task.cancel()
                 await asyncio.gather(conn.task, return_exceptions=True)
 
@@ -188,7 +200,6 @@ class OutboundWebsockets:
             # Transport errors can contain credentials from URL queries.
             logger.debug("WASM WebSocket {} failed ({})", conn.id, type(exc).__name__)
         finally:
-            conn.finished = True
             conn.socket = None
 
         if conn.ready.done() and settings.lnbits_running:
@@ -246,16 +257,28 @@ async def _check_access(
 
 
 async def _dispatch(conn: OutboundConnection, event: dict[str, Any]) -> None:
+    from lnbits.core.services.extensions import WasmInvocationCapacityError
+
     from ..wasm.invoke import invoke_wasm_extension_export
 
-    _, user, handler = await _check_access(conn.extension_id, conn.user_id)
-    await invoke_wasm_extension_export(
-        conn.extension_id,
-        handler,
-        {"connectionId": conn.id, **event},
-        user=user,
-        owner_id=None if user else f"extension:{conn.extension_id}",
-        context="websocket",
-        trigger_type="websocket",
-        event_type=event["type"],
-    )
+    while settings.lnbits_running:
+        _, user, handler = await _check_access(conn.extension_id, conn.user_id)
+        try:
+            await invoke_wasm_extension_export(
+                conn.extension_id,
+                handler,
+                {"connectionId": conn.id, **event},
+                user=user,
+                owner_id=None if user else f"extension:{conn.extension_id}",
+                context="websocket",
+                trigger_type="websocket",
+                event_type=event["type"],
+                # Bound pending close notices by the socket quota. Once admitted,
+                # the close handler can use this slot to open its replacement.
+                on_admitted=conn.release_slot if event["type"] == "closed" else None,
+            )
+            return
+        except WasmInvocationCapacityError as exc:
+            # The listener holds this event and reads the next only after delivery.
+            await exc.capacity_changed.wait()
+    raise PermissionError("LNbits is shutting down.")

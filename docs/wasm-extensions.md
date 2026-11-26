@@ -699,11 +699,14 @@ The callback receives one JSON object per event. A text message has this shape.
 {"type": "message", "connectionId": "…", "text": "hello"}
 ```
 
-Messages arrive in order per connection. The callback runs with the original
-owner's current background permissions and receives no login token. A close
-event carries `type: "closed"`, `connectionId`, numeric `code`, and `reason`.
+Messages arrive in order per connection. When all WASM invocation slots are
+busy, the listener holds one message and waits before reading the next. The
+callback runs with the original owner's current background permissions and
+receives no login token. A close event carries `type: "closed"`, `connectionId`,
+numeric `code`, and `reason`.
 A binary message closes the socket with code 1003. The extension decides
-whether to reconnect.
+whether to reconnect. A pending close event holds the socket's quota slot
+until the callback can run, so the callback can use that slot to reconnect.
 
 Each user gets four open or connecting sockets per extension by default. User
 actions and user schedules share that quota. All extension-wide jobs share
