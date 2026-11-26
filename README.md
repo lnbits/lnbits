@@ -90,6 +90,4 @@ LNbits empowers everyone with modular, open-source tools for building Bitcoin-ba
 [github-mypy-badge]: https://github.com/lnbits/lnbits/workflows/mypy/badge.svg
 [github-tests]: https://github.com/lnbits/lnbits/actions?query=workflow%3Atests
 [github-tests-badge]: https://github.com/lnbits/lnbits/workflows/tests/badge.svg
-[codecov]: https://codecov.io/gh/lnbits/lnbits
-[codecov-badge]: https://codecov.io/gh/lnbits/lnbits/branch/master/graph/badge.svg
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
