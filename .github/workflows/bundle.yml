@@ -13,7 +13,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || github.event.pull_request.head.sha }}
       - uses: lnbits/lnbits/.github/actions/prepare@dev
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           node-version: "24.x"
           npm: true
       - name: Build and commit bundle (same-repo PR)
