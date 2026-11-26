@@ -7,10 +7,11 @@ import os
 import re
 import shutil
 import zipfile
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path, PurePosixPath
+from tempfile import TemporaryDirectory
 from typing import Any
 from uuid import uuid4
 
@@ -749,35 +750,35 @@ class InstallableExtension(BaseModel):
         shutil.rmtree(self.ext_upgrade_dir, True)
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
-    def extract_wasm_archive(self):
+    def extract_wasm_archive(self, prepare: Callable[[Path], None] | None = None):
         logger.info(f"Extracting extension {self.name} ({self.installed_version}).")
 
-        tmp_dir = Path(settings.lnbits_data_folder, "unzip-temp", self.hash)
-        shutil.rmtree(tmp_dir, True)
-        with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
-            zip_ref.extractall(tmp_dir)
-        generated_dir_name = os.listdir(tmp_dir)[0]
-        extracted_dir = Path(tmp_dir, generated_dir_name)
+        with TemporaryDirectory(dir=settings.lnbits_data_folder) as tmp_dir:
+            with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmp_dir)
+            generated_dir_name = os.listdir(tmp_dir)[0]
+            extracted_dir = Path(tmp_dir, generated_dir_name)
 
-        with open(Path(extracted_dir, "config.json"), "r+") as json_file:
-            config_json = json.load(json_file)
+            with open(Path(extracted_dir, "config.json"), "r+") as json_file:
+                config_json = json.load(json_file)
 
-            self.name = config_json.get("name")
-            self.short_description = config_json.get("short_description")
+                self.name = config_json.get("name")
+                self.short_description = config_json.get("short_description")
 
-            if (
-                self.meta
-                and self.meta.installed_release
-                and self.meta.installed_release.is_github_release
-                and config_json.get("tile")
-            ):
-                self.icon = icon_to_github_url(
-                    self.meta.installed_release.source_repo, config_json.get("tile")
-                )
+                if (
+                    self.meta
+                    and self.meta.installed_release
+                    and self.meta.installed_release.is_github_release
+                    and config_json.get("tile")
+                ):
+                    self.icon = icon_to_github_url(
+                        self.meta.installed_release.source_repo, config_json.get("tile")
+                    )
 
-        shutil.rmtree(self.wasm_ext_dir, True)
-        shutil.copytree(extracted_dir, self.wasm_ext_dir)
-        shutil.rmtree(tmp_dir, True)
+            if prepare:
+                prepare(extracted_dir)
+            shutil.rmtree(self.wasm_ext_dir, True)
+            shutil.copytree(extracted_dir, self.wasm_ext_dir)
         logger.info(f"Extension {self.name} ({self.installed_version}) extracted.")
 
     def clean_extension_files(self):

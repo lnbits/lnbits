@@ -58,6 +58,7 @@ dependencies = [
     "pyinstrument>=5.1.2",
     "wasmtime>=45.0.0",
     "random-username~=1.0.2",
+    "psutil>=7.0",
 ]
 
 [project.scripts]
@@ -165,6 +166,7 @@ module = [
   "ecdsa.*",
   "pyngrok.*",
   "pynostr.*",
+  "psutil.*",
   "nostr_sdk.*",
   "pyln.client.*",
   "py_vapid.*",

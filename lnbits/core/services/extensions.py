@@ -1,11 +1,12 @@
 import asyncio
 import importlib
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from threading import RLock
+from threading import Event, RLock
 from typing import Any
 from uuid import uuid4
 
@@ -234,12 +235,7 @@ async def install_extension(
     )
 
     if extension_config.get("extension_type") == "wasm":
-        ext_info.extract_wasm_archive()
-        await asyncio.to_thread(
-            warm_wasm_extension,
-            load_wasm_extension(ext_info.id),
-            resolve_wasm_runtime_limits(ext_info),
-        )
+        await _extract_wasm_archive(ext_info)
     else:
         ext_info.extract_archive()
 
@@ -682,7 +678,7 @@ async def uninstall_extension(ext_id: str):
 async def activate_extension(ext: Extension):
     if ext.is_wasm:
 
-        core_app_extra.register_new_wasm_ext_routes(ext.code)
+        await core_app_extra.register_new_wasm_ext_routes(ext.code)
         await update_installed_extension_state(ext_id=ext.code, active=True)
         return await _ensure_wasm_extension_schedules(ext)
 
@@ -908,3 +904,32 @@ async def _install_extension_update(
         granted_permissions=permissions,
         stop_background_work=not reload_active,
     )
+
+
+async def _extract_wasm_archive(ext_info: InstallableExtension) -> None:
+    limits = resolve_wasm_runtime_limits(ext_info)
+    cancelled = Event()
+
+    def prepare(extracted_dir: Path) -> None:
+        if cancelled.is_set():
+            raise asyncio.CancelledError
+        warm_wasm_extension(load_wasm_extension(ext_info.id, extracted_dir), limits)
+        # A cancelled compile must not replace the installed files.
+        if cancelled.is_set():
+            raise asyncio.CancelledError
+
+    worker = asyncio.create_task(
+        asyncio.to_thread(ext_info.extract_wasm_archive, prepare)
+    )
+    try:
+        await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        cancelled.set()
+        # Drain even after repeated cancellation, before callers restore archives
+        # or retry. File replacement may already have started after preparation.
+        while not worker.done():
+            with suppress(asyncio.CancelledError, Exception):
+                await asyncio.shield(worker)
+        if not worker.cancelled():
+            worker.exception()
+        raise

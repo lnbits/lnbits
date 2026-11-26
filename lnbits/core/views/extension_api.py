@@ -69,6 +69,7 @@ from lnbits.core.wasm_ext.api.permissions import (
     validate_extension_permissions,
     validate_wasm_extension_permissions,
 )
+from lnbits.core.wasm_ext.wasm.component import WasmCompilationError
 from lnbits.db import Page
 from lnbits.decorators import (
     check_account_exists,
@@ -127,6 +128,11 @@ async def api_install_extension(data: CreateExtension):
             allow_admin_policy_overrides=True,
         )
 
+    except WasmCompilationError as exc:
+        # The compiler rejected the staged release before replacing installed files.
+        ext_info.zip_path.unlink(missing_ok=True)
+        logger.warning(exc)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         etype, _, tb = sys.exc_info()
@@ -165,7 +171,7 @@ async def api_install_extension(data: CreateExtension):
         await deactivate_extension(extension.code)
         detail = (
             str(exc)
-            if isinstance(exc, AssertionError)
+            if isinstance(exc, (AssertionError, WasmCompilationError))
             else f"Extension `{extension.code}` installed, but activation failed."
         )
         raise HTTPException(
@@ -656,6 +662,9 @@ async def api_activate_extension(ext_id: str) -> SimpleStatus:
 
         await activate_extension(ext)
         return SimpleStatus(success=True, message=f"Extension '{ext_id}' activated.")
+    except WasmCompilationError as exc:
+        await deactivate_extension(ext_id)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
         logger.warning(exc)
         await deactivate_extension(ext_id)
