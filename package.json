@@ -33,7 +33,7 @@
     "showdown": "^2.1.0",
     "underscore": "^1.13.8",
     "vue": "3.5.44",
-    "vue-i18n": "^11.4.2",
+    "vue-i18n": "^11.4.14",
     "vue-qrcode-reader": "^5.7.3",
     "vue-router": "5.0.6",
     "vuex": "4.1.0"
