@@ -11,10 +11,12 @@ from wasmtime import wat2wasm
 
 from lnbits.core.crud.db_versions import get_db_version, update_migration_version
 from lnbits.core.crud.extensions import (
+    admin_extension_owner_has_access,
     create_installed_extension,
     delete_installed_extension,
     get_installed_extension,
     get_user_extension,
+    update_user_extension,
 )
 from lnbits.core.crud.users import get_account
 from lnbits.core.crud.wallets import create_wallet
@@ -64,6 +66,8 @@ from lnbits.core.views.extension_api import (
     get_pay_to_enable_invoice,
     get_pay_to_install_invoice,
 )
+from lnbits.decorators import check_user_extension_access
+from lnbits.helpers import sha256s
 from lnbits.settings import Settings
 from tests.helpers import make_extension_release, make_installable_extension
 
@@ -775,6 +779,63 @@ async def test_admin_only_extension_enable_rejects_users_before_side_effects(
         assert result.success
     finally:
         await delete_installed_extension(ext_id=ext_id)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("pay_to_enable", [False, True])
+async def test_admin_extension_user_access(
+    app, http_client, superuser_token, user_headers_from, from_user, pay_to_enable
+):
+    ext = make_installable_extension(
+        f"restricted_{uuid4().hex[:8]}",
+        admin_only=True,
+        pay_to_enable=PayToEnableInfo(required=pay_to_enable, amount=21),
+    )
+    await create_installed_extension(ext)
+    regular = await create_user_account(
+        Account(id=uuid4().hex, username=f"grant_{uuid4().hex[:8]}")
+    )
+    admin = {"Authorization": f"Bearer {superuser_token}"}
+    url = f"/api/v1/extension/{ext.id}/allowed-users"
+    try:
+        assert (
+            await http_client.get(url, headers=user_headers_from)
+        ).status_code == 403
+        assert (
+            await http_client.put(
+                url, headers=user_headers_from, json={"user": from_user.id}
+            )
+        ).status_code == 403
+        assert (await http_client.get(url, headers=admin)).json() == []
+        assert regular.username
+        for identifier in (regular.username.upper(), regular.id):
+            assert (
+                await http_client.put(url, headers=admin, json={"user": identifier})
+            ).status_code == 200
+        grants = (await http_client.get(url, headers=admin)).json()
+        assert len(grants) == 1 and grants[0]["label"] == regular.username
+        assert regular.id not in str(grants)
+        entry = await get_user_extension(regular.id, ext.id)
+        assert entry and entry.admin_access_granted and entry.active != pay_to_enable
+        assert (
+            await check_user_extension_access(regular.id, ext.id)
+        ).success != pay_to_enable
+        assert (
+            await admin_extension_owner_has_access(ext.id, sha256s(regular.id))
+        ) != pay_to_enable
+        revoke_url = url + "/" + grants[0]["reference"]
+        assert (
+            await http_client.delete(revoke_url, headers=user_headers_from)
+        ).status_code == 403
+        assert (await http_client.delete(revoke_url, headers=admin)).status_code == 200
+        # A concurrent update that loaded the old row cannot restore the grant.
+        entry.active = True
+        await update_user_extension(entry)
+        assert not (await check_user_extension_access(regular.id, ext.id)).success
+        assert not await admin_extension_owner_has_access(ext.id, sha256s(regular.id))
+        assert (await http_client.get(url, headers=admin)).json() == []
+    finally:
+        await delete_installed_extension(ext_id=ext.id)
 
 
 @pytest.mark.anyio

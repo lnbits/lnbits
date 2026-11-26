@@ -1065,3 +1065,14 @@ async def m058_clear_extensions_reviews_url(db: Connection):
     from lnbits.settings import settings
 
     settings.lnbits_extensions_reviews_url = ""
+
+
+async def m059_add_admin_extension_access(db: Connection):
+    await db.execute("""
+        ALTER TABLE extensions ADD COLUMN admin_access_granted
+        BOOLEAN NOT NULL DEFAULT false
+    """)
+    await db.execute("""
+        CREATE INDEX idx_extensions_admin_access ON extensions (extension)
+        WHERE admin_access_granted
+    """)

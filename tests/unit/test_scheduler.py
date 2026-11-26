@@ -125,6 +125,7 @@ def wasm_schedule_grants(settings: Settings, mocker: MockerFixture):
     extension = SimpleNamespace(
         active=True,
         is_wasm=True,
+        is_available_for_user=mocker.Mock(return_value=True),
         permissions=[
             ExtensionPermission(
                 id="scheduler.user",
@@ -1060,6 +1061,7 @@ async def test_revoked_grants_and_disabled_users(
     extension = SimpleNamespace(
         active=True,
         is_wasm=True,
+        is_available_for_user=mocker.Mock(return_value=True),
         permissions=[
             ExtensionPermission(
                 id="scheduler.user",
@@ -1079,6 +1081,10 @@ async def test_revoked_grants_and_disabled_users(
     config = job()
     grants = extension.permissions
     await check_schedule_access("extension:one", "alice", config)
+    extension.is_available_for_user.return_value = False
+    with pytest.raises(PermissionError, match="not active for this user"):
+        await check_schedule_access("extension:one", "alice", config)
+    extension.is_available_for_user.return_value = True
     with pytest.raises(PermissionError):
         await check_schedule_access("extension:one", None, config)
     extension.permissions = []

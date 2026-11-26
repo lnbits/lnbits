@@ -32,6 +32,9 @@ async def test_reviews_url_migration_resets_once(
     try:
         async with db.connect() as conn:
             await migrations.m000_create_migrations_table(conn)
+            await migrations.m001_initial(conn)
+            await conn.execute("""INSERT INTO extensions ("user", extension, active)
+                VALUES ('member', 'demo', true)""")
             await conn.execute("""
                 CREATE TABLE system_settings (
                     id TEXT PRIMARY KEY,
@@ -86,7 +89,11 @@ async def test_reviews_url_migration_resets_once(
             )
             settings.lnbits_extensions_reviews_url = configured_url
             version = await get_db_version("core", conn)
-            assert version is not None and version.version == 58
+            assert version is not None and version.version >= 59
+            row = await conn.fetchone(
+                "SELECT active, admin_access_granted FROM extensions"
+            )
+            assert row and row["active"] and not row["admin_access_granted"]
             await run_migration(conn, migrations, "core", version)
             field = await get_settings_field("lnbits_extensions_reviews_url", conn=conn)
             assert field is not None and field.value == configured_url

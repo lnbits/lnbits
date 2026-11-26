@@ -406,7 +406,12 @@ Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 Permissions are declared in the extension configuration and reviewed by the
 administrator during installation. Policies narrow access to tables, fields,
 external origins, target extensions, websocket rates, or scheduled handlers.
-Installation approval does not replace per-user wallet grants.
+Installation approval does not replace per-user wallet grants. For an installed
+admin-only extension, a server admin can grant a regular account access under
+**Extensions → Installed → Manage → Allowed users** by username or user ID.
+A grant enables a free extension immediately. Paid extensions use the usual
+payment flow. Revoking a grant disables the extension for that account and
+closes its outbound WebSockets.
 
 | Capability                                     | Permission / restriction                                                                     |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -708,10 +713,11 @@ A binary message closes the socket with code 1003. The extension decides
 whether to reconnect. A pending close event holds the socket's quota slot
 until the callback can run, so the callback can use that slot to reconnect.
 
-Each user gets four open or connecting sockets per extension by default. User
-actions and user schedules share that quota. All extension-wide jobs share
+The server process allows 128 open or connecting sockets across all extensions
+by default, with a default cap of 32 per extension. Each user gets four sockets
+per extension by default. User actions and user schedules share that quota. All extension-wide jobs share
 one separate quota. Administrators can change the limit in **WASM Limit Config**.
-As with other runtime limits, zero removes the cap. Connections are local to
+The server-wide cap must be positive. Zero removes a per-user or per-extension cap. Connections are local to
 the LNbits process and close on disablement or shutdown.
 
 Sources: [HTTP client](../lnbits/core/wasm_ext/client/http.py),
@@ -734,7 +740,7 @@ extension overrides. Design bounded work even when a deployment relaxes limits.
 | WASM stack                          | 1 MiB                                                   |
 | Component resources                 | 10,000 table elements, 8 instances, 10 tables, 1 memory |
 | Concurrent invocations, per process | 16 globally; 4 per extension; 4 per user                |
-| Outbound WebSockets per extension   | 4 per user and 4 shared by extension-wide jobs          |
+| Outbound WebSockets per process     | 128 total, 32 per extension, 4 per user or shared owner |
 | Host calls per invocation           | 1,000 total; 100 storage; 20 HTTP; 20 wallet            |
 | Outbound HTTP                       | 5,000 ms timeout; 1 MiB response                        |
 

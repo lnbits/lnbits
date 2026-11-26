@@ -37,6 +37,7 @@ async def test_onchain_schema_uses_wallets_and_addresses(
                     deleted BOOLEAN NOT NULL DEFAULT false
                 )
             """)
+            await conn.execute('CREATE TABLE extensions ("user" TEXT, extension TEXT)')
             await conn.execute(
                 "INSERT INTO wallets (id, wallet_type) VALUES ('existing', 'lightning')"
             )

@@ -58,6 +58,17 @@
           type="number"
           min="1"
           step="1"
+          v-model.number="formData.lnbits_wasm_max_websockets"
+          label="Total outbound WebSockets"
+          hint="Maximum open or connecting sockets across all extensions on this server process."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          class="q-mb-lg"
+          type="number"
+          min="1"
+          step="1"
           v-model.number="formData.lnbits_wasm_compiler_memory_limit_mb"
           label="Compiler memory limit"
           suffix="MB"

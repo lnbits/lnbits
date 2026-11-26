@@ -13,6 +13,7 @@ from lnbits.core.models.extensions import (
     ExtensionBackgroundPaymentGrant,
 )
 from lnbits.core.models.wallets import Wallet
+from lnbits.settings import settings
 
 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
 
@@ -59,6 +60,8 @@ async def _background_payment_grant(
     if not user_extension or not user_extension.active:
         _deny(extension_id, wallet, amount_msat, "extension disabled for user")
 
+    if settings.is_admin_extension(extension_id) and not user_extension.has_access:
+        _deny(extension_id, wallet, amount_msat, "extension access revoked")
     permissions = user_extension.permissions or {}
     grants = permissions.get(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
     if not isinstance(grants, list):

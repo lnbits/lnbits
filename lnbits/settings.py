@@ -90,6 +90,7 @@ class ExtensionsSettings(LNbitsSettings):
     lnbits_autoupdate_extensions_on_startup: bool = Field(default=True)
     lnbits_autoupdate_extensions_interval_hours: int = Field(default=24, ge=0)
     lnbits_wasm_invocation_retention_days: int = Field(default=7, ge=0)
+    lnbits_wasm_max_websockets: int = Field(default=128, ge=1)
     lnbits_wasm_compiler_memory_limit_mb: int = Field(default=600, gt=0)
     lnbits_extensions_reviews_url: str = Field(
         default="",
@@ -124,6 +125,7 @@ class WasmRuntimeLimits(LNbitsSettings):
     wasm_runtime_max_concurrent_invocations_per_extension: int = Field(default=4, ge=0)
     wasm_runtime_max_concurrent_invocations_per_user: int = Field(default=4, ge=0)
 
+    wasm_runtime_max_websockets_per_extension: int = Field(default=32, ge=0)
     wasm_runtime_max_websockets_per_user: int = Field(default=4, ge=0)
 
     wasm_runtime_max_host_calls: int = Field(default=1_000, ge=0)

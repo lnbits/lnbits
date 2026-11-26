@@ -66,14 +66,13 @@ class OutboundWebsockets:
         installed, _, _ = await _check_access(extension_id, user_id)
         # All reservations run on the host event loop. Keep lookup, quota check and
         # insertion together before the first await so concurrent opens share a slot.
-        owned = [
+        live = [
             c
             for c in self.connections.values()
-            if c.extension_id == extension_id
-            and c.user_id == user_id
-            and not c.slot_released
-            and not c.task.done()
+            if not c.slot_released and not c.task.done()
         ]
+        extension_connections = [c for c in live if c.extension_id == extension_id]
+        owned = [c for c in extension_connections if c.user_id == user_id]
         conn = next(
             (
                 c
@@ -90,10 +89,14 @@ class OutboundWebsockets:
                     "WebSocket name already belongs to a different destination."
                 )
         else:
-            limit = resolve_wasm_runtime_limits(installed)[
-                "wasm_runtime_max_websockets_per_user"
-            ]
-            if limit and len(owned) >= limit:
+            limits = resolve_wasm_runtime_limits(installed)
+            per_user = limits["wasm_runtime_max_websockets_per_user"]
+            per_extension = limits["wasm_runtime_max_websockets_per_extension"]
+            if (
+                len(live) >= settings.lnbits_wasm_max_websockets
+                or (per_extension and len(extension_connections) >= per_extension)
+                or (per_user and len(owned) >= per_user)
+            ):
                 raise ValueError("Outbound WebSocket connection limit reached.")
             conn = OutboundConnection(extension_id, user_id, url, name)
             conn.task = asyncio.create_task(self._listen(conn))
@@ -143,15 +146,18 @@ class OutboundWebsockets:
         )
 
     async def apply_admin_settings(self) -> None:
-        await self._cancel(
-            [
-                c.task
-                for c in self.connections.values()
-                if settings.lnbits_extensions_deactivate_all
-                or not settings.is_admin_extension(c.extension_id)
-                or (c.user_id is not None and not settings.is_admin_user(c.user_id))
-            ]
-        )
+        denied = []
+        for conn in list(self.connections.values()):
+            if (
+                settings.lnbits_extensions_deactivate_all
+                or not settings.is_admin_extension(conn.extension_id)
+            ):
+                denied.append(conn.task)
+            elif conn.user_id and not settings.is_admin_user(conn.user_id):
+                entry = await get_user_extension(conn.user_id, conn.extension_id)
+                if not entry or not entry.active or not entry.admin_access_granted:
+                    denied.append(conn.task)
+        await self._cancel(denied)
 
     async def _cancel(self, tasks: list[asyncio.Task[None]]) -> None:
         for task in tasks:
@@ -248,7 +254,7 @@ async def _check_access(
     if (
         not account
         or not account.activated
-        or not installed.is_available_for_user(user_id)
+        or not installed.is_available_for_user(user_id, enabled)
         or not enabled
         or not enabled.active
     ):

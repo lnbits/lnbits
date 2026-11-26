@@ -705,6 +705,11 @@ window.localisation.en = {
   extension_paid_sats: 'You have already paid {paid_sats} sats.',
   extension_permissions_title: 'Grant extension permissions',
   extension_permissions_tab: 'Extension Permissions',
+  extension_allowed_users: 'Allowed users',
+  extension_user_identifier: 'Username or user ID',
+  extension_grant_access: 'Grant access',
+  extension_revoke_access: 'Revoke access',
+  extension_admin_access_only: 'Only server admins have access.',
   user_permissions_tab: 'My Grants',
   extension_permissions_none: 'This extension has no install-time permissions.',
   user_permissions_none:
