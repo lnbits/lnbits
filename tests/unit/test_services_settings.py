@@ -76,6 +76,18 @@ def test_update_cached_settings_updates_runtime_values(settings: Settings):
         settings.super_user = original_super_user
 
 
+def test_update_cached_settings_applies_funding_source_max_retries(
+    settings: Settings,
+):
+    original_max_retries = settings.funding_source_max_retries
+    try:
+        update_cached_settings({"funding_source_max_retries": 15})
+
+        assert settings.funding_source_max_retries == 15
+    finally:
+        settings.funding_source_max_retries = original_max_retries
+
+
 @pytest.mark.anyio
 async def test_check_webpush_settings_generates_and_persists_keys(
     settings: Settings, mocker: MockerFixture
