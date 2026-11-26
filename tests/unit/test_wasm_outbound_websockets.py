@@ -444,25 +444,14 @@ async def test_admin_access_changes_close_idle_sockets(peer, settings):
 
 
 @pytest.mark.anyio
-async def test_assigned_user_and_aggregate_socket_limits(peer, settings):
+async def test_granted_user_socket_access_and_revocation(peer, settings):
     settings.lnbits_admin_only_extensions = {"demo"}
-    settings.lnbits_admin_users = ["bob"]
-    settings.lnbits_wasm_max_websockets = 2
-    peer.installed.wasm_runtime_limits = {
-        "wasm_runtime_max_websockets_per_extension": 1
-    }
+    settings.lnbits_admin_users = []
+    request = {"url": URL}
+    with pytest.raises(PermissionError):
+        await host().invoke("websocket.open", request)
     peer.enabled.admin_access_granted = True
-    peer.allow_connect.clear()
-    request = {"url": URL, "name": "bot"}
-    first = asyncio.create_task(host().invoke("websocket.open", request))
-    await asyncio.wait_for(peer.connecting.wait(), 2)
-    with pytest.raises(ValueError, match="limit"):
-        await host("bob").invoke("websocket.open", request)
-    peer.allow_connect.set()
-    alice = await first
-    await host("bob", extension_id="other").invoke("websocket.open", request)
-    with pytest.raises(ValueError, match="limit"):
-        await host("bob", extension_id="third").invoke("websocket.open", request)
+    alice = await host().invoke("websocket.open", request)
     await ws.outbound_websockets.apply_admin_settings()
     assert alice["connectionId"] in ws.outbound_websockets.connections
     peer.enabled.admin_access_granted = False

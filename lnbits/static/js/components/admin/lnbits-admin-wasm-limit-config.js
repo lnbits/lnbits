@@ -110,14 +110,6 @@ window.app.component('lnbits-admin-wasm-limit-config', {
           title: 'Concurrency',
           fields: [
             {
-              name: 'wasm_runtime_max_websockets_per_extension',
-              label: 'Outbound WebSockets per extension',
-              description:
-                'Maximum open or connecting sockets across all owners in one extension.',
-              details:
-                'User connections and extension-wide scheduled connections share this allowance.'
-            },
-            {
               name: 'wasm_runtime_max_websockets_per_user',
               label: 'Outbound WebSockets per user',
               description:

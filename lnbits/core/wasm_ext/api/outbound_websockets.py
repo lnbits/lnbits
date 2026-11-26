@@ -66,13 +66,14 @@ class OutboundWebsockets:
         installed, _, _ = await _check_access(extension_id, user_id)
         # All reservations run on the host event loop. Keep lookup, quota check and
         # insertion together before the first await so concurrent opens share a slot.
-        live = [
+        owned = [
             c
             for c in self.connections.values()
-            if not c.slot_released and not c.task.done()
+            if c.extension_id == extension_id
+            and c.user_id == user_id
+            and not c.slot_released
+            and not c.task.done()
         ]
-        extension_connections = [c for c in live if c.extension_id == extension_id]
-        owned = [c for c in extension_connections if c.user_id == user_id]
         conn = next(
             (
                 c
@@ -89,14 +90,10 @@ class OutboundWebsockets:
                     "WebSocket name already belongs to a different destination."
                 )
         else:
-            limits = resolve_wasm_runtime_limits(installed)
-            per_user = limits["wasm_runtime_max_websockets_per_user"]
-            per_extension = limits["wasm_runtime_max_websockets_per_extension"]
-            if (
-                len(live) >= settings.lnbits_wasm_max_websockets
-                or (per_extension and len(extension_connections) >= per_extension)
-                or (per_user and len(owned) >= per_user)
-            ):
+            limit = resolve_wasm_runtime_limits(installed)[
+                "wasm_runtime_max_websockets_per_user"
+            ]
+            if limit and len(owned) >= limit:
                 raise ValueError("Outbound WebSocket connection limit reached.")
             conn = OutboundConnection(extension_id, user_id, url, name)
             conn.task = asyncio.create_task(self._listen(conn))
