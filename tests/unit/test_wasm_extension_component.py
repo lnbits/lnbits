@@ -21,7 +21,7 @@ from lnbits.settings import (
 
 def test_compiler_memory_limit_is_a_global_admin_and_environment_setting(monkeypatch):
     field = "lnbits_wasm_compiler_memory_limit_mb"
-    assert ExtensionsSettings.model_fields[field].default == 200
+    assert ExtensionsSettings.model_fields[field].default == 600
     assert field in UpdateSettings.model_fields
     assert field not in WasmRuntimeLimits.model_fields
     monkeypatch.setenv(field.upper(), "350")

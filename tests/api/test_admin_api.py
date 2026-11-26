@@ -25,7 +25,7 @@ async def test_admin_get_settings(client: AsyncClient, superuser_token: str):
     result = response.json()
     assert "super_user" not in result
     assert result["lnbits_wasm_extensions_manifests"] == DEFAULT_WASM_MANIFESTS
-    assert result["lnbits_wasm_compiler_memory_limit_mb"] == 200
+    assert result["lnbits_wasm_compiler_memory_limit_mb"] == 600
 
 
 @pytest.mark.anyio

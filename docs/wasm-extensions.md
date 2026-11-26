@@ -110,7 +110,7 @@ process access. Rebuild the component after changing guest source.
 
 LNbits compiles each uncached component in a separate process. Set
 `LNBITS_WASM_COMPILER_MEMORY_LIMIT_MB` or use **Wasm Limit Config** in the
-Admin UI to change the global limit of 200 MB (200,000,000 bytes). LNbits
+Admin UI to change the global limit of 600 MB (600,000,000 bytes). LNbits
 samples the worker's resident memory and stops it when a sample exceeds the
 limit. Short spikes can exceed the limit between samples. After a failed
 compile, raise the limit and retry the installation or activation.
