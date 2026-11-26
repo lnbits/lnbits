@@ -1,4 +1,4 @@
-/*! Axios v1.19.0 Copyright (c) 2026 Matt Zabriskie and contributors */
+/*! Axios v1.20.0 Copyright (c) 2026 Matt Zabriskie and contributors */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -561,13 +561,61 @@
       return hasOwnProperty.call(obj, prop);
     };
   }(Object.prototype);
+  var isUnsafeObjectKey = function isUnsafeObjectKey(prop) {
+    return typeof prop === 'string' && (prop === '__proto__' || prop === 'constructor' || prop === 'prototype');
+  };
 
   /**
-   * Walk the prototype chain (excluding the shared Object.prototype) looking for
-   * an own `prop`. This distinguishes genuine own/inherited members — including
-   * class accessors and template prototypes — from members injected via
-   * Object.prototype pollution (e.g. `Object.prototype.username = '...'`), which
-   * live on Object.prototype itself and are therefore never matched.
+   * Determine whether an inherited object must be treated as a shared-prototype
+   * boundary. Cross-realm Object.prototype objects cannot be distinguished
+   * reliably from application-created null-prototype objects because their
+   * properties are mutable, so all inherited terminal prototypes are excluded
+   * as a fail-closed boundary. A null-prototype source still keeps its own
+   * properties, as produced by mergeConfig and other safe materialization paths.
+   *
+   * @param {*} obj The object to inspect
+   * @param {*} prototype The object's prototype
+   * @param {boolean} source Whether obj is the original traversal source
+   *
+   * @returns {boolean} True when obj is a safe prototype traversal boundary
+   */
+  var isPrototypeBoundary = function isPrototypeBoundary(obj, prototype, source) {
+    return obj === Object.prototype || !source && prototype === null;
+  };
+
+  /**
+   * Determine whether an object can retain its identity through code paths that
+   * add, replace, and remove config properties without bypassing unsafe-key
+   * filtering. Immutable objects, unsafe-key-bearing objects, and objects with
+   * accessor or restricted data properties must be materialized instead.
+   *
+   * @param {*} obj The object to inspect
+   *
+   * @returns {boolean} True when every own property is safe and fully mutable
+   */
+  var isSafeAndFullyMutable = function isSafeAndFullyMutable(obj) {
+    if (!Object.isExtensible(obj)) {
+      return false;
+    }
+    var props = Object.getOwnPropertyNames(obj);
+    if (Object.getOwnPropertySymbols) {
+      props.push.apply(props, _toConsumableArray(Object.getOwnPropertySymbols(obj)));
+    }
+    return props.every(function (prop) {
+      if (isUnsafeObjectKey(prop)) {
+        return false;
+      }
+      var descriptor = Object.getOwnPropertyDescriptor(obj, prop);
+      return !!descriptor && descriptor.configurable && descriptor.writable === true;
+    });
+  };
+
+  /**
+   * Walk the prototype chain (excluding the source realm's Object.prototype)
+   * looking for an own `prop`. This distinguishes genuine own/inherited members
+   * — including class accessors and template prototypes — from members injected
+   * via Object.prototype pollution (e.g. `Object.prototype.username = '...'`),
+   * which live on Object.prototype itself and are therefore never matched.
    *
    * @param {*} thing The value whose chain to inspect
    * @param {string|symbol} prop The property key to look for
@@ -577,15 +625,19 @@
   var hasOwnInPrototypeChain = function hasOwnInPrototypeChain(thing, prop) {
     var obj = thing;
     var seen = [];
-    while (obj != null && obj !== Object.prototype) {
+    while (obj != null) {
       if (seen.indexOf(obj) !== -1) {
         return false;
       }
       seen.push(obj);
+      var prototype = getPrototypeOf(obj);
+      if (isPrototypeBoundary(obj, prototype, obj === thing)) {
+        return false;
+      }
       if (hasOwnProperty(obj, prop)) {
         return true;
       }
-      obj = getPrototypeOf(obj);
+      obj = prototype;
     }
     return false;
   };
@@ -603,6 +655,65 @@
    */
   var getSafeProp = function getSafeProp(obj, prop) {
     return obj != null && hasOwnInPrototypeChain(obj, prop) ? obj[prop] : undefined;
+  };
+
+  /**
+   * Flatten an object and its application-defined prototype chain into a
+   * null-prototype object. Members inherited only from the source realm's
+   * Object.prototype are deliberately excluded, while class/template members
+   * below that boundary are preserved.
+   *
+   * @param {*} thing The value to flatten
+   *
+   * @returns {*} A null-prototype copy, or the original value when it is already
+   * structurally safe or is not an object
+   */
+  var toSafeFlatObject = function toSafeFlatObject(thing) {
+    if (thing == null || _typeof(thing) !== 'object' && typeof thing !== 'function') {
+      return thing;
+    }
+    var sourcePrototype = getPrototypeOf(thing);
+    if (sourcePrototype === null && isSafeAndFullyMutable(thing)) {
+      return thing;
+    }
+    var result = Object.create(null);
+    var merged = Object.create(null);
+    var seen = [];
+    var current = thing;
+    while (current != null) {
+      if (seen.indexOf(current) !== -1) {
+        break;
+      }
+      seen.push(current);
+      var prototype = current === thing ? sourcePrototype : getPrototypeOf(current);
+      if (isPrototypeBoundary(current, prototype, current === thing)) {
+        break;
+      }
+      var props = Object.getOwnPropertyNames(current);
+      if (Object.getOwnPropertySymbols) {
+        props.push.apply(props, _toConsumableArray(Object.getOwnPropertySymbols(current)));
+      }
+      var _iterator2 = _createForOfIteratorHelper(props),
+        _step;
+      try {
+        for (_iterator2.s(); !(_step = _iterator2.n()).done;) {
+          var prop = _step.value;
+          if (isUnsafeObjectKey(prop)) {
+            continue;
+          }
+          if (!hasOwnProperty(merged, prop)) {
+            result[prop] = thing[prop];
+            merged[prop] = true;
+          }
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+      current = prototype;
+    }
+    return result;
   };
   var kindOf = function (cache) {
     return function (thing) {
@@ -737,9 +848,9 @@
     }
     var prototype = getPrototypeOf(val);
     return (prototype === null || prototype === Object.prototype || getPrototypeOf(prototype) === null) &&
-    // Treat any genuine (non-Object.prototype-polluted) Symbol.toStringTag or
-    // Symbol.iterator as evidence the value is a tagged/iterable type rather
-    // than a plain object, while ignoring keys injected onto Object.prototype.
+    // Treat safe own/inherited Symbol.toStringTag or Symbol.iterator members as
+    // evidence the value is tagged/iterable, while ignoring members reachable
+    // only through shared or terminal prototype boundaries.
     !hasOwnInPrototypeChain(val, toStringTag) && !hasOwnInPrototypeChain(val, iterator);
   };
 
@@ -1358,18 +1469,18 @@
           var target;
           if (isSet(source)) {
             target = [];
-            var _iterator2 = _createForOfIteratorHelper(source),
-              _step;
+            var _iterator3 = _createForOfIteratorHelper(source),
+              _step2;
             try {
-              for (_iterator2.s(); !(_step = _iterator2.n()).done;) {
-                var value = _step.value;
+              for (_iterator3.s(); !(_step2 = _iterator3.n()).done;) {
+                var value = _step2.value;
                 var reducedValue = _visit(value);
                 !isUndefined(reducedValue) && target.push(reducedValue);
               }
             } catch (err) {
-              _iterator2.e(err);
+              _iterator3.e(err);
             } finally {
-              _iterator2.f();
+              _iterator3.f();
             }
           } else {
             target = isArray(source) ? [] : {};
@@ -1512,6 +1623,7 @@
     // an alias to avoid ESLint no-prototype-builtins detection
     hasOwnInPrototypeChain: hasOwnInPrototypeChain,
     getSafeProp: getSafeProp,
+    toSafeFlatObject: toSafeFlatObject,
     reduceDescriptors: reduceDescriptors,
     freezeMethods: freezeMethods,
     toObjectSet: toObjectSet,
@@ -1622,7 +1734,7 @@
     return byteStringHeaders;
   }
 
-  var $internals = Symbol('internals');
+  var $internals$1 = Symbol('internals');
   function normalizeHeader(header) {
     return header && String(header).trim().toLowerCase();
   }
@@ -1982,7 +2094,7 @@
     }, {
       key: "accessor",
       value: function accessor(header) {
-        var internals = this[$internals] = this[$internals] = {
+        var internals = this[$internals$1] = this[$internals$1] = {
           accessors: {}
         };
         var accessors = internals.accessors;
@@ -2304,23 +2416,17 @@
 
     // eslint-disable-next-line no-param-reassign
     formData = formData || new (FormData)();
-
-    // eslint-disable-next-line no-param-reassign
-    options = utils$1.toFlatObject(options, {
-      metaTokens: true,
-      dots: false,
-      indexes: false
-    }, false, function defined(option, source) {
-      // eslint-disable-next-line no-eq-null,eqeqeq
-      return !utils$1.isUndefined(source[option]);
-    });
-    var metaTokens = options.metaTokens;
+    var option = function option(name, fallback) {
+      var value = utils$1.getSafeProp(options, name);
+      return utils$1.isUndefined(value) ? fallback : value;
+    };
+    var metaTokens = option('metaTokens', true);
     // eslint-disable-next-line no-use-before-define
-    var visitor = options.visitor || defaultVisitor;
-    var dots = options.dots;
-    var indexes = options.indexes;
-    var _Blob = options.Blob || typeof Blob !== 'undefined' && Blob;
-    var maxDepth = options.maxDepth === undefined ? DEFAULT_FORM_DATA_MAX_DEPTH : options.maxDepth;
+    var visitor = option('visitor') || defaultVisitor;
+    var dots = option('dots', false);
+    var indexes = option('indexes', false);
+    var _Blob = option('Blob') || typeof Blob !== 'undefined' && Blob;
+    var maxDepth = option('maxDepth', DEFAULT_FORM_DATA_MAX_DEPTH);
     var useBlob = _Blob && utils$1.isSpecCompliantForm(formData);
     var stack = [];
     if (!utils$1.isFunction(visitor)) {
@@ -2534,10 +2640,52 @@
     return url;
   }
 
+  var $internals = Symbol('internals');
+
+  // `handlers` is public and may be replaced with a nullish value by user code;
+  // `clear()` has always tolerated that. Treat it as an empty stack rather than
+  // dereferencing it.
+  function countHandlers(handlers) {
+    return handlers ? handlers.length : 0;
+  }
+  function trimHandlers(handlers) {
+    if (!handlers) {
+      return;
+    }
+    while (handlers.length && handlers[handlers.length - 1] === null) {
+      handlers.pop();
+    }
+  }
+  function syncHandlerEntries(manager, internals) {
+    var handlers = manager.handlers;
+    var length = countHandlers(handlers);
+    if (handlers !== internals.handlersRef) {
+      internals.handlersRef = handlers;
+      internals.handlerEntries.clear();
+    } else if (length !== internals.handlersLength) {
+      if (!length) {
+        internals.handlerEntries.clear();
+      } else {
+        internals.handlerEntries.forEach(function removeStaleEntry(entry, id) {
+          if (handlers[entry.index] !== entry.handler) {
+            internals.handlerEntries["delete"](id);
+          }
+        });
+      }
+    }
+    internals.handlersLength = length;
+  }
   var InterceptorManager = /*#__PURE__*/function () {
     function InterceptorManager() {
       _classCallCheck(this, InterceptorManager);
       this.handlers = [];
+      this[$internals] = {
+        handlersRef: this.handlers,
+        handlersLength: this.handlers.length,
+        handlerEntries: new Map(),
+        iterationDepth: 0,
+        nextId: 0
+      };
     }
 
     /**
@@ -2552,13 +2700,25 @@
     return _createClass(InterceptorManager, [{
       key: "use",
       value: function use(fulfilled, rejected, options) {
-        this.handlers.push({
+        var handler = {
           fulfilled: fulfilled,
           rejected: rejected,
           synchronous: options ? options.synchronous : false,
           runWhen: options ? options.runWhen : null
+        };
+        var internals = this[$internals];
+        if (this.handlers == null) {
+          this.handlers = [];
+        }
+        syncHandlerEntries(this, internals);
+        var id = internals.nextId++;
+        this.handlers.push(handler);
+        internals.handlerEntries.set(id, {
+          handler: handler,
+          index: this.handlers.length - 1
         });
-        return this.handlers.length - 1;
+        internals.handlersLength = this.handlers.length;
+        return id;
       }
 
       /**
@@ -2571,8 +2731,23 @@
     }, {
       key: "eject",
       value: function eject(id) {
-        if (this.handlers[id]) {
-          this.handlers[id] = null;
+        var internals = this[$internals];
+        syncHandlerEntries(this, internals);
+        var entry = internals.handlerEntries.get(id);
+        if (entry) {
+          internals.handlerEntries["delete"](id);
+
+          // Ignore IDs invalidated by clear or direct replacement of handlers.
+          if (this.handlers[entry.index] !== entry.handler) {
+            return;
+          }
+          this.handlers[entry.index] = null;
+
+          // Do not reuse an index while forEach is walking its length snapshot.
+          if (!internals.iterationDepth) {
+            trimHandlers(this.handlers);
+            internals.handlersLength = this.handlers.length;
+          }
         }
       }
 
@@ -2586,6 +2761,7 @@
       value: function clear() {
         if (this.handlers) {
           this.handlers = [];
+          syncHandlerEntries(this, this[$internals]);
         }
       }
 
@@ -2602,11 +2778,22 @@
     }, {
       key: "forEach",
       value: function forEach(fn) {
-        utils$1.forEach(this.handlers, function forEachHandler(h) {
-          if (h !== null) {
-            fn(h);
+        var internals = this[$internals];
+        syncHandlerEntries(this, internals);
+        internals.iterationDepth++;
+        try {
+          utils$1.forEach(this.handlers, function forEachHandler(h) {
+            if (h !== null) {
+              fn(h);
+            }
+          });
+        } finally {
+          if (! --internals.iterationDepth) {
+            syncHandlerEntries(this, internals);
+            trimHandlers(this.handlers);
+            internals.handlersLength = countHandlers(this.handlers);
           }
-        });
+        }
       }
     }]);
   }();
@@ -2794,6 +2981,8 @@
     return null;
   }
 
+  var methodList = Object.freeze(['get', 'delete', 'head', 'options', 'post', 'put', 'patch', 'purge', 'link', 'unlink', 'query']);
+
   var own = function own(obj, key) {
     return obj != null && utils$1.hasOwnProp(obj, key) ? obj[key] : undefined;
   };
@@ -2912,7 +3101,7 @@
       }
     }
   };
-  utils$1.forEach(['delete', 'get', 'head', 'post', 'put', 'patch', 'query'], function (method) {
+  utils$1.forEach(methodList, function (method) {
     defaults.headers[method] = {};
   });
 
@@ -2980,6 +3169,26 @@
     }
   }
 
+  var urlParserControlCharacters = /[\t\n\r]/g;
+
+  /**
+   * Match WHATWG URL preprocessing before checking a URL's protocol.
+   *
+   * @param {string} url
+   *
+   * @returns {string}
+   */
+  function normalizeURLForProtocolCheck(url) {
+    if (typeof url !== 'string') {
+      return url;
+    }
+    var start = 0;
+    while (start < url.length && url.charCodeAt(start) <= 0x20) {
+      start++;
+    }
+    return url.slice(start).replace(urlParserControlCharacters, '');
+  }
+
   function parseProtocol(url) {
     var match = /^([-+\w]{1,25}):(?:\/\/)?/.exec(url);
     return match && match[1] || '';
@@ -3029,7 +3238,7 @@
    * Throttle decorator
    * @param {Function} fn
    * @param {Number} freq
-   * @return {Function}
+   * @return {Array<Function>}
    */
   function throttle(fn, freq) {
     var timestamp = 0;
@@ -3067,7 +3276,13 @@
     var flush = function flush() {
       return lastArgs && invoke(lastArgs);
     };
-    return [throttled, flush];
+    var flushWith = function flushWith() {
+      for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+        args[_key2] = arguments[_key2];
+      }
+      return invoke(args);
+    };
+    return [throttled, flush, flushWith];
   }
 
   var progressEventReducer = function progressEventReducer(listener, isDownloadStream) {
@@ -3075,7 +3290,7 @@
     var bytesNotified = 0;
     var _speedometer = speedometer(50, 250);
     return throttle(function (e) {
-      if (!e || typeof e.loaded !== 'number') {
+      if (!e || !utils$1.isNumber(e.loaded)) {
         return;
       }
       var rawLoaded = e.loaded;
@@ -3222,17 +3437,6 @@
   }
 
   var malformedHttpProtocol = /^https?:(?!\/\/)/i;
-  var httpProtocolControlCharacters = /[\t\n\r]/g;
-  function stripLeadingC0ControlOrSpace(url) {
-    var i = 0;
-    while (i < url.length && url.charCodeAt(i) <= 0x20) {
-      i++;
-    }
-    return url.slice(i);
-  }
-  function normalizeURLForProtocolCheck(url) {
-    return stripLeadingC0ControlOrSpace(url).replace(httpProtocolControlCharacters, '');
-  }
 
   // Redact the parts of a URL that can carry secrets before it is embedded in an
   // error message. AxiosError.toJSON() serializes `message` verbatim and errors
@@ -3400,7 +3604,7 @@
       transformResponse: defaultToConfig2,
       paramsSerializer: defaultToConfig2,
       timeout: defaultToConfig2,
-      timeoutMessage: defaultToConfig2,
+      timeoutErrorMessage: defaultToConfig2,
       withCredentials: defaultToConfig2,
       withXSRFToken: defaultToConfig2,
       adapter: defaultToConfig2,
@@ -3515,11 +3719,12 @@
       }
     }
     if (utils$1.isFormData(data)) {
+      var getHeaders = utils$1.getSafeProp(data, 'getHeaders');
       if (platform.hasStandardBrowserEnv || platform.hasStandardBrowserWebWorkerEnv || utils$1.isReactNative(data)) {
         headers.setContentType(undefined); // browser/web worker/RN handles it
-      } else if (utils$1.isFunction(data.getHeaders)) {
+      } else if (utils$1.isFunction(getHeaders)) {
         // Node.js FormData (like form-data package)
-        setFormDataHeaders(headers, data.getHeaders(), own('formDataHeaderPolicy'));
+        setFormDataHeaders(headers, getHeaders.call(data), own('formDataHeaderPolicy'));
       }
     }
 
@@ -3557,7 +3762,7 @@
         onDownloadProgress = _config.onDownloadProgress;
       var onCanceled;
       var uploadThrottled, downloadThrottled;
-      var flushUpload, flushDownload;
+      var flushUpload, flushDownload, flushDownloadWithEvent;
       function done() {
         flushUpload && flushUpload(); // flush events
         flushDownload && flushDownload(); // flush events
@@ -3570,10 +3775,50 @@
 
       // Set the request timeout in MS
       request.timeout = _config.timeout;
-      function onloadend() {
+      function onloadend(event) {
         if (!request) {
           return;
         }
+
+        // Status 0 means no response was received, which onerror and onabort normally
+        // reject before this runs. Firefox 152 fires only readystatechange and loadend for
+        // navigation-canceled requests (https://bugzilla.mozilla.org/show_bug.cgi?id=1505389),
+        // leaving settle() to resolve them as an empty success. ECONNABORTED is the error
+        // onabort raised on Firefox 151. Reads over file:, which some environments report as
+        // status 0 on success, are excluded by the request URL's scheme after browser-style
+        // preprocessing, by the page origin's scheme for relative URLs (which inherit it), or
+        // by responseURL where implemented.
+        if (request.status === 0 && (parseProtocol(normalizeURLForProtocolCheck(_config.url)) || parseProtocol(platform.origin)) !== 'file' && !(request.responseURL && request.responseURL.startsWith('file:'))) {
+          reject(new AxiosError('Request aborted', AxiosError.ECONNABORTED, config, request));
+          done();
+
+          // Clean up request
+          request = null;
+          return;
+        }
+
+        // When loadend is still dispatching, flushing with it gives progress
+        // listeners a final delivery whose event has a live target. The legacy
+        // ready-state fallback has no event, so replay its pending progress.
+        // A throwing listener must not block settlement; rethrow asynchronously,
+        // matching how listener errors surface on the throttle timer path.
+        try {
+          if (event) {
+            flushDownloadWithEvent && flushDownloadWithEvent(event);
+          } else {
+            flushDownload && flushDownload();
+          }
+        } catch (err) {
+          setTimeout(function () {
+            throw err;
+          });
+        }
+
+        // A final progress callback can cancel the request synchronously.
+        if (!request) {
+          return;
+        }
+
         // Prepare the response
         var responseHeaders = AxiosHeaders.from('getAllResponseHeaders' in request && request.getAllResponseHeaders());
         var responseData = !responseType || responseType === 'text' || responseType === 'json' ? request.responseText : request.response;
@@ -3682,9 +3927,10 @@
       // Handle progress if needed
       if (onDownloadProgress) {
         var _progressEventReducer = progressEventReducer(onDownloadProgress, true);
-        var _progressEventReducer2 = _slicedToArray(_progressEventReducer, 2);
+        var _progressEventReducer2 = _slicedToArray(_progressEventReducer, 3);
         downloadThrottled = _progressEventReducer2[0];
         flushDownload = _progressEventReducer2[1];
+        flushDownloadWithEvent = _progressEventReducer2[2];
         request.addEventListener('progress', downloadThrottled);
       }
 
@@ -4117,9 +4363,20 @@
     return estimateDataURLBytes(fragmentIndex === -1 ? url : url.slice(0, fragmentIndex), estimatePercentDecodedBase64Bytes);
   }
 
-  var VERSION = "1.19.0";
+  var VERSION = "1.20.0";
 
   var DEFAULT_CHUNK_SIZE = 64 * 1024;
+  var DEFAULT_REQUEST_OPTIONS = {
+    cache: 'default',
+    redirect: 'follow',
+    referrer: 'about:client',
+    referrerPolicy: '',
+    mode: 'cors',
+    integrity: '',
+    keepalive: false,
+    priority: 'auto',
+    window: null
+  };
   var isFunction = utils$1.isFunction;
 
   /**
@@ -4321,11 +4578,11 @@
     }();
     return /*#__PURE__*/function () {
       var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(config) {
-        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, maxContentLength, maxBodyLength, hasMaxContentLength, hasMaxBodyLength, own, _fetch, composedSignal, request, unsubscribe, requestContentLength, pendingBodyError, maxBodyLengthError, auth, configAuth, username, password, parsedURL, urlUsername, urlPassword, estimated, outboundLength, mustEnforceStreamBody, trackRequestStream, _request, contentTypeHeader, _ref5, _ref6, onProgress, flush, isCredentialsSupported, contentType, resolvedOptions, response, responseHeaders, declaredLength, isStreamResponse, options, responseContentLength, _ref7, _ref8, _onProgress, _flush, bytesRead, onChunkProgress, responseData, materializedSize, canceledError, networkError, _t3, _t4;
+        var _resolveConfig, url, method, data, signal, cancelToken, timeout, onDownloadProgress, onUploadProgress, responseType, headers, _resolveConfig$withCr, withCredentials, fetchOptions, maxContentLength, maxBodyLength, maxRedirects, hasMaxContentLength, hasMaxBodyLength, own, _fetch, composedSignal, request, unsubscribe, requestContentLength, pendingBodyError, maxBodyLengthError, auth, configAuth, username, password, parsedURL, urlUsername, urlPassword, estimated, outboundLength, mustEnforceStreamBody, trackRequestStream, _request, contentTypeHeader, _ref5, _ref6, onProgress, flush, isCredentialsSupported, contentType, safeFetchOptions, resolvedOptions, response, responseHeaders, declaredLength, isStreamResponse, options, responseContentLength, _ref7, _ref8, _onProgress, _flush, bytesRead, onChunkProgress, responseData, materializedSize, canceledError, networkError, _t3, _t4;
         return _regenerator().w(function (_context4) {
           while (1) switch (_context4.p = _context4.n) {
             case 0:
-              _resolveConfig = resolveConfig(config), url = _resolveConfig.url, method = _resolveConfig.method, data = _resolveConfig.data, signal = _resolveConfig.signal, cancelToken = _resolveConfig.cancelToken, timeout = _resolveConfig.timeout, onDownloadProgress = _resolveConfig.onDownloadProgress, onUploadProgress = _resolveConfig.onUploadProgress, responseType = _resolveConfig.responseType, headers = _resolveConfig.headers, _resolveConfig$withCr = _resolveConfig.withCredentials, withCredentials = _resolveConfig$withCr === void 0 ? 'same-origin' : _resolveConfig$withCr, fetchOptions = _resolveConfig.fetchOptions, maxContentLength = _resolveConfig.maxContentLength, maxBodyLength = _resolveConfig.maxBodyLength;
+              _resolveConfig = resolveConfig(config), url = _resolveConfig.url, method = _resolveConfig.method, data = _resolveConfig.data, signal = _resolveConfig.signal, cancelToken = _resolveConfig.cancelToken, timeout = _resolveConfig.timeout, onDownloadProgress = _resolveConfig.onDownloadProgress, onUploadProgress = _resolveConfig.onUploadProgress, responseType = _resolveConfig.responseType, headers = _resolveConfig.headers, _resolveConfig$withCr = _resolveConfig.withCredentials, withCredentials = _resolveConfig$withCr === void 0 ? 'same-origin' : _resolveConfig$withCr, fetchOptions = _resolveConfig.fetchOptions, maxContentLength = _resolveConfig.maxContentLength, maxBodyLength = _resolveConfig.maxBodyLength, maxRedirects = _resolveConfig.maxRedirects;
               hasMaxContentLength = utils$1.isNumber(maxContentLength) && maxContentLength > -1;
               hasMaxBodyLength = utils$1.isNumber(maxBodyLength) && maxBodyLength > -1;
               own = function own(key) {
@@ -4491,7 +4748,18 @@
 
               // Set User-Agent header if not already set (fetch defaults to 'node' in Node.js)
               headers.set('User-Agent', 'axios/' + VERSION, false);
-              resolvedOptions = _objectSpread2(_objectSpread2({}, fetchOptions), {}, {
+              safeFetchOptions = fetchOptions == null ? fetchOptions : Object.assign(Object.create(null), fetchOptions);
+              if (safeFetchOptions) {
+                // These options are owned by Axios and are already reflected in the
+                // resolved Request passed to fetch.
+                delete safeFetchOptions.body;
+                delete safeFetchOptions.headers;
+                delete safeFetchOptions.method;
+                delete safeFetchOptions.signal;
+                delete safeFetchOptions.duplex;
+                delete safeFetchOptions.credentials;
+              }
+              resolvedOptions = Object.assign(Object.create(null), safeFetchOptions, {
                 signal: composedSignal,
                 method: method.toUpperCase(),
                 headers: toByteStringHeaderObject(headers.normalize()),
@@ -4499,9 +4767,28 @@
                 duplex: 'half',
                 credentials: isCredentialsSupported ? withCredentials : undefined
               });
+              if (isRequestSupported) {
+                utils$1.forEach(DEFAULT_REQUEST_OPTIONS, function (value, key) {
+                  if (resolvedOptions[key] === undefined) {
+                    resolvedOptions[key] = value;
+                  }
+                });
+                if (resolvedOptions.signal === undefined) {
+                  resolvedOptions.signal = null;
+                }
+                if (resolvedOptions.body === undefined) {
+                  resolvedOptions.body = null;
+                }
+              }
+              if (maxRedirects === 0) {
+                resolvedOptions.redirect = 'manual';
+                if (safeFetchOptions) {
+                  safeFetchOptions.redirect = 'manual';
+                }
+              }
               request = isRequestSupported && new Request(url, resolvedOptions);
               _context4.n = 11;
-              return isRequestSupported ? _fetch(request, fetchOptions) : _fetch(url, resolvedOptions);
+              return isRequestSupported ? _fetch(request, safeFetchOptions) : _fetch(url, resolvedOptions);
             case 11:
               response = _context4.v;
               responseHeaders = AxiosHeaders.from(response.headers); // Cheap pre-check: if the server honestly declares a content-length that
@@ -4809,9 +5096,13 @@
    *
    * @returns {Promise} The Promise to be fulfilled
    */
-  function dispatchRequest(config) {
+  function dispatchRequest(_config) {
+    // Interceptors may replace the merged config with an ordinary object. Flatten
+    // it at the dispatch boundary so shared prototype members cannot become
+    // request behavior, while preserving intentional template/class members.
+    var config = utils$1.toSafeFlatObject(_config);
     throwIfCancellationRequested(config);
-    config.headers = AxiosHeaders.from(config.headers);
+    config.headers = AxiosHeaders.from(utils$1.getSafeProp(config, 'headers'));
 
     // Transform request data
     config.data = transformData.call(config, config.transformRequest);
@@ -4967,7 +5258,7 @@
       key: "request",
       value: (function () {
         var _request2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(configOrUrl, config) {
-          var dummy, stack, firstNewlineIndex, secondNewlineIndex, stackWithoutTwoTopLines, _t;
+          var dummy, dummyStack, stack, firstNewlineIndex, _firstNewlineIndex, secondNewlineIndex, stackWithoutTwoTopLines, _t;
           return _regenerator().w(function (_context) {
             while (1) switch (_context.p = _context.n) {
               case 0:
@@ -4980,31 +5271,28 @@
                 _context.p = 2;
                 _t = _context.v;
                 if (_t instanceof Error) {
-                  dummy = {};
-                  Error.captureStackTrace ? Error.captureStackTrace(dummy) : dummy = new Error();
-
-                  // slice off the Error: ... line
-                  stack = function () {
-                    if (!dummy.stack) {
-                      return '';
-                    }
-                    var firstNewlineIndex = dummy.stack.indexOf('\n');
-                    return firstNewlineIndex === -1 ? '' : dummy.stack.slice(firstNewlineIndex + 1);
-                  }();
                   try {
+                    dummy = {};
+                    Error.captureStackTrace ? Error.captureStackTrace(dummy) : dummy = new Error();
+                    dummyStack = dummy.stack;
+                    stack = ''; // slice off the Error: ... line
+                    if (typeof dummyStack === 'string') {
+                      firstNewlineIndex = dummyStack.indexOf('\n');
+                      stack = firstNewlineIndex === -1 ? '' : dummyStack.slice(firstNewlineIndex + 1);
+                    }
                     if (!_t.stack) {
                       _t.stack = stack;
                       // match without the 2 top stack lines
                     } else if (stack) {
-                      firstNewlineIndex = stack.indexOf('\n');
-                      secondNewlineIndex = firstNewlineIndex === -1 ? -1 : stack.indexOf('\n', firstNewlineIndex + 1);
+                      _firstNewlineIndex = stack.indexOf('\n');
+                      secondNewlineIndex = _firstNewlineIndex === -1 ? -1 : stack.indexOf('\n', _firstNewlineIndex + 1);
                       stackWithoutTwoTopLines = secondNewlineIndex === -1 ? '' : stack.slice(secondNewlineIndex + 1);
                       if (!String(_t.stack).endsWith(stackWithoutTwoTopLines)) {
                         _t.stack += '\n' + stack;
                       }
                     }
                   } catch (e) {
-                    // ignore the case where "stack" is an un-writable property
+                    // Ignore failures from custom stack hooks or un-writable stack properties.
                   }
                 }
                 throw _t;
@@ -5070,11 +5358,11 @@
         }, true);
 
         // Set config.method
-        config.method = (config.method || this.defaults.method || 'get').toLowerCase();
+        config.method = (utils$1.getSafeProp(config, 'method') || utils$1.getSafeProp(this.defaults, 'method') || 'get').toLowerCase();
 
         // Flatten headers
         var contextHeaders = headers && utils$1.merge(headers.common, headers[config.method]);
-        headers && utils$1.forEach(['delete', 'get', 'head', 'post', 'put', 'patch', 'query', 'common'], function (method) {
+        headers && utils$1.forEach(methodList.concat('common'), function (method) {
           delete headers[method];
         });
         config.headers = AxiosHeaders.concat(contextHeaders, headers);
@@ -5396,14 +5684,22 @@
     Gone: 410,
     LengthRequired: 411,
     PreconditionFailed: 412,
+    /**
+     * @deprecated Use `ContentTooLarge` instead.
+     */
     PayloadTooLarge: 413,
+    ContentTooLarge: 413,
     UriTooLong: 414,
     UnsupportedMediaType: 415,
     RangeNotSatisfiable: 416,
     ExpectationFailed: 417,
     ImATeapot: 418,
     MisdirectedRequest: 421,
+    /**
+     * @deprecated Use `UnprocessableContent` instead.
+     */
     UnprocessableEntity: 422,
+    UnprocessableContent: 422,
     Locked: 423,
     FailedDependency: 424,
     TooEarly: 425,
@@ -5435,7 +5731,9 @@
     var _ref2 = _slicedToArray(_ref, 2),
       key = _ref2[0],
       value = _ref2[1];
-    HttpStatusCode[value] = key;
+    if (HttpStatusCode[value] === undefined) {
+      HttpStatusCode[value] = key;
+    }
   });
 
   /**

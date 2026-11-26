@@ -23,7 +23,7 @@
     "terser": "^5.47.1"
   },
   "dependencies": {
-    "axios": "^1.18.0",
+    "axios": "^1.20.0",
     "chart.js": "^4.5.1",
     "dompurify": "^3.4.16",
     "moment": "^2.30.1",
