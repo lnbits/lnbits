@@ -698,7 +698,7 @@ event carries `type: "closed"`, `connectionId`, numeric `code`, and `reason`.
 A binary message closes the socket with code 1003. The extension decides
 whether to reconnect.
 
-Each user gets eight open or connecting sockets per extension by default. User
+Each user gets four open or connecting sockets per extension by default. User
 actions and user schedules share that quota. All extension-wide jobs share
 one separate quota. Administrators can change the limit in **WASM Limit Config**.
 As with other runtime limits, zero removes the cap. Connections are local to
@@ -724,7 +724,7 @@ extension overrides. Design bounded work even when a deployment relaxes limits.
 | WASM stack                          | 1 MiB                                                   |
 | Component resources                 | 10,000 table elements, 8 instances, 10 tables, 1 memory |
 | Concurrent invocations, per process | 16 globally; 4 per extension; 4 per user                |
-| Outbound WebSockets per extension   | 8 per user and 8 shared by extension-wide jobs          |
+| Outbound WebSockets per extension   | 4 per user and 4 shared by extension-wide jobs          |
 | Host calls per invocation           | 1,000 total; 100 storage; 20 HTTP; 20 wallet            |
 | Outbound HTTP                       | 5,000 ms timeout; 1 MiB response                        |
 

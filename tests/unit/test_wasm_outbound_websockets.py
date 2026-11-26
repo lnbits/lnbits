@@ -131,7 +131,7 @@ def test_manifest_and_grant_require_event_export_and_admin_only():
 
 @pytest.mark.anyio
 async def test_concurrent_open_reserves_one_slot_per_extension_and_owner(peer):
-    assert ws.settings.wasm_runtime_max_websockets_per_user == 8
+    assert ws.settings.wasm_runtime_max_websockets_per_user == 4
     peer.installed.wasm_runtime_limits = {"wasm_runtime_max_websockets_per_user": 1}
     peer.allow_connect.clear()
     user, scheduled = host(), host(context="schedule")

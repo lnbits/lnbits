@@ -123,7 +123,7 @@ class WasmRuntimeLimits(LNbitsSettings):
     wasm_runtime_max_concurrent_invocations_per_extension: int = Field(default=4, ge=0)
     wasm_runtime_max_concurrent_invocations_per_user: int = Field(default=4, ge=0)
 
-    wasm_runtime_max_websockets_per_user: int = Field(default=8, ge=0)
+    wasm_runtime_max_websockets_per_user: int = Field(default=4, ge=0)
 
     wasm_runtime_max_host_calls: int = Field(default=1_000, ge=0)
     wasm_runtime_max_http_calls: int = Field(default=20, ge=0)
