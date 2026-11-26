@@ -1,6 +1,9 @@
+import asyncio
 import json
+import shutil
 import zipfile
 from datetime import datetime, timedelta, timezone
+from threading import Event
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -260,6 +263,90 @@ async def test_install_wasm_extension_requires_permissions_and_skips_background_
     assert wasm_ext_dir.is_dir()
     assert not py_ext_dir.exists()
     assert not upgrade_dir.exists()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "phase,compile_fails", [("compile", False), ("compile", True), ("copy", False)]
+)
+async def test_cancelled_wasm_install_does_not_leave_background_writes(
+    tmp_path, settings: Settings, mocker: MockerFixture, phase: str, compile_fails: bool
+):
+    mocker.patch.object(settings, "lnbits_data_folder", str(tmp_path / "data"))
+    mocker.patch.object(settings, "lnbits_wasm_extensions_path", str(tmp_path / "wasm"))
+    ext_info = make_installable_extension("cancelled_wasm", version="2.0.0")
+    assert ext_info.meta and ext_info.meta.installed_release
+    ext_info.meta.installed_release.manifest_type = ExtensionManifestType.WASM
+    previous = make_installable_extension(ext_info.id, version="1.0.0")
+    mocker.patch.object(
+        extension_services, "get_installed_extension", return_value=previous
+    )
+    migration = mocker.patch.object(extension_services, "migrate_extension_database")
+    save = mocker.patch.object(extension_services, "update_installed_extension")
+    config = _wasm_install_config(ext_info.id)
+    config["permissions"] = []
+    _write_wasm_extension_archive(ext_info, config)
+    ext_info.wasm_ext_dir.mkdir(parents=True)
+    installed = ext_info.wasm_ext_dir / "previous.wasm"
+    installed.write_bytes(b"installed release")
+    original_entries = set(tmp_path.joinpath("data").iterdir())
+
+    loop = asyncio.get_running_loop()
+    started = asyncio.Event()
+    finished = asyncio.Event()
+    resume = Event()
+    extract = InstallableExtension.extract_wasm_archive
+    copytree = shutil.copytree
+
+    def pause_worker():
+        loop.call_soon_threadsafe(started.set)
+        assert resume.wait(timeout=5), "Test did not release the worker."
+
+    def blocked_compile(*_):
+        if phase == "compile":
+            pause_worker()
+        if compile_fails:
+            raise ValueError("Compiler failed during cancellation.")
+
+    def blocked_copy(*args, **kwargs):
+        pause_worker()
+        return copytree(*args, **kwargs)
+
+    def track_extraction(self, prepare):
+        try:
+            return extract(self, prepare)
+        finally:
+            loop.call_soon_threadsafe(finished.set)
+
+    mocker.patch.object(extension_services, "warm_wasm_extension", blocked_compile)
+    mocker.patch.object(InstallableExtension, "extract_wasm_archive", track_extraction)
+    if phase == "copy":
+        mocker.patch("lnbits.core.models.extensions.shutil.copytree", blocked_copy)
+    task = asyncio.create_task(install_extension(ext_info, skip_download=True))
+    try:
+        await asyncio.wait_for(started.wait(), timeout=5)
+        # Repeated cancellation must not abandon the worker before it exits.
+        for _ in range(2):
+            task.cancel()
+            await asyncio.sleep(0)
+            assert not task.done()
+        resume.set()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, timeout=5)
+    finally:
+        resume.set()
+        await asyncio.wait_for(finished.wait(), timeout=5)
+        await asyncio.gather(task, return_exceptions=True)
+
+    if phase == "compile":
+        assert installed.read_bytes() == b"installed release"
+        assert not (ext_info.wasm_ext_dir / "extension.wasm").exists()
+    else:
+        # If copying has started, it must finish before cancellation returns.
+        assert (ext_info.wasm_ext_dir / "extension.wasm").is_file()
+    assert set(tmp_path.joinpath("data").iterdir()) == original_entries
+    migration.assert_not_awaited()
+    save.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
