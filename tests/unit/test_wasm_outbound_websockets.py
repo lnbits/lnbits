@@ -8,6 +8,7 @@ from websockets.exceptions import ConnectionClosedOK
 
 from lnbits.core.models.extensions import ExtensionPermission
 from lnbits.core.models.users import Account
+from lnbits.core.services import extensions
 from lnbits.core.wasm_ext.api import outbound_websockets as ws
 from lnbits.core.wasm_ext.api.host import ExtensionHostAPI
 from lnbits.core.wasm_ext.api.permissions import validate_wasm_extension_permissions
@@ -77,7 +78,9 @@ async def peer(settings, mocker):
     mocker.patch.object(
         ws.core_app_extra.wasm_extension_registry,
         "get",
-        return_value=SimpleNamespace(config=config),
+        return_value=SimpleNamespace(
+            id="demo", config=config, exports=config.wasm.exports
+        ),
     )
     mocker.patch.object(ws, "get_installed_extension", return_value=installed)
     enabled = SimpleNamespace(active=True)
@@ -245,6 +248,111 @@ async def test_close_and_reopen_from_callback(peer):
     await asyncio.wait_for(conn.task, 2)
     assert reconnected["connectionId"] != opened["connectionId"]
     assert len(peer.sockets) == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("event", ["message", "closed"])
+@pytest.mark.parametrize(
+    "limit",
+    [
+        "wasm_runtime_max_concurrent_invocations",
+        "wasm_runtime_max_concurrent_invocations_per_extension",
+        "wasm_runtime_max_concurrent_invocations_per_user",
+    ],
+)
+async def test_busy_runtime_waits_for_message_or_reconnect(peer, mocker, event, limit):
+    mocker.stop(peer.callback)
+    mocker.patch.object(invoke, "get_installed_extension", return_value=peer.installed)
+    mocker.patch.object(extensions, "ensure_wasm_invocation_monitoring_ready")
+    mocker.patch.object(extensions, "create_wasm_invocation")
+    mocker.patch.object(extensions, "update_wasm_invocation")
+    peer.installed.wasm_runtime_limits = {
+        limit: 1,
+        "wasm_runtime_max_websockets_per_user": 1,
+    }
+    request = {"url": URL, "name": "feed"}
+    opened = await host().invoke("websocket.open", request)
+    conn = ws.outbound_websockets.connections[opened["connectionId"]]
+    socket = peer.sockets[0]
+    reconnected = {}
+
+    def run_guest(_ext, _handler, payload, api, loop, *_args):
+        if payload["type"] == "closed":
+            reopen = ExtensionAPIHost(api).invoke("websocket.open", request)
+            reconnected.update(asyncio.run_coroutine_threadsafe(reopen, loop).result(2))
+        return {}
+
+    guest = mocker.patch.object(
+        invoke, "_invoke_wasm_extension_export_sync", side_effect=run_guest
+    )
+    blocker = await extensions.start_wasm_invocation(
+        extension_id="demo", export_name="job", user_id="alice"
+    )
+    waiting = asyncio.Event()
+    capacity = extensions._wasm_capacity_changed
+    wait = capacity.wait
+
+    async def wait_for_release():
+        waiting.set()
+        return await wait()
+
+    mocker.patch.object(capacity, "wait", side_effect=wait_for_release)
+    try:
+        if event == "message":
+            socket.messages.put_nowait("first")
+            socket.messages.put_nowait("second")
+        else:
+            await socket.close(1001, "peer left")
+        await asyncio.wait_for(waiting.wait(), 2)
+        guest.assert_not_called()
+        if event == "message":
+            assert socket.close_code is None
+            assert socket.messages.qsize() == 1
+            await socket.close(1001, "peer left")
+        else:
+            with pytest.raises(ValueError, match="connection limit"):
+                await host().invoke("websocket.open", request)
+    finally:
+        await extensions.finish_wasm_invocation(blocker.id, status="completed")
+
+    await asyncio.wait_for(conn.task, 2)
+    delivered = [call.args[2] for call in guest.call_args_list]
+    assert delivered[-1] == {
+        **opened,
+        "type": "closed",
+        "code": 1001,
+        "reason": "peer left",
+    }
+    assert [e["text"] for e in delivered[:-1]] == (
+        ["first", "second"] if event == "message" else []
+    )
+    assert reconnected["connectionId"] != opened["connectionId"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("stop", [False, True])
+async def test_pending_callback_respects_revocation_and_stop(peer, mocker, stop):
+    mocker.patch.object(extensions, "_wasm_capacity_changed", asyncio.Event())
+    busy = extensions.WasmInvocationCapacityError("busy")
+    attempted = asyncio.Event()
+
+    async def callback(*_args, **_kwargs):
+        attempted.set()
+        raise busy
+
+    peer.callback.side_effect = callback
+    opened = await host().invoke("websocket.open", {"url": URL})
+    conn = ws.outbound_websockets.connections[opened["connectionId"]]
+    peer.sockets[0].messages.put_nowait("pending")
+    await asyncio.wait_for(attempted.wait(), 2)
+    if stop:
+        await asyncio.wait_for(ws.outbound_websockets.stop("demo"), 2)
+    else:
+        peer.enabled.active = False
+        extensions.notify_wasm_capacity_changed()
+        await asyncio.wait_for(conn.task, 2)
+    peer.callback.assert_awaited_once()
+    assert not ws.outbound_websockets.connections
 
 
 @pytest.mark.anyio

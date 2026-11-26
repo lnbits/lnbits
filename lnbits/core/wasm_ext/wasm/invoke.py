@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 from weakref import WeakValueDictionary
 
@@ -45,6 +45,7 @@ async def invoke_wasm_extension_export(
     checking_id: str | None = None,
     request_bytes: int | None = None,
     context_data: dict | None = None,
+    on_admitted: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
     from lnbits.core.services.extensions import (
         finish_wasm_invocation,
@@ -90,6 +91,8 @@ async def invoke_wasm_extension_export(
     )
     await _acquire_invocation_lock(lock, invocation.id)
     try:
+        if on_admitted:
+            on_admitted()
         api = ExtensionHostAPI(
             extension.id,
             permissions,
@@ -128,13 +131,10 @@ async def invoke_wasm_extension_export(
 
     try:
         try:
-            if max_execution_ms > 0:
-                result = await asyncio.wait_for(
-                    asyncio.shield(thread_task),
-                    timeout=max_execution_ms / 1000,
-                )
-            else:
-                result = await asyncio.shield(thread_task)
+            result = await asyncio.wait_for(
+                asyncio.shield(thread_task),
+                timeout=max_execution_ms / 1000 if max_execution_ms > 0 else None,
+            )
         except asyncio.TimeoutError as exc:
             timed_out = True
             stop_reason = "WASM execution time limit exceeded."
