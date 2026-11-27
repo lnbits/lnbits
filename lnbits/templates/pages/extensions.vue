@@ -296,7 +296,9 @@
                   g.user.extensions.includes(extension.id) &&
                   extension.isActive &&
                   extension.isInstalled &&
-                  (!extension.isAdminOnly || g.user.admin)
+                  (!extension.isAdminOnly ||
+                    g.user.admin ||
+                    extension.adminAccessGranted)
                 "
                 flat
                 color="primary"
@@ -316,7 +318,11 @@
                 :label="$t('disable')"
               ></q-btn>
               <q-badge
-                v-if="extension.isAdminOnly && !g.user.admin"
+                v-if="
+                  extension.isAdminOnly &&
+                  !g.user.admin &&
+                  !extension.adminAccessGranted
+                "
                 v-text="$t('admin_only')"
               >
               </q-badge>
@@ -532,6 +538,9 @@
     >
       <q-tabs
         v-model="manageExtensionTab"
+        @update:model-value="
+          tab => tab === 'allowed-users' && manageAllowedUsers()
+        "
         active-color="primary"
         align="justify"
       >
@@ -542,6 +551,15 @@
           @update="val => (manageExtensionTab = val.name)"
         ></q-tab>
 
+        <q-tab
+          v-if="
+            canShowAdminManageTabs() &&
+            selectedExtension?.isInstalled &&
+            selectedExtension.isAdminOnly
+          "
+          name="allowed-users"
+          :label="$t('extension_allowed_users')"
+        ></q-tab>
         <q-tab
           v-if="canManageExtensionPermissions()"
           name="extension-permissions"
@@ -568,6 +586,60 @@
         ></q-tab>
       </q-tabs>
 
+      <q-card-section
+        v-if="
+          canShowAdminManageTabs() &&
+          selectedExtension?.isInstalled &&
+          selectedExtension.isAdminOnly &&
+          manageExtensionTab === 'allowed-users'
+        "
+      >
+        <q-form
+          class="row items-center q-gutter-sm"
+          @submit.prevent="manageAllowedUsers('PUT')"
+        >
+          <q-input
+            class="col"
+            filled
+            dense
+            v-model="extensionAccess.identifier"
+            :disable="extensionAccess.busy"
+            :label="$t('extension_user_identifier')"
+          ></q-input>
+          <q-btn
+            color="primary"
+            type="submit"
+            :disable="
+              extensionAccess.busy || !extensionAccess.identifier.trim()
+            "
+            :label="$t('extension_grant_access')"
+          ></q-btn>
+        </q-form>
+        <q-linear-progress
+          v-if="extensionAccess.busy"
+          indeterminate
+          class="q-mt-sm"
+        ></q-linear-progress>
+        <q-list v-if="extensionAccess.users?.length" separator class="q-mt-md">
+          <q-item v-for="user in extensionAccess.users" :key="user.reference">
+            <q-item-section v-text="user.label"></q-item-section>
+            <q-item-section side>
+              <q-btn
+                flat
+                color="negative"
+                :disable="extensionAccess.busy"
+                :label="$t('extension_revoke_access')"
+                @click="manageAllowedUsers('DELETE', user.reference)"
+              ></q-btn>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <p
+          v-else-if="extensionAccess.users"
+          class="q-mt-md"
+          v-text="$t('extension_admin_access_only')"
+        ></p>
+      </q-card-section>
       <div
         v-show="manageExtensionTab === 'releases'"
         class="col-12 col-md-5 q-gutter-y-md q-mt-md"

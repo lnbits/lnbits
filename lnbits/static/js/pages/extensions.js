@@ -12,6 +12,7 @@ window.PageExtensions = {
       searchTerm: '',
       tab: 'installed',
       manageExtensionTab: 'releases',
+      extensionAccess: {users: null, identifier: '', busy: false},
       filteredExtensions: [],
       categories: new Set(),
       updatableExtensions: [],
@@ -407,6 +408,7 @@ window.PageExtensions = {
 
     async showManageExtension(extension) {
       this.selectedExtension = extension
+      this.extensionAccess = {users: null, identifier: '', busy: false}
       this.selectedRelease = null
       this.selectedExtensionRepos = null
       this.resetManagedExtensionPermissions()
@@ -456,6 +458,28 @@ window.PageExtensions = {
       } catch (error) {
         LNbits.utils.notifyApiError(error)
         extension.inProgress = false
+      }
+    },
+    async manageAllowedUsers(method = 'GET', reference = '') {
+      const state = this.extensionAccess
+      if (state.busy) return
+      const url = `/api/v1/extension/${this.selectedExtension.id}/allowed-users`
+      state.busy = true
+      try {
+        if (method === 'PUT') {
+          await LNbits.api.request('PUT', url, null, {
+            user: state.identifier.trim()
+          })
+          state.identifier = ''
+        } else if (method === 'DELETE') {
+          await LNbits.api.request('DELETE', `${url}/${reference}`)
+        }
+        const {data} = await LNbits.api.request('GET', url)
+        state.users = data
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        state.busy = false
       }
     },
     canShowManageExtensionButton(extension) {

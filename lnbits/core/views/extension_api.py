@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.requests import Request
 from loguru import logger
 
-from lnbits.core.crud.extensions import get_user_extensions
+from lnbits.core.crud.extensions import (
+    get_extension_access_users,
+    get_user_extensions,
+    grant_admin_extension_access,
+    revoke_admin_extension_access,
+)
+from lnbits.core.crud.users import get_account, get_account_by_username
 from lnbits.core.crud.wallets import get_wallet, get_wallets_ids
 from lnbits.core.db import db
 from lnbits.core.models import (
@@ -19,6 +25,9 @@ from lnbits.core.models.extensions import (
     CreateExtension,
     CreateExtensionReview,
     Extension,
+    ExtensionAccessGrant,
+    ExtensionAccessUpdate,
+    ExtensionAccessUser,
     ExtensionArchiveValidationError,
     ExtensionBackgroundPaymentDestinationPolicy,
     ExtensionBackgroundPaymentGrant,
@@ -76,6 +85,7 @@ from lnbits.decorators import (
     check_account_id_exists,
     check_admin,
 )
+from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
 from ..crud import (
@@ -328,6 +338,45 @@ async def api_update_pay_to_enable(
     )
 
 
+@extension_router.get("/{ext_id}/allowed-users", dependencies=[Depends(check_admin)])
+async def api_get_extension_allowed_users(ext_id: str) -> list[ExtensionAccessGrant]:
+    await _require_admin_extension(ext_id)
+    users = await get_extension_access_users(ext_id)
+    return [
+        _extension_access_grant(ext_id, user)
+        for user in users
+        if not settings.is_admin_user(user.id)
+    ]
+
+
+@extension_router.put("/{ext_id}/allowed-users", dependencies=[Depends(check_admin)])
+async def api_grant_extension_access(
+    ext_id: str, data: ExtensionAccessUpdate
+) -> SimpleStatus:
+    ext = await _require_admin_extension(ext_id)
+    identifier = data.user.strip()
+    account = await get_account(identifier) or await get_account_by_username(identifier)
+    if not account or account.is_admin:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Select an existing regular user.")
+    await grant_admin_extension_access(
+        ext_id, account.id, enable=not ext.requires_payment
+    )
+    return SimpleStatus(success=True, message="Extension access granted.")
+
+
+@extension_router.delete(
+    "/{ext_id}/allowed-users/{reference}", dependencies=[Depends(check_admin)]
+)
+async def api_revoke_extension_access(ext_id: str, reference: str) -> SimpleStatus:
+    await _require_admin_extension(ext_id)
+    for user in await get_extension_access_users(ext_id):
+        if _extension_access_grant(ext_id, user).reference == reference:
+            await revoke_admin_extension_access(ext_id, user.id)
+            await outbound_websockets.stop(ext_id, user.id)
+            break
+    return SimpleStatus(success=True, message="Extension access revoked.")
+
+
 @extension_router.put("/{ext_id}/enable")
 async def api_enable_extension(
     ext_id: str, account_id: AccountId = Depends(check_account_id_exists)
@@ -343,9 +392,8 @@ async def api_enable_extension(
         raise ValueError(f"Extension '{ext_id}' is not installed.")
     if not ext.active:
         raise ValueError(f"Extension '{ext_id}' is not activated.")
-    _check_extension_user_access(ext, account_id.id)
-
     user_ext = await get_user_extension(account_id.id, ext_id)
+    _check_extension_user_access(ext, account_id.id, user_ext)
     if not user_ext:
         user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
@@ -432,6 +480,7 @@ async def api_grant_background_payment_permission(
             HTTPStatus.FORBIDDEN,
             f"Extension '{ext_id}' is not enabled for this user.",
         )
+    _check_extension_user_access(installed_ext, account_id.id, user_ext)
 
     wallet = await get_wallet(data.wallet_id)
     if not wallet or wallet.user != account_id.id:
@@ -494,6 +543,7 @@ async def api_grant_wallet_payments_watch_permission(
             HTTPStatus.FORBIDDEN,
             f"Extension '{ext_id}' is not enabled for this user.",
         )
+    _check_extension_user_access(installed_ext, account_id.id, user_ext)
 
     wallet = await get_wallet(data.wallet_id)
     if not wallet or wallet.user != account_id.id:
@@ -617,6 +667,7 @@ async def api_check_extension_permissions(
             HTTPStatus.FORBIDDEN,
             f"Extension '{ext_id}' is not enabled for this user.",
         )
+    _check_extension_user_access(installed_ext, account_id.id, user_ext)
 
     results: list[ExtensionPermissionCheckResult] = []
     for permission in data.permissions:
@@ -812,7 +863,8 @@ async def get_pay_to_enable_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Extension '{ext_id}' not found."
         )
 
-    _check_extension_user_access(ext, account_id.id)
+    user_ext = await get_user_extension(account_id.id, ext_id)
+    _check_extension_user_access(ext, account_id.id, user_ext)
 
     if not ext.meta or not ext.meta.pay_to_enable:
         raise HTTPException(
@@ -847,7 +899,6 @@ async def get_pay_to_enable_invoice(
         memo=f"Enable '{ext.name}' extension.",
     )
 
-    user_ext = await get_user_extension(account_id.id, ext_id)
     if not user_ext:
         user_ext = UserExtension(user=account_id.id, extension=ext_id, active=False)
         await create_user_extension(user_ext)
@@ -940,6 +991,11 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
         installed_exts: list[InstallableExtension] = await get_installed_extensions(
             conn=conn
         )
+        granted_ids = {
+            entry.extension
+            for entry in await get_user_extensions(account_id.id, conn=conn)
+            if entry.admin_access_granted
+        }
         all_ext_ids = [ext.code for ext in await get_valid_extensions(conn=conn)]
         inactive_extensions = [
             e.id for e in await get_installed_extensions(active=False, conn=conn)
@@ -1006,6 +1062,7 @@ async def extensions(account_id: AccountId = Depends(check_account_id_exists)):
                 ),
                 "isAvailable": ext.id in all_ext_ids,
                 "isAdminOnly": ext.is_admin_only,
+                "adminAccessGranted": ext.is_admin_only and ext.id in granted_ids,
                 "isActive": ext.id not in inactive_extensions,
                 "latestRelease": (
                     dict(ext.meta.latest_release)
@@ -1096,8 +1153,31 @@ def _load_installed_extension_config(extension: InstallableExtension) -> dict:
     return config
 
 
-def _check_extension_user_access(ext: InstallableExtension, user_id: str) -> None:
-    if not ext.is_available_for_user(user_id):
+def _extension_access_grant(
+    ext_id: str, user: ExtensionAccessUser
+) -> ExtensionAccessGrant:
+    # Account IDs can be login credentials. Only expose an extension-scoped reference.
+    return ExtensionAccessGrant(
+        reference=sha256s(f"{ext_id}:{user.id}"),
+        label=user.username or f"…{user.id[-8:]}",
+    )
+
+
+async def _require_admin_extension(ext_id: str) -> InstallableExtension:
+    ext = await get_installed_extension(ext_id)
+    if not ext:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Extension is not installed.")
+    if not ext.is_admin_only:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "Only admin extensions support access grants."
+        )
+    return ext
+
+
+def _check_extension_user_access(
+    ext: InstallableExtension, user_id: str, user_ext: UserExtension | None
+) -> None:
+    if not ext.is_available_for_user(user_id, user_ext):
         raise HTTPException(
             HTTPStatus.FORBIDDEN, f"User not authorized for extension '{ext.id}'."
         )

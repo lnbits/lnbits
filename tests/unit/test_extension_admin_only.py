@@ -28,6 +28,7 @@ from lnbits.core.models.extensions import (
     GitHubRepoRelease,
     InstallableExtension,
     Manifest,
+    UserExtension,
 )
 from lnbits.core.models.wallets import Wallet
 from lnbits.core.services.extensions import install_extension
@@ -202,7 +203,8 @@ async def test_startup_preserves_admin_only_policy_across_restarts(
     migrate = mocker.patch("lnbits.app.migrate_extension_database")
     mocker.patch("lnbits.app.core_app_extra.register_new_ext_routes")
     mocker.patch(
-        "lnbits.decorators.get_user_active_extensions_ids", return_value=[ext.id]
+        "lnbits.decorators.get_user_extension",
+        return_value=UserExtension(user=user_id, extension=ext.id, active=True),
     )
     restricted = manifest_flag or bool(config_flag)
 
@@ -295,9 +297,9 @@ async def test_cached_admin_extension_access_still_requires_user_enablement(
     settings.lnbits_admin_users = [user_id] if admin else []
     settings.lnbits_installed_extensions_ids = {"demoext"}
     settings.lnbits_admin_only_extensions = {"demoext"}
-    enabled_extensions = mocker.patch(
-        "lnbits.decorators.get_user_active_extensions_ids",
-        return_value=["demoext"] if enabled else [],
+    assignment = mocker.patch(
+        "lnbits.decorators.get_user_extension",
+        return_value=UserExtension(user=user_id, extension="demoext", active=enabled),
     )
     mocker.patch(
         "lnbits.core.crud.extensions.db.fetchone",
@@ -307,18 +309,17 @@ async def test_cached_admin_extension_access_still_requires_user_enablement(
     status = await check_user_extension_access(user_id, "demoext")
 
     assert status.success == (admin and enabled)
+    assignment.assert_awaited_once_with(user_id, "demoext", conn=None)
     if admin:
-        enabled_extensions.assert_awaited_once_with(user_id, conn=None)
         if not enabled:
             assert status.message == "Extension 'demoext' not enabled."
     else:
-        enabled_extensions.assert_not_awaited()
         assert status.message == "User not authorized for extension 'demoext'."
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("auth", ["account", "wallet", "cached_wallet", "wasm"])
-@pytest.mark.parametrize("role", ["user", "admin", "superuser"])
+@pytest.mark.parametrize("role", ["user", "assigned", "admin", "superuser"])
 @pytest.mark.parametrize("restriction", ["package", "setting", "none"])
 async def test_admin_only_authenticated_routes(
     tmp_path: Path,
@@ -340,9 +341,13 @@ async def test_admin_only_authenticated_routes(
     )
     ext = make_installable_extension("demoext", admin_only=restriction == "package")
     mocker.patch("lnbits.decorators.db.connect", return_value=mocker.MagicMock())
-    mocker.patch(
-        "lnbits.decorators.get_user_active_extensions_ids", return_value=[ext.id]
+    assignment = UserExtension(
+        user=user_id,
+        extension=ext.id,
+        active=True,
+        admin_access_granted=role == "assigned",
     )
+    mocker.patch("lnbits.decorators.get_user_extension", return_value=assignment)
     mocker.patch(
         "lnbits.decorators._get_account_from_token", return_value=Account(id=user_id)
     )
@@ -403,6 +408,7 @@ async def test_admin_only_authenticated_routes(
         if restriction != "none" and role != "user":
             settings.lnbits_admin_users = []
             settings.super_user = "other"
+            assignment.admin_access_granted = False
             response = await client.get(private_path, headers=headers)
             assert response.status_code == 403
             assert invoked.call_count == 2

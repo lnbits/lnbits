@@ -3,12 +3,14 @@ from datetime import datetime, timedelta, timezone
 
 from lnbits.core.db import db
 from lnbits.core.models.extensions import (
+    ExtensionAccessUser,
     InstallableExtension,
     UserExtension,
     WasmInvocation,
     WasmInvocationStats,
 )
 from lnbits.db import Connection, Database
+from lnbits.helpers import sha256s
 from lnbits.settings import settings
 
 
@@ -85,6 +87,7 @@ async def delete_installed_extension(
         """,
         {"ext": ext_id},
     )
+    settings.lnbits_installed_extensions_ids.discard(ext_id)
     settings.lnbits_admin_only_extensions.discard(ext_id)
 
 
@@ -144,14 +147,22 @@ async def get_installed_extensions_count(conn: Connection | None = None) -> int:
 
 
 async def get_user_extension(
-    user_id: str, extension: str, conn: Connection | None = None
+    user_id: str | None = None,
+    extension: str = "",
+    conn: Connection | None = None,
+    *,
+    owner_id: str | None = None,
 ) -> UserExtension | None:
+    if not extension or (user_id is None) == (owner_id is None):
+        raise ValueError("Provide an extension and exactly one of user_id or owner_id.")
+    query = "SELECT * FROM extensions WHERE extension = :ext"
+    if user_id is not None:
+        query += ' AND "user" = :user_id'
+    else:
+        query += " AND owner_id = :owner_id"
     return await (conn or db).fetchone(
-        """
-        SELECT * FROM extensions
-        WHERE "user" = :user AND extension = :ext
-        """,
-        {"user": user_id, "ext": extension},
+        query,
+        {"ext": extension, "user_id": user_id, "owner_id": owner_id},
         model=UserExtension,
     )
 
@@ -166,15 +177,60 @@ async def get_user_extensions(
     )
 
 
+async def get_extension_access_users(ext_id: str) -> list[ExtensionAccessUser]:
+    return await db.fetchall(
+        """
+        SELECT a.id, a.username FROM extensions e JOIN accounts a ON a.id = e."user"
+        WHERE e.extension = :ext AND e.admin_access_granted
+        ORDER BY a.username, a.id
+        """,
+        {"ext": ext_id},
+        ExtensionAccessUser,
+    )
+
+
+async def grant_admin_extension_access(
+    ext_id: str, user_id: str, *, enable: bool
+) -> None:
+    await db.execute(
+        """
+        INSERT INTO extensions
+            (extension, "user", owner_id, admin_access_granted, active)
+        VALUES (:ext, :user, :owner_id, true, :enable)
+        ON CONFLICT ("user", extension) DO UPDATE SET admin_access_granted = true,
+            active = excluded.active, owner_id = excluded.owner_id
+        WHERE NOT extensions.admin_access_granted
+        """,
+        {
+            "ext": ext_id,
+            "user": user_id,
+            "owner_id": sha256s(user_id),
+            "enable": enable,
+        },
+    )
+
+
+async def revoke_admin_extension_access(ext_id: str, user_id: str) -> None:
+    await db.execute(
+        """
+        UPDATE extensions SET admin_access_granted = false, active = false
+        WHERE extension = :ext AND "user" = :user AND admin_access_granted
+        """,
+        {"ext": ext_id, "user": user_id},
+    )
+
+
 async def create_user_extension(
     user_extension: UserExtension, conn: Connection | None = None
 ) -> None:
+    user_extension.owner_id = sha256s(user_extension.user)
     await (conn or db).insert("extensions", user_extension)
 
 
 async def update_user_extension(
     user_extension: UserExtension, conn: Connection | None = None
 ) -> None:
+    user_extension.owner_id = sha256s(user_extension.user)
     where = """WHERE extension = :extension AND "user" = :user"""
     await (conn or db).update("extensions", user_extension, where)
 
@@ -189,7 +245,7 @@ async def get_user_active_extensions_ids(
         {"user": user_id},
         UserExtension,
     )
-    return [ext.extension for ext in exts]
+    return [ext.extension for ext in exts if ext.has_access]
 
 
 async def create_wasm_invocation(

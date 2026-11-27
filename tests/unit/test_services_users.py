@@ -10,8 +10,10 @@ from lnbits.core.crud import (
     delete_admin_settings,
     get_account,
     get_super_settings,
+    get_user_extension,
     get_user_extensions,
     get_wallets,
+    update_user_extension,
 )
 from lnbits.core.crud.settings import get_settings_field, set_settings_field
 from lnbits.core.models import Account
@@ -27,6 +29,7 @@ from lnbits.core.services.users import (
     update_user_account,
     update_user_extensions,
 )
+from lnbits.helpers import sha256s
 from lnbits.settings import Settings
 
 
@@ -198,6 +201,26 @@ async def test_update_user_account_updates_persisting_password():
 
 
 @pytest.mark.anyio
+@pytest.mark.usefixtures("app")
+async def test_user_extension_derives_owner_id_on_save():
+    account = _account()
+    await create_account(account)
+    owner_id = sha256s(account.id)
+    ext = UserExtension(
+        user=account.id, extension="demo", active=False, owner_id="wrong-owner"
+    )
+    await create_user_extension(ext)
+    stored = await get_user_extension(extension=ext.extension, owner_id=owner_id)
+    assert stored and stored.owner_id == owner_id
+
+    await update_user_extension(
+        UserExtension(user=account.id, extension=ext.extension, active=True)
+    )
+    stored = await get_user_extension(extension=ext.extension, owner_id=owner_id)
+    assert stored and stored.owner_id == owner_id and stored.active
+
+
+@pytest.mark.anyio
 async def test_update_user_extensions_toggles_existing_and_creates_missing(
     settings: Settings,
 ):
@@ -229,6 +252,13 @@ async def test_update_user_extensions_toggles_existing_and_creates_missing(
         "disable": False,
         "new-ext": True,
     }
+    for ext_id, active in user_extensions.items():
+        entry = await get_user_extension(extension=ext_id, owner_id=sha256s(user.id))
+        assert entry and entry.user == user.id and entry.active == active
+    with pytest.raises(ValueError, match="exactly one"):
+        await get_user_extension(extension="keep")
+    with pytest.raises(ValueError, match="exactly one"):
+        await get_user_extension(user.id, "keep", owner_id=sha256s(user.id))
 
 
 @pytest.mark.anyio

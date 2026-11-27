@@ -83,7 +83,7 @@ async def peer(settings, mocker):
         ),
     )
     mocker.patch.object(ws, "get_installed_extension", return_value=installed)
-    enabled = SimpleNamespace(active=True)
+    enabled = SimpleNamespace(active=True, admin_access_granted=False)
     mocker.patch.object(ws, "get_user_extension", return_value=enabled)
     mocker.patch.object(ws, "get_account", side_effect=lambda uid: Account(id=uid))
     callback = mocker.patch.object(invoke, "invoke_wasm_extension_export")
@@ -441,3 +441,21 @@ async def test_admin_access_changes_close_idle_sockets(peer, settings):
     settings.lnbits_admin_only_extensions = set()
     await ws.outbound_websockets.apply_admin_settings()
     assert not ws.outbound_websockets.connections
+
+
+@pytest.mark.anyio
+async def test_granted_user_socket_access_and_revocation(peer, settings):
+    settings.lnbits_admin_only_extensions = {"demo"}
+    settings.lnbits_admin_users = []
+    request = {"url": URL}
+    with pytest.raises(PermissionError):
+        await host().invoke("websocket.open", request)
+    peer.enabled.admin_access_granted = True
+    alice = await host().invoke("websocket.open", request)
+    await ws.outbound_websockets.apply_admin_settings()
+    assert alice["connectionId"] in ws.outbound_websockets.connections
+    peer.enabled.admin_access_granted = False
+    await ws.outbound_websockets.apply_admin_settings()
+    assert alice["connectionId"] not in ws.outbound_websockets.connections
+    with pytest.raises(PermissionError):
+        await host().invoke("websocket.open", request)

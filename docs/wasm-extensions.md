@@ -406,7 +406,12 @@ Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 Permissions are declared in the extension configuration and reviewed by the
 administrator during installation. Policies narrow access to tables, fields,
 external origins, target extensions, websocket rates, or scheduled handlers.
-Installation approval does not replace per-user wallet grants.
+Installation approval does not replace per-user wallet grants. For an installed
+admin-only extension, a server admin can grant a regular account access under
+**Extensions → Installed → Manage → Allowed users** by username or user ID.
+A grant enables a free extension immediately. Paid extensions use the usual
+payment flow. Revoking a grant disables the extension for that account and
+closes its outbound WebSockets.
 
 | Capability                                     | Permission / restriction                                                                     |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |

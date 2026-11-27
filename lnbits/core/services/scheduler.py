@@ -85,7 +85,11 @@ async def check_schedule_access(
         )
     if user_id:
         user_extension = await get_user_extension(user_id, extension_id)
-        if not user_extension or not user_extension.active:
+        if (
+            not user_extension
+            or not user_extension.active
+            or not extension.is_available_for_user(user_id, user_extension)
+        ):
             raise PermissionError("Scheduled extension is not active for this user.")
     return (
         approved.max_jobs_per_user if isinstance(approved, UserSchedulePolicy) else None

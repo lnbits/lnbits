@@ -240,12 +240,39 @@ class ExtensionPermissionsUpdate(BaseModel):
     permissions: list[ExtensionPermission] = Field(default_factory=list)
 
 
+class ExtensionAccessUser(BaseModel):
+    id: str
+    username: str | None = None
+
+
+class ExtensionAccessGrant(BaseModel):
+    reference: str
+    label: str
+
+
+class ExtensionAccessUpdate(BaseModel):
+    user: str = Field(min_length=1, max_length=64)
+
+
 class UserExtension(BaseModel):
     user: str
+    owner_id: str | None = None
     extension: str
     active: bool
+    # Ordinary enablement and wallet permission writes must never change a grant.
+    admin_access_granted: bool = Field(
+        default=False, json_schema_extra={"no_database": True}
+    )
     extra: UserExtensionInfo | None = None
     permissions: dict = Field(default_factory=dict)
+
+    @property
+    def has_access(self) -> bool:
+        if not settings.is_admin_extension(self.extension):
+            return True
+        if settings.is_admin_user(self.user):
+            return True
+        return self.admin_access_granted
 
     @property
     def is_paid(self) -> bool:
@@ -611,8 +638,16 @@ class InstallableExtension(BaseModel):
         release = self.meta.installed_release or self.meta.latest_release
         return bool(release and release.admin_only)
 
-    def is_available_for_user(self, user_id: str) -> bool:
-        return settings.is_admin_user(user_id) or not self.is_admin_only
+    def is_available_for_user(
+        self, user_id: str, user_extension: UserExtension | None = None
+    ) -> bool:
+        if not self.is_admin_only:
+            return True
+        if settings.is_admin_user(user_id):
+            return True
+        if user_extension is None:
+            return False
+        return user_extension.admin_access_granted
 
     @property
     def is_wasm(self) -> bool:

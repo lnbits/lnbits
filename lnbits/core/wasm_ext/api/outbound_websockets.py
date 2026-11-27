@@ -143,15 +143,18 @@ class OutboundWebsockets:
         )
 
     async def apply_admin_settings(self) -> None:
-        await self._cancel(
-            [
-                c.task
-                for c in self.connections.values()
-                if settings.lnbits_extensions_deactivate_all
-                or not settings.is_admin_extension(c.extension_id)
-                or (c.user_id is not None and not settings.is_admin_user(c.user_id))
-            ]
-        )
+        denied = []
+        for conn in list(self.connections.values()):
+            if (
+                settings.lnbits_extensions_deactivate_all
+                or not settings.is_admin_extension(conn.extension_id)
+            ):
+                denied.append(conn.task)
+            elif conn.user_id and not settings.is_admin_user(conn.user_id):
+                entry = await get_user_extension(conn.user_id, conn.extension_id)
+                if not entry or not entry.active or not entry.admin_access_granted:
+                    denied.append(conn.task)
+        await self._cancel(denied)
 
     async def _cancel(self, tasks: list[asyncio.Task[None]]) -> None:
         for task in tasks:
@@ -248,7 +251,7 @@ async def _check_access(
     if (
         not account
         or not account.activated
-        or not installed.is_available_for_user(user_id)
+        or not installed.is_available_for_user(user_id, enabled)
         or not enabled
         or not enabled.active
     ):

@@ -20,6 +20,7 @@ from lnbits.core.migrations import (
     m049_add_permissions_to_user_extensions,
     m054_create_scheduled_jobs,
     m055_create_scheduled_job_runs,
+    m059_add_admin_extension_access,
 )
 from lnbits.core.models.extensions import Extension, ExtensionPermission, UserExtension
 from lnbits.core.models.scheduler import (
@@ -74,6 +75,7 @@ async def extension_job_scopes(
         await m001_initial(conn)
         await m020_add_column_column_to_user_extensions(conn)
         await m049_add_permissions_to_user_extensions(conn)
+        await m059_add_admin_extension_access(conn)
     mocker.patch.object(extension_crud, "db", schedule_db)
     for user_id, extension_id in [("alice", "one"), ("bob", "one"), ("alice", "two")]:
         await extension_crud.create_user_extension(
@@ -125,6 +127,7 @@ def wasm_schedule_grants(settings: Settings, mocker: MockerFixture):
     extension = SimpleNamespace(
         active=True,
         is_wasm=True,
+        is_available_for_user=mocker.Mock(return_value=True),
         permissions=[
             ExtensionPermission(
                 id="scheduler.user",
@@ -1060,6 +1063,7 @@ async def test_revoked_grants_and_disabled_users(
     extension = SimpleNamespace(
         active=True,
         is_wasm=True,
+        is_available_for_user=mocker.Mock(return_value=True),
         permissions=[
             ExtensionPermission(
                 id="scheduler.user",
@@ -1079,6 +1083,10 @@ async def test_revoked_grants_and_disabled_users(
     config = job()
     grants = extension.permissions
     await check_schedule_access("extension:one", "alice", config)
+    extension.is_available_for_user.return_value = False
+    with pytest.raises(PermissionError, match="not active for this user"):
+        await check_schedule_access("extension:one", "alice", config)
+    extension.is_available_for_user.return_value = True
     with pytest.raises(PermissionError):
         await check_schedule_access("extension:one", None, config)
     extension.permissions = []

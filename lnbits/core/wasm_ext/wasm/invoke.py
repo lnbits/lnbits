@@ -8,7 +8,8 @@ from weakref import WeakValueDictionary
 
 from wasmtime import Store, WasiConfig, component
 
-from lnbits.core.crud.extensions import get_installed_extension
+from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
+from lnbits.core.crud.users import get_account
 from lnbits.core.db import core_app_extra
 from lnbits.helpers import sha256s
 from lnbits.settings import settings
@@ -91,6 +92,7 @@ async def invoke_wasm_extension_export(
     )
     await _acquire_invocation_lock(lock, invocation.id)
     try:
+        await _check_admin_extension_owner(ext_id, user_id, owner_id)
         if on_admitted:
             on_admitted()
         api = ExtensionHostAPI(
@@ -279,6 +281,25 @@ async def _active_installed_extension(extension: WasmExtension) -> Any:
     ):
         raise PermissionError(f"WASM extension '{extension.id}' is deactivated.")
     return installed_extension
+
+
+async def _check_admin_extension_owner(
+    ext_id: str, user_id: str | None, owner_id: str | None
+) -> None:
+    if not settings.is_admin_extension(ext_id):
+        return
+    if user_id:
+        entry = await get_user_extension(user_id, ext_id)
+    elif owner_id and owner_id != f"extension:{ext_id}":
+        entry = await get_user_extension(extension=ext_id, owner_id=owner_id)
+    else:
+        # Public and extension-wide handlers have no user assignment.
+        return
+
+    if not entry or not entry.active or not entry.has_access:
+        raise PermissionError("Extension owner no longer has access.")
+    if not settings.is_admin_user(entry.user) and not await get_account(entry.user):
+        raise PermissionError("Extension owner is not active.")
 
 
 def _user_id(user: Any | None) -> str | None:
