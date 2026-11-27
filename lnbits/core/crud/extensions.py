@@ -94,6 +94,7 @@ async def delete_installed_extension(
         """,
         {"ext": ext_id},
     )
+    settings.lnbits_installed_extensions_ids.discard(ext_id)
     settings.lnbits_admin_only_extensions.discard(ext_id)
 
 

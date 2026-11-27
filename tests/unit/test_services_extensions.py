@@ -467,8 +467,10 @@ async def test_uninstall_activate_and_deactivate_extensions(
         settings.lnbits_extensions_path = str(tmp_path / "code")
         await create_installed_extension(ext_info)
 
+        settings.activate_extension_paths(ext_id)
         await uninstall_extension(ext_id)
         assert await get_installed_extension(ext_id) is None
+        assert not settings.is_installed_extension_id(ext_id)
         assert ext_id in settings.lnbits_deactivated_extensions
 
         await create_installed_extension(ext_info)
