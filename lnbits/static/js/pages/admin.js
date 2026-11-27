@@ -1,3 +1,5 @@
+const SETTINGS_DRAFT_KEY = 'lnbits.admin.settings.draft'
+
 window.PageAdmin = {
   template: '#page-admin',
   data() {
@@ -302,7 +304,7 @@ window.PageAdmin = {
         .then(response => {
           this.isSuperUser = response.data.is_super_user || false
           this.settings = response.data
-          this.formData = {...this.settings}
+          this.formData = {...this.settings, ...this.takeSettingsDraft()}
           this.settingsLoaded = true
         })
         .catch(LNbits.utils.notifyApiError)
@@ -341,10 +343,30 @@ window.PageAdmin = {
             icon: null
           })
         })
-        .catch(LNbits.utils.notifyApiError)
+        .catch(error => {
+          // The 2FA redirect reloads the page, so keep the edits for after it.
+          if (error.response?.headers?.['two-factor-required']) {
+            this.keepSettingsDraft()
+          }
+          LNbits.utils.notifyApiError(error)
+        })
         .finally(() => {
           this.isSaving = false
         })
+    },
+    keepSettingsDraft() {
+      const changed = _.pick(
+        this.formData,
+        Object.keys(this.formData).filter(
+          key => !_.isEqual(this.formData[key], this.settings[key])
+        )
+      )
+      sessionStorage.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(changed))
+    },
+    takeSettingsDraft() {
+      const draft = sessionStorage.getItem(SETTINGS_DRAFT_KEY)
+      sessionStorage.removeItem(SETTINGS_DRAFT_KEY)
+      return draft ? JSON.parse(draft) : {}
     },
     deleteSettings() {
       LNbits.utils
