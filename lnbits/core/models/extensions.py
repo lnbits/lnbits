@@ -174,7 +174,7 @@ class ExtensionBackgroundPaymentGrant(BaseModel):
     id: StrictStr = Field(..., min_length=1, max_length=128)
     wallet_id: str = Field(..., min_length=1, max_length=128)
     enabled: bool = True
-    max_amount: int = Field(..., gt=0)
+    max_amount: int = Field(..., ge=0)
     destination_policy: ExtensionBackgroundPaymentDestinationPolicy
 
 

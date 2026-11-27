@@ -19,6 +19,7 @@ This file guides AI coding agents working on LNbits. Keep changes small, verifie
 - Follow existing patterns in `lnbits/core`, `lnbits/wallets`, `lnbits/extensions`, and frontend code.
 - Place private functions at the bottom of the file and private methods at the bottom of the class.
 - Use existing CRUD, services, settings, and migration patterns.
+- Keep application SQL statements in CRUD files.
 - Always use `while settings.lnbits_running:` instead of `while True:` for open-ended loops so they respect application shutdown. If shutdown interrupts a validation loop, reject the operation rather than accepting incomplete results.
 - Do not edit generated files, bundled vendor files, or unrelated extension code.
 

@@ -164,6 +164,13 @@ types and wrappers from those methods. It does not replace building a matching
 WIT component. Repository-specific `lnbits-sdk.js` wrappers can differ; verify
 their behavior rather than treating one copied SDK as the host specification.
 
+With `wallet.create_and_spend`, `wallet.createWallet({name: "Orders"})` creates
+a Lightning wallet for the user in an authenticated request, user schedule, or
+user-owned outbound WebSocket callback. Core adds the wallet to the extension's
+background spending grants and returns its `walletId`. The grant allows any
+Lightning invoice up to the server's per-payment limit at creation. The user can
+edit or revoke it. Invoicing and payments use the usual permissions listed below.
+
 `wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
 payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
 It requires `wallet.payments.refresh` and an authenticated user who owns the
