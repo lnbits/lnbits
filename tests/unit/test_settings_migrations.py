@@ -91,9 +91,10 @@ async def test_reviews_url_migration_resets_once(
             version = await get_db_version("core", conn)
             assert version is not None and version.version >= 59
             row = await conn.fetchone(
-                "SELECT active, admin_access_granted FROM extensions"
+                "SELECT active, admin_access_granted, owner_id FROM extensions"
             )
             assert row and row["active"] and not row["admin_access_granted"]
+            assert row["owner_id"] is None
             await run_migration(conn, migrations, "core", version)
             field = await get_settings_field("lnbits_extensions_reviews_url", conn=conn)
             assert field is not None and field.value == configured_url

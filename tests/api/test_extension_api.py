@@ -11,15 +11,15 @@ from wasmtime import wat2wasm
 
 from lnbits.core.crud.db_versions import get_db_version, update_migration_version
 from lnbits.core.crud.extensions import (
-    admin_extension_owner_has_access,
     create_installed_extension,
     delete_installed_extension,
     get_installed_extension,
     get_user_extension,
     update_user_extension,
 )
-from lnbits.core.crud.users import get_account
+from lnbits.core.crud.users import get_account, update_account
 from lnbits.core.crud.wallets import create_wallet
+from lnbits.core.db import db
 from lnbits.core.models import Account, CreateInvoice
 from lnbits.core.models.extensions import (
     CreateExtension,
@@ -66,6 +66,7 @@ from lnbits.core.views.extension_api import (
     get_pay_to_enable_invoice,
     get_pay_to_install_invoice,
 )
+from lnbits.core.wasm_ext.wasm.invoke import _check_admin_extension_owner
 from lnbits.decorators import check_user_extension_access
 from lnbits.helpers import sha256s
 from lnbits.settings import Settings
@@ -782,9 +783,16 @@ async def test_admin_only_extension_enable_rejects_users_before_side_effects(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("existing_row", [False, True])
 @pytest.mark.parametrize("pay_to_enable", [False, True])
 async def test_admin_extension_user_access(
-    app, http_client, superuser_token, user_headers_from, from_user, pay_to_enable
+    app,
+    http_client,
+    superuser_token,
+    user_headers_from,
+    from_user,
+    pay_to_enable,
+    existing_row,
 ):
     ext = make_installable_extension(
         f"restricted_{uuid4().hex[:8]}",
@@ -807,6 +815,12 @@ async def test_admin_extension_user_access(
             )
         ).status_code == 403
         assert (await http_client.get(url, headers=admin)).json() == []
+        if existing_row:
+            await db.execute(
+                """INSERT INTO extensions ("user", extension, active)
+                   VALUES (:user, :ext, false)""",
+                {"user": regular.id, "ext": ext.id},
+            )
         assert regular.username
         for identifier in (regular.username.upper(), regular.id):
             assert (
@@ -823,9 +837,25 @@ async def test_admin_extension_user_access(
         assert (
             await check_user_extension_access(regular.id, ext.id)
         ).success != pay_to_enable
+        owner_id = sha256s(regular.id)
+        assert await get_user_extension(extension=ext.id, owner_id=owner_id) == entry
         assert (
-            await admin_extension_owner_has_access(ext.id, sha256s(regular.id))
-        ) != pay_to_enable
+            await get_user_extension(extension=ext.id + "_other", owner_id=owner_id)
+            is None
+        )
+        if pay_to_enable:
+            with pytest.raises(PermissionError):
+                await _check_admin_extension_owner(ext.id, None, owner_id)
+        else:
+            await _check_admin_extension_owner(ext.id, None, owner_id)
+            account = await get_account(regular.id)
+            assert account
+            account.activated = False
+            await update_account(account)
+            with pytest.raises(PermissionError):
+                await _check_admin_extension_owner(ext.id, None, owner_id)
+            account.activated = True
+            await update_account(account)
         revoke_url = url + "/" + grants[0]["reference"]
         assert (
             await http_client.delete(revoke_url, headers=user_headers_from)
@@ -835,7 +865,8 @@ async def test_admin_extension_user_access(
         entry.active = True
         await update_user_extension(entry)
         assert not (await check_user_extension_access(regular.id, ext.id)).success
-        assert not await admin_extension_owner_has_access(ext.id, sha256s(regular.id))
+        with pytest.raises(PermissionError):
+            await _check_admin_extension_owner(ext.id, None, owner_id)
         assert (await http_client.get(url, headers=admin)).json() == []
     finally:
         await delete_installed_extension(ext_id=ext.id)

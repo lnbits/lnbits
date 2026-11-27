@@ -8,11 +8,8 @@ from weakref import WeakValueDictionary
 
 from wasmtime import Store, WasiConfig, component
 
-from lnbits.core.crud.extensions import (
-    admin_extension_owner_has_access,
-    get_installed_extension,
-    get_user_extension,
-)
+from lnbits.core.crud.extensions import get_installed_extension, get_user_extension
+from lnbits.core.crud.users import get_account
 from lnbits.core.db import core_app_extra
 from lnbits.helpers import sha256s
 from lnbits.settings import settings
@@ -293,14 +290,16 @@ async def _check_admin_extension_owner(
         return
     if user_id:
         entry = await get_user_extension(user_id, ext_id)
-        if entry and entry.active and entry.has_access:
-            return
-    elif not owner_id or owner_id == f"extension:{ext_id}":
+    elif owner_id and owner_id != f"extension:{ext_id}":
+        entry = await get_user_extension(extension=ext_id, owner_id=owner_id)
+    else:
         # Public and extension-wide handlers have no user assignment.
         return
-    elif await admin_extension_owner_has_access(ext_id, owner_id):
-        return
-    raise PermissionError("Extension owner no longer has access.")
+
+    if not entry or not entry.active or not entry.has_access:
+        raise PermissionError("Extension owner no longer has access.")
+    if not settings.is_admin_user(entry.user) and not await get_account(entry.user):
+        raise PermissionError("Extension owner is not active.")
 
 
 def _user_id(user: Any | None) -> str | None:

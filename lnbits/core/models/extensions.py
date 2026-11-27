@@ -256,6 +256,7 @@ class ExtensionAccessUpdate(BaseModel):
 
 class UserExtension(BaseModel):
     user: str
+    owner_id: str | None = None
     extension: str
     active: bool
     # Ordinary enablement and wallet permission writes must never change a grant.

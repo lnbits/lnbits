@@ -1072,7 +1072,12 @@ async def m059_add_admin_extension_access(db: Connection):
         ALTER TABLE extensions ADD COLUMN admin_access_granted
         BOOLEAN NOT NULL DEFAULT false
     """)
+    await db.execute("ALTER TABLE extensions ADD COLUMN owner_id TEXT")
     await db.execute("""
         CREATE INDEX idx_extensions_admin_access ON extensions (extension)
         WHERE admin_access_granted
+    """)
+    await db.execute("""
+        CREATE UNIQUE INDEX idx_extensions_owner_id
+        ON extensions (extension, owner_id)
     """)

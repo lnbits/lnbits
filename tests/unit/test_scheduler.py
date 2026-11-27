@@ -20,6 +20,7 @@ from lnbits.core.migrations import (
     m049_add_permissions_to_user_extensions,
     m054_create_scheduled_jobs,
     m055_create_scheduled_job_runs,
+    m059_add_admin_extension_access,
 )
 from lnbits.core.models.extensions import Extension, ExtensionPermission, UserExtension
 from lnbits.core.models.scheduler import (
@@ -74,6 +75,7 @@ async def extension_job_scopes(
         await m001_initial(conn)
         await m020_add_column_column_to_user_extensions(conn)
         await m049_add_permissions_to_user_extensions(conn)
+        await m059_add_admin_extension_access(conn)
     mocker.patch.object(extension_crud, "db", schedule_db)
     for user_id, extension_id in [("alice", "one"), ("bob", "one"), ("alice", "two")]:
         await extension_crud.create_user_extension(
