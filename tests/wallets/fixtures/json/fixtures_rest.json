@@ -2695,6 +2695,20 @@
                     "response": "Not Found",
                     "status": 404
                   }
+                },
+                {
+                  "description": "failed payment",
+                  "response_type": "json",
+                  "response": {
+                    "subType": "lightning",
+                    "paymentId": "6f2c7c5e-3c1a-4a43-9d8e-2b1f6a0d4e11",
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "isPaid": false,
+                    "sent": 21,
+                    "fees": 0,
+                    "completedAt": 1730000005000,
+                    "createdAt": 1730000000000
+                  }
                 }
               ]
             }
@@ -2940,6 +2954,19 @@
                   "response_type": "json",
                   "response": {
                     "isPaid": false
+                  }
+                },
+                {
+                  "description": "payment in flight",
+                  "response_type": "json",
+                  "response": {
+                    "subType": "lightning",
+                    "paymentId": "6f2c7c5e-3c1a-4a43-9d8e-2b1f6a0d4e11",
+                    "paymentHash": "e35526a43d04e985594c0dfab848814f524b1c786598ec9a63beddb2d726ac96",
+                    "isPaid": false,
+                    "sent": 21,
+                    "fees": 0,
+                    "createdAt": 1730000000000
                   }
                 },
                 {
