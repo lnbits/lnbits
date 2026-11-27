@@ -646,7 +646,7 @@ async def _handle_square_subscription_payment(
         wallet_id=wallet_id,
         invoice_data=CreateInvoice(
             unit=currency,
-            amount=amount / 100,
+            amount=SquareWallet.minor_units_to_amount(amount, currency),
             memo=payment_options.memo or "",
             extra=extra,
             fiat_provider="square",
