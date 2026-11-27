@@ -815,6 +815,9 @@ async def test_admin_extension_user_access(
         grants = (await http_client.get(url, headers=admin)).json()
         assert len(grants) == 1 and grants[0]["label"] == regular.username
         assert regular.id not in str(grants)
+        await delete_installed_extension(ext_id=ext.id)
+        await create_installed_extension(ext)
+        assert (await http_client.get(url, headers=admin)).json() == grants
         entry = await get_user_extension(regular.id, ext.id)
         assert entry and entry.admin_access_granted and entry.active != pay_to_enable
         assert (

@@ -83,13 +83,6 @@ async def delete_installed_extension(
 ) -> None:
     await (conn or db).execute(
         """
-        UPDATE extensions SET admin_access_granted = false, active = false
-        WHERE extension = :ext AND admin_access_granted
-        """,
-        {"ext": ext_id},
-    )
-    await (conn or db).execute(
-        """
         DELETE from installed_extensions  WHERE id = :ext
         """,
         {"ext": ext_id},
