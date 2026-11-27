@@ -171,10 +171,11 @@ import is `create-wallet` on `lnbits:extension/host`. Its request has an optiona
 Core takes the wallet owner from the authenticated request, user schedule, or
 user-owned outbound WebSocket connection. In those contexts the same extension
 can call `wallet.createInvoice` and `wallet.payInvoice` on wallets it created
-for that user. The permission covers internal and external Lightning invoices.
-Normal wallet balances, fees, and server payment limits apply.
-Wallets stay in the user's account after uninstall. Approving the same extension
-ID and permission again restores access to its earlier wallets.
+for that user. Core saves the wallet and its spending grant together. The grant
+allows internal and external Lightning invoices up to the server's per-payment
+limit at creation. The owner can change the amount or destination, or remove
+the grant, under the extension's user permissions. Removing the grant stops
+automatic spending. The wallet can still receive invoices.
 
 `wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
 payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
@@ -458,8 +459,8 @@ Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 Permissions are declared in the extension configuration and reviewed by the
 administrator during installation. Policies narrow access to tables, fields,
 external origins, target extensions, websocket rates, or scheduled handlers.
-The owner grants background spending per wallet except for wallets the
-extension creates with `wallet.create_and_spend`. For an installed admin-only
+Background spending uses per-wallet grants. Core adds the grant automatically
+when the extension creates a wallet with `wallet.create_and_spend`. For an installed admin-only
 extension, a server admin can grant a regular account access under
 **Extensions → Installed → Manage → Allowed users** by username or user ID.
 A grant enables a free extension immediately. Paid extensions use the usual

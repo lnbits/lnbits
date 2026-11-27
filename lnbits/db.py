@@ -142,11 +142,12 @@ class Compat:
 
 
 class Connection(Compat):
-    def __init__(self, conn: AsyncConnection, typ, name, schema):
+    def __init__(self, conn: AsyncConnection, typ, name, schema, *, atomic=False):
         self.conn = conn
         self.type = typ
         self.name = name
         self.schema = schema
+        self.atomic = atomic
 
     def rewrite_query(self, query) -> str:
         if self.type in {POSTGRES, COCKROACH}:
@@ -204,13 +205,15 @@ class Connection(Compat):
         await self.conn.execute(
             text(update_query(table_name, model, where)), model_to_dict(model)
         )
-        await self.conn.commit()
+        if not self.atomic:
+            await self.conn.commit()
 
     async def insert(self, table_name: str, model: BaseModel):
         await self.conn.execute(
             text(insert_query(table_name, model)), model_to_dict(model)
         )
-        await self.conn.commit()
+        if not self.atomic:
+            await self.conn.commit()
 
     async def fetch_page(
         self,
@@ -292,7 +295,8 @@ class Connection(Compat):
     async def execute(self, query: str, values: dict | None = None):
         params = self.rewrite_values(values) if values else {}
         result = await self.conn.execute(text(self.rewrite_query(query)), params)
-        await self.conn.commit()
+        if not self.atomic:
+            await self.conn.commit()
         return result
 
 
@@ -328,14 +332,18 @@ class Database(Compat):
         logger.trace(f"database {self.type} added for {self.name}")
 
     @asynccontextmanager
-    async def connect(self):
+    async def connect(self, *, atomic: bool = False):
+        """With atomic=True, commit all writes together on successful exit."""
         await self.lock.acquire()
         try:
-            async with self.engine.connect() as conn:
+            connection = self.engine.begin() if atomic else self.engine.connect()
+            async with connection as conn:
                 if not conn:
                     raise Exception("Could not connect to the database")
 
-                wconn = Connection(conn, self.type, self.name, self.schema)
+                wconn = Connection(
+                    conn, self.type, self.name, self.schema, atomic=atomic
+                )
 
                 if self.schema:
                     if self.type in {POSTGRES, COCKROACH}:

@@ -31,6 +31,7 @@ from ..storage.crud import (
     storage_set_row,
 )
 from .background_payments import (
+    WALLET_CREATE_AND_SPEND_PERMISSION,
     WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
     background_payment_extra,
     invoice_amount_msat,
@@ -91,7 +92,6 @@ from .scheduler import ExtensionSchedulerAPI
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
-WALLET_CREATE_AND_SPEND_PERMISSION = "wallet.create_and_spend"
 
 
 class ExtensionHostAPI:
@@ -449,16 +449,40 @@ class ExtensionHostAPI:
     async def wallet_create_wallet(
         self, request: CreateWalletRequest
     ) -> CreateWalletResponse:
+        from uuid import uuid4
+
+        from lnbits.core.crud.extensions import edit_user_extension_permissions
         from lnbits.core.crud.wallets import create_wallet
+        from lnbits.core.models.extensions import (
+            ExtensionBackgroundPaymentDestinationPolicy,
+            ExtensionBackgroundPaymentGrant,
+        )
+        from lnbits.settings import settings
 
         user_id = self._wallet_creation_user_id()
         if not user_id:
             raise PermissionError("Creating a wallet requires a user context.")
-        wallet = await create_wallet(
-            user_id=user_id,
-            wallet_name=request.name,
-            created_by_extension=self.extension_id,
-        )
+        async with edit_user_extension_permissions(user_id, self.extension_id) as (
+            entry,
+            conn,
+        ):
+            if not entry or not entry.active or not entry.has_access:
+                raise PermissionError("Extension is not enabled for this user.")
+            wallet = await create_wallet(
+                user_id=user_id,
+                wallet_name=request.name,
+                created_by_extension=self.extension_id,
+                conn=conn,
+            )
+            entry.set_wallet_grant(
+                WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
+                ExtensionBackgroundPaymentGrant(
+                    id=str(uuid4()),
+                    wallet_id=wallet.id,
+                    max_amount=settings.lnbits_max_outgoing_payment_amount_sats,
+                    destination_policy=ExtensionBackgroundPaymentDestinationPolicy.EXTERNAL_ALLOWED,
+                ),
+            )
         return CreateWalletResponse(wallet_id=wallet.id)
 
     @extension_api_method(
@@ -881,9 +905,12 @@ class ExtensionHostAPI:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            if self._can_use_created_wallet(wallet):
-                extra = {**request.extra, "tag": self.extension_id}
-            elif self.user_id and self.context not in {"schedule", "websocket"}:
+            created_wallet = self._can_use_created_wallet(wallet)
+            if (
+                not created_wallet
+                and self.user_id
+                and self.context not in {"schedule", "websocket"}
+            ):
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError(
@@ -891,7 +918,8 @@ class ExtensionHostAPI:
                     )
                 extra = {"tag": self.extension_id, **request.extra}
             else:
-                self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
+                if not created_wallet:
+                    self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
                 amount_msat = invoice_amount_msat(request.payment_request)
                 grant_extra = await background_payment_extra(
                     extension_id=self.extension_id,

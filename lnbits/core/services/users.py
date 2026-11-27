@@ -30,8 +30,8 @@ from ..crud import (
     get_user_from_account,
     update_account,
     update_super_user,
-    update_user_extension,
 )
+from ..crud.extensions import update_user_extension_state
 from ..helpers import to_valid_user_id
 from ..models import (
     Account,
@@ -155,11 +155,11 @@ async def update_user_extensions(user_id: str, extensions: list[str]):
         if user_ext.active:
             if user_ext.extension not in extensions:
                 user_ext.active = False
-                await update_user_extension(user_ext)
+                await update_user_extension_state(user_ext)
         else:
             if user_ext.extension in extensions:
                 user_ext.active = True
-                await update_user_extension(user_ext)
+                await update_user_extension_state(user_ext)
 
     user_extension_ids = [ue.extension for ue in user_extensions]
     for ext in extensions:

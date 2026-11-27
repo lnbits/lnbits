@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, NoReturn
 
+from bolt11 import Bolt11Exception
 from bolt11 import decode as bolt11_decode
 from loguru import logger
 
@@ -16,6 +17,7 @@ from lnbits.core.models.wallets import Wallet
 from lnbits.settings import settings
 
 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION = "wallet.pay_invoice_background"
+WALLET_CREATE_AND_SPEND_PERMISSION = "wallet.create_and_spend"
 
 
 async def background_payment_extra(
@@ -39,7 +41,10 @@ async def background_payment_extra(
 
 
 def invoice_amount_msat(payment_request: str) -> int:
-    invoice = bolt11_decode(payment_request)
+    try:
+        invoice = bolt11_decode(payment_request)
+    except Bolt11Exception as exc:
+        raise ValueError("Bolt11 decoding failed.") from exc
     amount_msat = int(invoice.amount_msat or 0)
     if amount_msat <= 0:
         raise PermissionError("Background payments require an invoice amount.")

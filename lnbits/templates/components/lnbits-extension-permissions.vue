@@ -20,8 +20,8 @@
                 caption
                 class="text-negative"
               >
-                Can create Lightning wallets and spend from them without further
-                approval.
+                Each new Lightning wallet gets a spending grant. The wallet
+                owner can change or remove it in user permissions.
               </q-item-label>
             </q-item-label>
             <div

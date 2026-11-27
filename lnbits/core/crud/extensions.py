@@ -1,4 +1,6 @@
 import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from lnbits.core.db import db
@@ -233,6 +235,43 @@ async def update_user_extension(
     user_extension.owner_id = sha256s(user_extension.user)
     where = """WHERE extension = :extension AND "user" = :user"""
     await (conn or db).update("extensions", user_extension, where)
+
+
+async def update_user_extension_state(user_extension: UserExtension) -> None:
+    # An enable/disable or pay-to-enable update must preserve concurrent wallet grants.
+    user_extension.owner_id = sha256s(user_extension.user)
+    await db.execute(
+        """UPDATE extensions SET active = :active, extra = :extra, owner_id = :owner_id
+           WHERE extension = :extension AND "user" = :user""",
+        {
+            "user": user_extension.user,
+            "extension": user_extension.extension,
+            "owner_id": user_extension.owner_id,
+            "active": user_extension.active,
+            "extra": (
+                user_extension.extra.model_dump_json() if user_extension.extra else None
+            ),
+        },
+    )
+
+
+@asynccontextmanager
+async def edit_user_extension_permissions(
+    user_id: str, extension_id: str
+) -> AsyncIterator[tuple[UserExtension | None, Connection]]:
+    values = {"user": user_id, "extension": extension_id}
+    async with db.connect(atomic=True) as conn:
+        # Acquire the writer lock before reading the shared grants JSON on both
+        # SQLite and PostgreSQL. Concurrent grants and removals must not be lost.
+        await conn.execute(
+            """UPDATE extensions SET permissions = permissions
+               WHERE "user" = :user AND extension = :extension""",
+            values,
+        )
+        entry = await get_user_extension(user_id, extension_id, conn=conn)
+        yield entry, conn
+        if entry:
+            await update_user_extension(entry, conn=conn)
 
 
 async def get_user_active_extensions_ids(

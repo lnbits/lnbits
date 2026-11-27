@@ -174,7 +174,7 @@ class ExtensionBackgroundPaymentGrant(BaseModel):
     id: StrictStr = Field(..., min_length=1, max_length=128)
     wallet_id: str = Field(..., min_length=1, max_length=128)
     enabled: bool = True
-    max_amount: int = Field(..., gt=0)
+    max_amount: int = Field(..., ge=0)
     destination_policy: ExtensionBackgroundPaymentDestinationPolicy
 
 
@@ -265,6 +265,19 @@ class UserExtension(BaseModel):
     )
     extra: UserExtensionInfo | None = None
     permissions: dict = Field(default_factory=dict)
+
+    def set_wallet_grant(
+        self,
+        permission: str,
+        grant: ExtensionBackgroundPaymentGrant | ExtensionWalletPaymentsWatchGrant,
+    ) -> None:
+        remaining = [
+            existing
+            for existing in self.permissions.get(permission, [])
+            if isinstance(existing, dict)
+            and existing.get("wallet_id") != grant.wallet_id
+        ]
+        self.permissions[permission] = [*remaining, grant.model_dump(mode="json")]
 
     @property
     def has_access(self) -> bool:
