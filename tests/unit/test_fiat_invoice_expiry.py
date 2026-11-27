@@ -62,11 +62,11 @@ async def test_fiat_invoice_defaults_to_24h_expiry(
 
 
 @pytest.mark.anyio
-async def test_fiat_invoice_keeps_explicit_expiry_and_fails_after_it(
-    app, settings: Settings, mocker: MockerFixture
+@pytest.mark.parametrize("paid", [True, False])
+async def test_fiat_invoice_checks_provider_after_explicit_expiry(
+    app, settings: Settings, mocker: MockerFixture, paid: bool
 ):
-    """An expiry passed by the caller is kept, and an unpaid fiat invoice is still
-    failed by the sweep once it has expired."""
+    """Keep the caller's expiry, but check for payment before failing the invoice."""
     wallet_id, _ = await _stripe_setup(settings, mocker)
     payment = await payments.create_fiat_invoice(
         wallet_id,
@@ -76,12 +76,24 @@ async def test_fiat_invoice_keeps_explicit_expiry_and_fails_after_it(
 
     payment.expiry = datetime.now(timezone.utc) - timedelta(minutes=1)
     await update_payment(payment)
+    check_status = mocker.patch(
+        "lnbits.fiat.StripeWallet.get_invoice_status",
+        AsyncMock(
+            return_value=(
+                FiatPaymentSuccessStatus() if paid else FiatPaymentPendingStatus()
+            )
+        ),
+    )
     await check_pending_payments()
 
-    expired = await get_standalone_payment(payment.checking_id)
-    assert expired is not None
-    assert expired.status == PaymentState.FAILED
-    assert "expired" in expired.labels
+    updated = await get_standalone_payment(payment.checking_id)
+    assert updated is not None
+    assert updated.status == (PaymentState.SUCCESS if paid else PaymentState.FAILED)
+    assert ("expired" in updated.labels) is not paid
+    check_status.assert_any_await(payment.extra["fiat_checking_id"])
+    credited = await get_wallet(wallet_id)
+    assert credited is not None
+    assert credited.balance_msat == (payment.amount if paid else 0)
 
 
 async def _stripe_setup(settings: Settings, mocker: MockerFixture) -> tuple[str, str]:
