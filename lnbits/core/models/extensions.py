@@ -170,12 +170,17 @@ class ExtensionBackgroundPaymentDestinationPolicy(str, Enum):
     EXTERNAL_ALLOWED = "external_allowed"
 
 
-class ExtensionBackgroundPaymentGrant(BaseModel):
+class ExtensionWalletGrant(BaseModel):
     id: StrictStr = Field(..., min_length=1, max_length=128)
     wallet_id: str = Field(..., min_length=1, max_length=128)
     enabled: bool = True
+
+
+class ExtensionBackgroundPaymentGrant(ExtensionWalletGrant):
     max_amount: int = Field(..., ge=0)
     destination_policy: ExtensionBackgroundPaymentDestinationPolicy
+    # Only core-issued grants can use the narrower wallet.create_and_spend permission.
+    automatic: bool = False
 
 
 class ExtensionBackgroundPaymentGrantRequest(BaseModel):
@@ -193,10 +198,8 @@ class ExtensionBackgroundPaymentGrantRequest(BaseModel):
         )
 
 
-class ExtensionWalletPaymentsWatchGrant(BaseModel):
-    id: StrictStr = Field(..., min_length=1, max_length=128)
-    wallet_id: str = Field(..., min_length=1, max_length=128)
-    enabled: bool = True
+class ExtensionWalletPaymentsWatchGrant(ExtensionWalletGrant):
+    pass
 
 
 class ExtensionWalletPaymentsWatchGrantRequest(BaseModel):
@@ -266,11 +269,26 @@ class UserExtension(BaseModel):
     extra: UserExtensionInfo | None = None
     permissions: dict = Field(default_factory=dict)
 
-    def set_wallet_grant(
-        self,
-        permission: str,
-        grant: ExtensionBackgroundPaymentGrant | ExtensionWalletPaymentsWatchGrant,
-    ) -> None:
+    def wallet_grant(self, permission: str, wallet_id: str) -> dict:
+        grants = self.permissions.get(permission)
+        if not isinstance(grants, list):
+            return {}
+        for grant in grants:
+            if not isinstance(grant, dict) or grant.get("wallet_id") != wallet_id:
+                continue
+            if isinstance(grant.get("id"), str) and grant["id"]:
+                return grant
+        return {}
+
+    def may_invoice_wallet(self, wallet_id: str) -> bool:
+        grant = self.wallet_grant("wallet.create_invoice", wallet_id)
+        return grant.get("enabled") is True
+
+    def has_automatic_wallet_grant(self, wallet_id: str) -> bool:
+        spending = self.wallet_grant("wallet.pay_invoice_background", wallet_id)
+        return spending.get("automatic") is True or self.may_invoice_wallet(wallet_id)
+
+    def set_wallet_grant(self, permission: str, grant: ExtensionWalletGrant) -> None:
         remaining = [
             existing
             for existing in self.permissions.get(permission, [])

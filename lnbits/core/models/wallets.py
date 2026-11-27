@@ -126,7 +126,6 @@ class BaseWallet(BaseModel):
 
 class Wallet(BaseWallet):
     name: str
-    created_by_extension: str | None = None
     # Must be set only for shared wallets
     shared_wallet_id: str | None = None
     deleted: bool = False

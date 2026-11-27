@@ -23,6 +23,7 @@ from lnbits.wallets.fake import FakeWallet
 
 PERMISSION = "wallet.create_and_spend"
 BACKGROUND = "wallet.pay_invoice_background"
+INVOICE = "wallet.create_invoice"
 
 
 @pytest.fixture
@@ -50,12 +51,13 @@ async def test_create_wallet_invoice_and_pay(assignment, mocker, context, settin
     assert set(created) == {"walletId"}
     wallet = await get_wallet(created["walletId"])
     assert wallet and wallet.user == assignment.user
-    assert wallet.created_by_extension == assignment.extension
     assert wallet.name == "Orders" and wallet.is_lightning_wallet
     entry = await get_user_extension(assignment.user, assignment.extension)
     assert entry
     (grant,) = entry.permissions[BACKGROUND]
     assert grant["wallet_id"] == wallet.id and grant["enabled"]
+    (invoice_grant,) = entry.permissions[INVOICE]
+    assert invoice_grant["wallet_id"] == wallet.id and invoice_grant["enabled"]
     assert grant["destination_policy"] == "external_allowed"
     assert grant["max_amount"] == settings.lnbits_max_outgoing_payment_amount_sats
 
@@ -104,7 +106,8 @@ async def test_created_wallet_grant_can_be_limited_and_revoked(
     url = f"/api/v1/extension/{installed.id}/permissions"
     response = await http_client.get(url, headers=user_headers_from)
     assert response.status_code == 200
-    grants = response.json()["user_permissions"][BACKGROUND]
+    permissions = response.json()["user_permissions"]
+    grants = permissions[BACKGROUND]
     assert {g["wallet_id"] for g in grants} == {w["walletId"] for w in wallets}
     grant = grants[0]
     change = {
@@ -151,6 +154,53 @@ async def test_created_wallet_grant_can_be_limited_and_revoked(
         {"walletId": grant["wallet_id"], "amount": 2, "memo": "", "tag": installed.id},
     )
     assert invoice["paymentRequest"]
+
+    other = grants[1]
+    invoice_grant = next(
+        g for g in permissions[INVOICE] if g["wallet_id"] == other["wallet_id"]
+    )
+    response = await http_client.delete(
+        url + "/user/" + invoice_grant["id"], headers=user_headers_from
+    )
+    assert response.status_code == 200
+    with pytest.raises(PermissionError):
+        await api.invoke(
+            "create-invoice",
+            {
+                "walletId": other["wallet_id"],
+                "amount": 2,
+                "memo": "",
+                "tag": installed.id,
+            },
+        )
+    response = await http_client.post(
+        url + "/background-payment",
+        json={**change, "wallet_id": other["wallet_id"]},
+        headers=user_headers_from,
+    )
+    assert response.status_code == 200
+    denied = await api.invoke(
+        "pay-invoice", {**payment, "walletId": other["wallet_id"]}
+    )
+    assert not denied["ok"] and "exceeds max amount" in denied["error"]
+
+    # A manual grant on an existing wallet still needs its original admin permission.
+    installed.permissions = [ExtensionPermission(id=BACKGROUND)]
+    response = await http_client.post(
+        url + "/background-payment",
+        json={**change, "wallet_id": ordinary.id, "automatic": True},
+        headers=user_headers_from,
+    )
+    assert response.status_code == 200
+    installed.permissions = [ExtensionPermission(id=PERMISSION)]
+    response = await http_client.post(
+        url + "/background-payment",
+        json={**change, "wallet_id": ordinary.id},
+        headers=user_headers_from,
+    )
+    assert response.status_code == 403
+    denied = await api.invoke("pay-invoice", {**payment, "walletId": ordinary.id})
+    assert not denied["ok"] and "wallet.pay_invoice" in denied["error"]
 
 
 @pytest.mark.anyio
@@ -199,7 +249,7 @@ async def test_create_wallet_requires_grant_and_user_context(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("field", ["userId", "createdByExtension", "walletType"])
+@pytest.mark.parametrize("field", ["userId", "extensionId", "walletType"])
 async def test_create_wallet_rejects_caller_supplied_identity_or_type(mocker, field):
     create = mocker.patch("lnbits.core.crud.wallets.create_wallet")
     api = ExtensionAPIHost(ExtensionHostAPI("orders", [PERMISSION], user_id="alice"))
@@ -220,13 +270,25 @@ async def test_create_wallet_rejects_caller_supplied_identity_or_type(mocker, fi
     ],
 )
 async def test_automatic_wallet_access_is_scoped(
-    app, from_wallet, mocker, extension, user, permissions, context, use_created_wallet
+    assignment,
+    from_wallet,
+    mocker,
+    extension,
+    user,
+    permissions,
+    context,
+    use_created_wallet,
 ):
-    wallet = (
-        await create_wallet(user_id=from_wallet.user, created_by_extension="orders")
-        if use_created_wallet
-        else from_wallet
-    )
+    wallet_id = from_wallet.id
+    if use_created_wallet:
+        creator = ExtensionAPIHost(
+            ExtensionHostAPI(
+                assignment.extension, [PERMISSION], user_id=assignment.user
+            )
+        )
+        wallet_id = (await creator.invoke("create-wallet"))["walletId"]
+    if extension == "orders":
+        extension = assignment.extension
     user_id = from_wallet.user if user == "alice" else user
     api = ExtensionAPIHost(
         ExtensionHostAPI(
@@ -242,16 +304,16 @@ async def test_automatic_wallet_access_is_scoped(
     with pytest.raises(PermissionError):
         await api.invoke(
             "create-invoice",
-            {"walletId": wallet.id, "amount": 1, "memo": "", "tag": extension},
+            {"walletId": wallet_id, "amount": 1, "memo": "", "tag": extension},
         )
     if user == "bob":
         with pytest.raises(PermissionError):
             await api.invoke(
-                "pay-invoice", {"walletId": wallet.id, "paymentRequest": "unused"}
+                "pay-invoice", {"walletId": wallet_id, "paymentRequest": "unused"}
             )
     else:
         result = await api.invoke(
-            "pay-invoice", {"walletId": wallet.id, "paymentRequest": "unused"}
+            "pay-invoice", {"walletId": wallet_id, "paymentRequest": "unused"}
         )
         assert not result["ok"]
     invoice.assert_not_awaited()

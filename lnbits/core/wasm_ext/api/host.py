@@ -456,6 +456,7 @@ class ExtensionHostAPI:
         from lnbits.core.models.extensions import (
             ExtensionBackgroundPaymentDestinationPolicy,
             ExtensionBackgroundPaymentGrant,
+            ExtensionWalletGrant,
         )
         from lnbits.settings import settings
 
@@ -471,14 +472,18 @@ class ExtensionHostAPI:
             wallet = await create_wallet(
                 user_id=user_id,
                 wallet_name=request.name,
-                created_by_extension=self.extension_id,
                 conn=conn,
+            )
+            entry.set_wallet_grant(
+                "wallet.create_invoice",
+                ExtensionWalletGrant(id=str(uuid4()), wallet_id=wallet.id),
             )
             entry.set_wallet_grant(
                 WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
                 ExtensionBackgroundPaymentGrant(
                     id=str(uuid4()),
                     wallet_id=wallet.id,
+                    automatic=True,
                     max_amount=settings.lnbits_max_outgoing_payment_amount_sats,
                     destination_policy=ExtensionBackgroundPaymentDestinationPolicy.EXTERNAL_ALLOWED,
                 ),
@@ -515,7 +520,7 @@ class ExtensionHostAPI:
             raise PermissionError("Not your wallet.")
         if (
             "wallet.create_invoice" not in self.permissions
-            and not self._can_use_created_wallet(wallet)
+            and not await self._has_wallet_creation_grant(wallet, invoice=True)
         ):
             raise PermissionError("Creating an invoice for this wallet is not allowed.")
 
@@ -905,7 +910,7 @@ class ExtensionHostAPI:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            created_wallet = self._can_use_created_wallet(wallet)
+            created_wallet = await self._has_wallet_creation_grant(wallet)
             if (
                 not created_wallet
                 and self.user_id
@@ -1429,13 +1434,23 @@ class ExtensionHostAPI:
             return self.user_id
         return None
 
-    def _can_use_created_wallet(self, wallet: Wallet) -> bool:
-        return (
-            WALLET_CREATE_AND_SPEND_PERMISSION in self.permissions
-            and self._wallet_creation_user_id() == wallet.user
-            and wallet.is_lightning_wallet
-            and wallet.created_by_extension == self.extension_id
-        )
+    async def _has_wallet_creation_grant(
+        self, wallet: Wallet, *, invoice: bool = False
+    ) -> bool:
+        from lnbits.core.crud.extensions import get_user_extension
+
+        if (
+            WALLET_CREATE_AND_SPEND_PERMISSION not in self.permissions
+            or self._wallet_creation_user_id() != wallet.user
+            or not wallet.is_lightning_wallet
+        ):
+            return False
+        entry = await get_user_extension(wallet.user, self.extension_id)
+        if not entry or not entry.active or not entry.has_access:
+            return False
+        if invoice:
+            return entry.may_invoice_wallet(wallet.id)
+        return entry.has_automatic_wallet_grant(wallet.id)
 
     def _can_pay_from_wallet(self, wallet: Wallet | None) -> TypeGuard[Wallet]:
         if wallet is None or self.owner_id != sha256s(wallet.user):

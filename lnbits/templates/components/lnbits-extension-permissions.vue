@@ -20,8 +20,8 @@
                 caption
                 class="text-negative"
               >
-                Each new Lightning wallet gets a spending grant. The wallet
-                owner can change or remove it in user permissions.
+                The extension can create invoices and spend from each wallet it
+                creates. The owner can remove either right in user permissions.
               </q-item-label>
             </q-item-label>
             <div

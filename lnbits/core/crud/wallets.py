@@ -33,7 +33,6 @@ async def create_wallet(
     *,
     user_id: str,
     wallet_name: str | None = None,
-    created_by_extension: str | None = None,
     wallet_type: WalletType = WalletType.LIGHTNING,
     currency: str | None = None,
     shared_wallet_id: str | None = None,
@@ -50,7 +49,6 @@ async def create_wallet(
     wallet = Wallet(
         id=wallet_id,
         name=wallet_name or settings.lnbits_default_wallet_name,
-        created_by_extension=created_by_extension,
         wallet_type=wallet_type.value,
         shared_wallet_id=shared_wallet_id,
         onchain_network=onchain_network if wallet_type == WalletType.ONCHAIN else None,

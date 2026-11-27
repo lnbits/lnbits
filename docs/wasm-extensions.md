@@ -171,11 +171,11 @@ import is `create-wallet` on `lnbits:extension/host`. Its request has an optiona
 Core takes the wallet owner from the authenticated request, user schedule, or
 user-owned outbound WebSocket connection. In those contexts the same extension
 can call `wallet.createInvoice` and `wallet.payInvoice` on wallets it created
-for that user. Core saves the wallet and its spending grant together. The grant
-allows internal and external Lightning invoices up to the server's per-payment
-limit at creation. The owner can change the amount or destination, or remove
-the grant, under the extension's user permissions. Removing the grant stops
-automatic spending. The wallet can still receive invoices.
+for that user. Core saves the wallet and both grants in one transaction.
+The spending grant allows any Lightning invoice up to the server's per-payment
+limit at creation. Under the extension's user permissions, the owner can change
+the spending limit or allowed destinations and remove either grant independently.
+Removing spending access leaves invoice creation available.
 
 `wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
 payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
