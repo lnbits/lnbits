@@ -174,6 +174,46 @@ expired. Changes are persisted and can trigger settlement processing and
 notifications. Completed payments return their stored status without refreshing.
 The response contains identifiers, status, amount, fee, and pending/success flags.
 
+### Local Nostr operations
+
+Every WASM extension can import `lnbits:extension/nostr`, including in a public
+invocation with an empty permissions list. The extension manages its own keys.
+These functions compute locally. Use the outbound WebSocket API for relay traffic.
+
+The table uses generated SDK names and record fields. For WIT, use kebab case
+(`sign-event`, `event-json`, `private-key`). Keys are returned in hex. Private
+key inputs accept hex or `nsec`, and public key inputs accept hex or `npub`.
+`eventJson` is a string containing a Nostr wire-format event.
+
+| SDK method                 | Input fields                                             | Output fields                                             |
+| -------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| `nostr.generateKeypair`    | None                                                     | `privateKey`, `publicKey`                                 |
+| `nostr.getPublicKey`       | `privateKey`                                             | `publicKey`                                               |
+| `nostr.normalizePublicKey` | `publicKey`                                              | `publicKey`                                               |
+| `nostr.signEvent`          | `privateKey`, `eventJson`                                | `eventJson`                                               |
+| `nostr.verifyEvent`        | `eventJson`                                              | `valid`                                                   |
+| `nostr.eventId`            | `eventJson` including `pubkey`                           | `eventId`                                                 |
+| `nostr.giftWrap`           | `privateKey`, `recipient`, unsigned `eventJson`          | `eventJson`                                               |
+| `nostr.unwrapGift`         | Recipient's `privateKey`, wrapped `eventJson`            | Authenticated `sender`, unsigned inner `eventJson`        |
+| `nostr.nip44Encrypt`       | `privateKey`, peer's `publicKey`, `plaintext`            | `ciphertext`                                              |
+| `nostr.nip44Decrypt`       | `privateKey`, peer's `publicKey`, `ciphertext`           | `plaintext`                                               |
+| `nostr.nip04Encrypt`       | `privateKey`, peer's `publicKey`, `plaintext`            | Legacy `ciphertext`                                       |
+| `nostr.nip04Decrypt`       | `privateKey`, peer's `publicKey`, legacy `ciphertext`    | `plaintext`                                               |
+| `nostr.buildAuthEvent`     | `relay`, `challenge`                                     | Unsigned NIP-42 `eventJson` for `signEvent`               |
+| `nostr.decodeNip19`        | `encoded` (accepts a `nostr:` URI)                       | `prefix`, `value`, `relays`, optional `author` and `kind` |
+| `nostr.encodeNip19`        | `prefix`, `value`, optional relay hints, author and kind | `encoded`                                                 |
+
+NIP-19 supports `npub`, `nsec`, `note`, `nprofile`, `nevent`, and `naddr`.
+For `naddr`, pass the group's `d` tag as `value` along with its `author` and
+`kind`. The WIT record uses `option<list<string>>` for `relays`, `option<string>`
+for `author`, and `option<u32>` for `kind`. Decoding returns an empty list when
+the identifier carries no relay hints.
+
+`verifyEvent` returns `valid: false` for a malformed event, mismatched ID, or
+invalid signature. `unwrapGift` rejects invalid envelopes and implements standard
+NIP-59 seals with empty tags. Extensions that need to read a custom seal tag
+can use `nip44Decrypt` and `verifyEvent` directly.
+
 ### Core onchain checkouts
 
 `wallet.list_user_wallets` also returns `wallet_type`, `onchain_network` and
