@@ -267,11 +267,11 @@ class UserExtension(BaseModel):
 
     @property
     def has_access(self) -> bool:
-        return (
-            not settings.is_admin_extension(self.extension)
-            or settings.is_admin_user(self.user)
-            or self.admin_access_granted
-        )
+        if not settings.is_admin_extension(self.extension):
+            return True
+        if settings.is_admin_user(self.user):
+            return True
+        return self.admin_access_granted
 
     @property
     def is_paid(self) -> bool:
@@ -640,11 +640,13 @@ class InstallableExtension(BaseModel):
     def is_available_for_user(
         self, user_id: str, user_extension: UserExtension | None = None
     ) -> bool:
-        return (
-            not self.is_admin_only
-            or settings.is_admin_user(user_id)
-            or bool(user_extension and user_extension.admin_access_granted)
-        )
+        if not self.is_admin_only:
+            return True
+        if settings.is_admin_user(user_id):
+            return True
+        if user_extension is None:
+            return False
+        return user_extension.admin_access_granted
 
     @property
     def is_wasm(self) -> bool:
