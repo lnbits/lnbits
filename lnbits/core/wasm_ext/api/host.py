@@ -456,7 +456,6 @@ class ExtensionHostAPI:
         from lnbits.core.models.extensions import (
             ExtensionBackgroundPaymentDestinationPolicy,
             ExtensionBackgroundPaymentGrant,
-            UserExtension,
         )
         from lnbits.settings import settings
 
@@ -469,12 +468,8 @@ class ExtensionHostAPI:
             wallet = await create_wallet(
                 user_id=self.user_id, wallet_name=request.name, conn=conn
             )
-            # Lock and read the latest grants so concurrent creations keep both IDs.
-            entry = await conn.fetchone(
-                """UPDATE extensions SET permissions = permissions
-                   WHERE "user" = :user AND extension = :extension RETURNING *""",
-                {"user": self.user_id, "extension": self.extension_id},
-                model=UserExtension,
+            entry = await get_user_extension(
+                self.user_id, self.extension_id, conn, for_update=True
             )
             if not entry or not entry.active or not entry.has_access:
                 raise PermissionError("Extension is not enabled for this user.")

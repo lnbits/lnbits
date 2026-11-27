@@ -152,14 +152,23 @@ async def get_user_extension(
     conn: Connection | None = None,
     *,
     owner_id: str | None = None,
+    for_update: bool = False,
 ) -> UserExtension | None:
     if not extension or (user_id is None) == (owner_id is None):
         raise ValueError("Provide an extension and exactly one of user_id or owner_id.")
-    query = "SELECT * FROM extensions WHERE extension = :ext"
+    query = "SELECT * FROM extensions"
+    if for_update:
+        if conn is None:
+            raise ValueError("A locked lookup requires an open connection.")
+        # Both SQLite and PostgreSQL hold the write lock until the next commit.
+        query = "UPDATE extensions SET permissions = permissions"
+    query += " WHERE extension = :ext"
     if user_id is not None:
         query += ' AND "user" = :user_id'
     else:
         query += " AND owner_id = :owner_id"
+    if for_update:
+        query += " RETURNING *"
     return await (conn or db).fetchone(
         query,
         {"ext": extension, "user_id": user_id, "owner_id": owner_id},
