@@ -112,9 +112,11 @@ class ExtensionHostAPI:
         self.owner_id = sha256s(user_id) if user_id else owner_id
         self.invocation_id = invocation_id
         self.runtime_limits = runtime_limits or {}
+        from .nostr import ExtensionNostrAPI
         from .onchain import ExtensionOnchainAPI
         from .utils import ExtensionAPIUtils
 
+        self.nostr = ExtensionNostrAPI(self)
         self.onchain = ExtensionOnchainAPI(self)
         self.scheduler = ExtensionSchedulerAPI(self)
         self.utils = ExtensionAPIUtils(

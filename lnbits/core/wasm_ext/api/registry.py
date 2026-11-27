@@ -169,10 +169,12 @@ def _extension_api_method_sources(
 
     if issubclass(api_cls, ExtensionHostAPI):
         # Keep local: scheduler imports this module's extension_api_method decorator.
+        from .nostr import ExtensionNostrAPI
         from .onchain import ExtensionOnchainAPI
         from .scheduler import ExtensionSchedulerAPI
         from .utils import extension_api_utils_method_classes
 
+        sources.append(("nostr", ExtensionNostrAPI))
         sources.append(("scheduler", ExtensionSchedulerAPI))
         sources.append(("onchain", ExtensionOnchainAPI))
         sources.extend(extension_api_utils_method_classes().items())
