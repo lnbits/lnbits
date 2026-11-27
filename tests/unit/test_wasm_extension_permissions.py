@@ -7,7 +7,6 @@ from pytest_mock.plugin import MockerFixture
 from lnbits.core.models.extensions import (
     ExtensionBackgroundPaymentDestinationPolicy,
     ExtensionPermission,
-    UserExtension,
 )
 from lnbits.core.views.extension_api import (
     WALLET_PAY_INVOICE_BACKGROUND_PERMISSION,
@@ -19,6 +18,7 @@ from lnbits.core.views.extension_api import (
     _find_wallet_payments_watch_grant,
     _remove_user_permission_grant,
     _safe_user_extension_permissions,
+    _user_permission_grant_id_for_wallet,
 )
 from lnbits.core.wasm_ext.api.permissions import (
     PUBLIC_APPEND_MAX_ROWS_PER_SOURCE_LIMIT,
@@ -823,11 +823,11 @@ def test_user_permission_grant_id_for_wallet_returns_existing_grant_id():
         ]
     }
 
-    entry = UserExtension(
-        user="user-1", extension="orders", active=True, permissions=permissions
+    grant_id = _user_permission_grant_id_for_wallet(
+        permissions, WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, "wallet-1"
     )
-    grant = entry.wallet_grant(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION, "wallet-1")
-    assert grant["id"] == "grant-1"
+
+    assert grant_id == "grant-1"
 
 
 def test_remove_user_permission_grant_removes_only_matching_grant_id():

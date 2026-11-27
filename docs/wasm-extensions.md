@@ -164,18 +164,12 @@ types and wrappers from those methods. It does not replace building a matching
 WIT component. Repository-specific `lnbits-sdk.js` wrappers can differ; verify
 their behavior rather than treating one copied SDK as the host specification.
 
-With the admin-approved `wallet.create_and_spend` permission, call
-`wallet.createWallet({name: "Orders"})` to create a Lightning wallet. The WIT
-import is `create-wallet` on `lnbits:extension/host`. Its request has an optional
-`name` string and its response contains only `wallet-id` (`walletId` in the SDK).
-Core takes the wallet owner from the authenticated request, user schedule, or
-user-owned outbound WebSocket connection. In those contexts the same extension
-can call `wallet.createInvoice` and `wallet.payInvoice` on wallets it created
-for that user. Core saves the wallet and both grants in one transaction.
-The spending grant allows any Lightning invoice up to the server's per-payment
-limit at creation. Under the extension's user permissions, the owner can change
-the spending limit or allowed destinations and remove either grant independently.
-Removing spending access leaves invoice creation available.
+With `wallet.create_and_spend`, `wallet.createWallet({name: "Orders"})` creates
+a Lightning wallet for the user in an authenticated request, user schedule, or
+user-owned outbound WebSocket callback. Core adds the wallet to the extension's
+background spending grants and returns its `walletId`. The grant allows any
+Lightning invoice up to the server's per-payment limit at creation. The user can
+edit or revoke it. Invoicing and payments use the usual permissions listed below.
 
 `wallet.refresh_payment` (SDK: `wallet.refreshPayment`) explicitly refreshes a
 payment using `wallet_id` and `checking_id` (`walletId` and `checkingId` in the SDK).
@@ -459,9 +453,8 @@ Sources: [CSP and frame tokens](../lnbits/core/wasm_ext/routes/security.py),
 Permissions are declared in the extension configuration and reviewed by the
 administrator during installation. Policies narrow access to tables, fields,
 external origins, target extensions, websocket rates, or scheduled handlers.
-Background spending uses per-wallet grants. Core adds the grant automatically
-when the extension creates a wallet with `wallet.create_and_spend`. For an installed admin-only
-extension, a server admin can grant a regular account access under
+Installation approval does not replace per-user wallet grants. For an installed
+admin-only extension, a server admin can grant a regular account access under
 **Extensions → Installed → Manage → Allowed users** by username or user ID.
 A grant enables a free extension immediately. Paid extensions use the usual
 payment flow. Revoking a grant disables the extension for that account and
@@ -473,11 +466,10 @@ closes its outbound WebSockets.
 | Public reads and public append                 | `ext.storage.read_public`, `ext.storage.append_public`; explicit table/field/source policies |
 | List wallets / read balance                    | `wallet.list`, `wallet.balance.read`; accessible user wallets                                |
 | Refresh payment status                         | `wallet.payments.refresh`; user's wallet with permission to view payments                    |
-| Create Lightning wallets and use them          | `wallet.create_and_spend` for wallets this extension creates for the current user            |
-| Create invoices                                | `wallet.create_invoice` for the user's wallets, or `wallet.create_and_spend` as above        |
+| Create invoices                                | `wallet.create_invoice`; user's wallet                                                       |
 | Public invoice creation                        | `wallet.create_invoice_public`; wallet selected through an approved stored source            |
-| Interactive outgoing payments                  | `wallet.pay_invoice` for the user's wallets, or `wallet.create_and_spend` as above           |
-| Background outgoing payments                   | `wallet.pay_invoice_background` plus a wallet grant, or `wallet.create_and_spend` as above   |
+| Interactive outgoing payments                  | `wallet.pay_invoice`; user's wallet                                                          |
+| Background outgoing payments                   | `wallet.pay_invoice_background` plus an enabled per-wallet user grant                        |
 | Observe additional wallet payments             | `wallet.payments.watch` plus a per-wallet watch grant                                        |
 | Currency rates, conversions, invoice utilities | `utils.basic`                                                                                |
 | Outbound HTTPS                                 | `http.request`; approved origins and host network restrictions                               |
@@ -643,10 +635,9 @@ replays, but a separate check and write does not make concurrent side effects
 exactly-once. Check `success` / pending status on payment responses rather than
 equating `ok` with confirmed settlement.
 
-For background payments from ordinary user wallets, including payments from
-scheduled callbacks and public owner-context actions, the extension needs
-`wallet.pay_invoice_background` plus the user's wallet grant.
-Grants restrict amount and destination policy; a per-payment cap is not
+Background payments, including payments from scheduled callbacks and public
+owner-context actions, need the extension permission plus the user's wallet
+grant. Grants restrict amount and destination policy; a per-payment cap is not
 a daily spending budget. Wallet-watch permission only enables additional incoming
 events and does not authorize spending. A shared schedule has no wallet owner.
 

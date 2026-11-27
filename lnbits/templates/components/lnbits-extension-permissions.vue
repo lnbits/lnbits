@@ -15,14 +15,6 @@
               style="max-width: 100%"
             >
               <span v-text="permission.label"></span>
-              <q-item-label
-                v-if="permission.id === 'wallet.create_and_spend'"
-                caption
-                class="text-negative"
-              >
-                The extension can create invoices and spend from each wallet it
-                creates. The owner can remove either right in user permissions.
-              </q-item-label>
             </q-item-label>
             <div
               v-if="permission.risk.level !== 'low' || permission.badges.length"
