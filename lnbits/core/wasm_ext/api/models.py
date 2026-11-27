@@ -233,6 +233,16 @@ class InvoiceDescriptionHash(BaseModel):
         return self
 
 
+class CreateWalletRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CreateWalletResponse(BaseModel):
+    wallet_id: str
+
+
 class CreateInvoiceRequest(InvoiceDescriptionHash):
     wallet_id: str = Field(..., min_length=1, max_length=128)
     amount: float = Field(..., gt=0)

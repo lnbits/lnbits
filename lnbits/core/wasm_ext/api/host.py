@@ -41,6 +41,8 @@ from .models import (
     CreateInvoicePublicRequest,
     CreateInvoiceRequest,
     CreateInvoiceResponse,
+    CreateWalletRequest,
+    CreateWalletResponse,
     EmptyRequest,
     ExtensionApiRequest,
     HttpRequest,
@@ -89,6 +91,7 @@ from .scheduler import ExtensionSchedulerAPI
 from .websockets import scoped_websocket_item_id, wasm_extension_websocket_hub
 
 PUBLIC_APPEND_DEFAULT_MAX_ROWS_PER_SOURCE = 10_000
+WALLET_CREATE_AND_SPEND_PERMISSION = "wallet.create_and_spend"
 
 
 class ExtensionHostAPI:
@@ -432,14 +435,42 @@ class ExtensionHostAPI:
         return WebsocketPublishResponse()
 
     @extension_api_method(
+        method_id="wallet.create_wallet",
+        namespace="wallet",
+        name="Create wallet",
+        host_name="create_wallet",
+        sdk_name="createWallet",
+        description=(
+            "Create a Lightning wallet for the current user. The extension can "
+            "create invoices and pay Lightning invoices from wallets it creates."
+        ),
+        required_permission=WALLET_CREATE_AND_SPEND_PERMISSION,
+    )
+    async def wallet_create_wallet(
+        self, request: CreateWalletRequest
+    ) -> CreateWalletResponse:
+        from lnbits.core.crud.wallets import create_wallet
+
+        user_id = self._wallet_creation_user_id()
+        if not user_id:
+            raise PermissionError("Creating a wallet requires a user context.")
+        wallet = await create_wallet(
+            user_id=user_id,
+            wallet_name=request.name,
+            created_by_extension=self.extension_id,
+        )
+        return CreateWalletResponse(wallet_id=wallet.id)
+
+    @extension_api_method(
         method_id="wallet.create_invoice",
         namespace="wallet",
         name="Create invoice",
         host_name="create_invoice",
         sdk_name="createInvoice",
-        description="Create an incoming Lightning invoice for an allowed wallet.",
-        required_permission="wallet.create_invoice",
-        require_auth=True,
+        description=(
+            "Create an invoice with wallet.create_invoice or for a wallet "
+            "created by this extension with wallet.create_and_spend."
+        ),
     )
     async def wallet_create_invoice(
         self, request: CreateInvoiceRequest
@@ -448,6 +479,8 @@ class ExtensionHostAPI:
         from lnbits.core.models.payments import CreateInvoice
         from lnbits.core.services.payments import create_payment_request
 
+        if WALLET_CREATE_AND_SPEND_PERMISSION not in self.permissions:
+            self.require_permission("wallet.create_invoice")
         if not self.user_id:
             raise PermissionError(
                 "Creating an invoice for this wallet requires an "
@@ -456,6 +489,11 @@ class ExtensionHostAPI:
         wallet = await get_wallet(request.wallet_id)
         if wallet is None or wallet.user != self.user_id:
             raise PermissionError("Not your wallet.")
+        if (
+            "wallet.create_invoice" not in self.permissions
+            and not self._can_use_created_wallet(wallet)
+        ):
+            raise PermissionError("Creating an invoice for this wallet is not allowed.")
 
         payment = await create_payment_request(
             request.wallet_id,
@@ -843,37 +881,33 @@ class ExtensionHostAPI:
             raise PermissionError("Paying invoices from this wallet is not allowed.")
 
         try:
-            if self.user_id and self.context not in {"schedule", "websocket"}:
+            if self._can_use_created_wallet(wallet):
+                extra = {**request.extra, "tag": self.extension_id}
+            elif self.user_id and self.context not in {"schedule", "websocket"}:
                 self.require_permission("wallet.pay_invoice")
                 if wallet.user != self.user_id:
                     raise PermissionError(
                         "Paying invoices from this wallet is not allowed."
                     )
-                payment = await pay_invoice(
-                    wallet_id=request.wallet_id,
-                    payment_request=request.payment_request,
-                    max_sat=request.max_sat,
-                    extra={"tag": self.extension_id, **request.extra},
-                    description=request.description,
-                    tag=self.extension_id,
-                )
+                extra = {"tag": self.extension_id, **request.extra}
             else:
                 self.require_permission(WALLET_PAY_INVOICE_BACKGROUND_PERMISSION)
                 amount_msat = invoice_amount_msat(request.payment_request)
-                extra = await background_payment_extra(
+                grant_extra = await background_payment_extra(
                     extension_id=self.extension_id,
                     wallet=wallet,
                     payment_request=request.payment_request,
                     amount_msat=amount_msat,
                 )
-                payment = await pay_invoice(
-                    wallet_id=request.wallet_id,
-                    payment_request=request.payment_request,
-                    max_sat=request.max_sat,
-                    extra={**request.extra, **extra},
-                    description=request.description,
-                    tag=self.extension_id,
-                )
+                extra = {**request.extra, **grant_extra}
+            payment = await pay_invoice(
+                wallet_id=request.wallet_id,
+                payment_request=request.payment_request,
+                max_sat=request.max_sat,
+                extra=extra,
+                description=request.description,
+                tag=self.extension_id,
+            )
         except (PaymentError, PermissionError, ValueError) as exc:
             return PayInvoiceResponse(ok=False, error=str(exc))
 
@@ -1360,6 +1394,19 @@ class ExtensionHostAPI:
             f"context={self.context!r}, "
             f"owner_id={self.owner_id!r}"
             ")"
+        )
+
+    def _wallet_creation_user_id(self) -> str | None:
+        if self.context in {"user", "schedule", "websocket"}:
+            return self.user_id
+        return None
+
+    def _can_use_created_wallet(self, wallet: Wallet) -> bool:
+        return (
+            WALLET_CREATE_AND_SPEND_PERMISSION in self.permissions
+            and self._wallet_creation_user_id() == wallet.user
+            and wallet.is_lightning_wallet
+            and wallet.created_by_extension == self.extension_id
         )
 
     def _can_pay_from_wallet(self, wallet: Wallet | None) -> TypeGuard[Wallet]:

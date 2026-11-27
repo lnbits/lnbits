@@ -1081,3 +1081,7 @@ async def m059_add_admin_extension_access(db: Connection):
         CREATE UNIQUE INDEX idx_extensions_owner_id
         ON extensions (extension, owner_id)
     """)
+
+
+async def m060_add_wallet_creator_extension(db: Connection):
+    await db.execute("ALTER TABLE wallets ADD COLUMN created_by_extension TEXT")

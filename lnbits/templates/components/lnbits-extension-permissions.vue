@@ -15,6 +15,14 @@
               style="max-width: 100%"
             >
               <span v-text="permission.label"></span>
+              <q-item-label
+                v-if="permission.id === 'wallet.create_and_spend'"
+                caption
+                class="text-negative"
+              >
+                Can create Lightning wallets and spend from them without further
+                approval.
+              </q-item-label>
             </q-item-label>
             <div
               v-if="permission.risk.level !== 'low' || permission.badges.length"
