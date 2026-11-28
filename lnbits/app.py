@@ -67,7 +67,7 @@ from lnbits.core.wasm_ext.wasm.loader import (
     is_wasm_extension_id,
 )
 from lnbits.core.wasm_ext.wasm.scheduler import ensure_wasm_extension_schedules
-from lnbits.exceptions import register_exception_handlers
+from lnbits.exceptions import not_found_response, register_exception_handlers
 from lnbits.helpers import version_parse
 from lnbits.llms_txt import create_llms_txt_route
 from lnbits.settings import settings
@@ -503,13 +503,17 @@ def unregister_wasm_ext_routes(app: FastAPI) -> Callable:
 
 def register_new_ratelimiter(app: FastAPI) -> Callable:
     def register_new_ratelimiter_fn():
+        limit = f"{settings.lnbits_rate_limit_no}/{settings.lnbits_rate_limit_unit}"
         limiter = Limiter(
             key_func=get_remote_address,
-            default_limits=[
-                f"{settings.lnbits_rate_limit_no}/{settings.lnbits_rate_limit_unit}"
-            ],
+            default_limits=[limit],
         )
         app.state.limiter = limiter
+        # SlowAPIMiddleware skips unmatched routes. Share one per-IP bucket across
+        # all unknown paths, without spending the allowance for existing endpoints.
+        app.state.unmatched_route_handler = limiter.shared_limit(
+            limit, scope="unmatched-routes"
+        )(not_found_response)
 
     return register_new_ratelimiter_fn
 

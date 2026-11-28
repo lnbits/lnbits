@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib import request
@@ -61,12 +62,12 @@ def template_renderer(additional_folders: list | None = None) -> Jinja2Templates
     folders = ["lnbits/templates"]
 
     if additional_folders:
-        additional_folders += [
-            Path(settings.lnbits_extensions_path, "extensions", f)
+        folders.extend(str(folder) for folder in additional_folders)
+        folders.extend(
+            str(Path(settings.lnbits_extensions_path, "extensions", f))
             for f in additional_folders
-        ]
-        folders.extend(additional_folders)
-    t = Jinja2Templates(directory=folders)
+        )
+    t = _cached_template_renderer(tuple(folders))
     t.env.globals["static_url_for"] = static_url_for
     t.env.globals["normalize_path"] = normalize_path
 
@@ -362,3 +363,10 @@ def daystart_timestamp(dt: datetime | None = None) -> int:
     dt = dt or datetime.now(timezone.utc)
     day_start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
     return int(day_start.timestamp())
+
+
+@lru_cache(maxsize=32)
+def _cached_template_renderer(folders: tuple[str, ...]) -> Jinja2Templates:
+    # Keep compiled templates, while Jinja's default auto_reload picks up file edits.
+    # Dynamic globals are refreshed by template_renderer on every call.
+    return Jinja2Templates(directory=list(folders))
