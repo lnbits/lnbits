@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from typing import Any
 
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -19,7 +18,6 @@ from lnurl import (
 )
 from lnurl.models import LnurlResponseModel
 from loguru import logger
-from pydantic import ValidationError
 
 from lnbits.core.models import Payment
 from lnbits.core.models.lnurl import CreateLnurlPayment, LnurlScan
@@ -29,10 +27,14 @@ from lnbits.decorators import (
     require_base_invoice_key,
 )
 from lnbits.helpers import check_callback_url
-from lnbits.settings import RedirectPath, settings
+from lnbits.settings import settings
 
 from ..services import fetch_lnurl_pay_request, pay_invoice
 from ..services.lightning_address import (
+    ExtensionLnAddressStatus,
+    fetch_extension_lnurlp_response,
+    is_safe_lnurlp_username,
+    split_tagged_local_part,
     wallet_lightning_address_callback,
     wallet_lightning_address_response,
 )
@@ -50,20 +52,10 @@ lnurl_router = APIRouter(tags=["LNURL"])
 async def api_wallet_lightning_address_response(
     username: str, request: Request
 ) -> LnurlPayResponse | LnurlErrorResponse:
-    if settings.lnbits_ln_address_mode in ["extension_first", "extension_only"]:
-        req_headers = request["headers"] if "headers" in request else []
-        redirect = settings.find_extension_redirect(request.url.path, req_headers)
-        if redirect:
-            resp = await _check_extension_well_known(redirect, request)
-            if resp and resp.ok:
-                return resp
+    if settings.lnbits_ln_address_mode == "core_first":
+        return await _core_first_lightning_address_response(username, request)
 
-    if settings.lnbits_ln_address_mode == "extension_only":
-        return LnurlErrorResponse(
-            reason="Lightning addresses are not supported on this instance."
-        )
-
-    return await wallet_lightning_address_response(username, request)
+    return await _extension_first_lightning_address_response(username, request)
 
 
 @lnurl_router.get(
@@ -75,20 +67,6 @@ async def api_wallet_lightning_address_callback(
     username: str, request: Request, amount: int = Query(...)
 ) -> LnurlErrorResponse | Any:
     return await wallet_lightning_address_callback(username, request, amount)
-
-
-async def _handle(lnurl: str) -> LnurlResponseModel:
-    try:
-        if "@" in lnurl:  # lower case lightning addresses
-            lnurl = lnurl.lower()
-        res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
-        if isinstance(res, LnurlErrorResponse):
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
-    except LnurlException as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
-        ) from exc
-    return res
 
 
 @lnurl_router.get(
@@ -182,30 +160,85 @@ async def api_payments_pay_lnurl(
     return payment
 
 
-async def _check_extension_well_known(
-    redirect: RedirectPath, request: Request
-) -> LnurlPayResponse | LnurlErrorResponse | None:
-    target_path = redirect.new_path_from(request.url.path)
-
-    transport = httpx.ASGITransport(app=request.app)
+async def _handle(lnurl: str) -> LnurlResponseModel:
     try:
-        async with httpx.AsyncClient(
-            transport=transport,
-            base_url=str(request.base_url),
-        ) as client:
-            response = await client.get(
-                target_path,
-                headers={"accept": "application/json"},
-            )
+        if "@" in lnurl:  # lower case lightning addresses
+            lnurl = lnurl.lower()
+        res = await lnurl_handle(lnurl, user_agent=settings.user_agent, timeout=5)
+        if isinstance(res, LnurlErrorResponse):
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=res.reason)
+    except LnurlException as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return res
 
-        response.raise_for_status()
-        response_data = response.json()
-        try:
-            return LnurlPayResponse.model_validate(response_data)
-        except ValidationError:
-            return LnurlErrorResponse.model_validate(response_data)
-    except Exception as exc:
-        logger.warning(
-            f"Failed to fetch LNURL response Extension redirect {target_path}: {exc}"
+
+async def _core_first_lightning_address_response(
+    username: str, request: Request
+) -> LnurlPayResponse | LnurlErrorResponse:
+    core_resp = await wallet_lightning_address_response(username, request)
+    if core_resp.ok:
+        return core_resp
+
+    _, ext_resp = await _probe_request_extension_lnurlp(username.lower(), request)
+    if ext_resp and ext_resp.ok:
+        return ext_resp
+    return core_resp
+
+
+async def _extension_first_lightning_address_response(
+    username: str, request: Request
+) -> LnurlPayResponse | LnurlErrorResponse:
+    lower_username = username.lower()
+    status, ext_resp = await _probe_request_extension_lnurlp(lower_username, request)
+    if ext_resp and ext_resp.ok:
+        return ext_resp
+
+    if settings.lnbits_ln_address_mode == "extension_only":
+        return LnurlErrorResponse(
+            reason="Lightning addresses are not supported on this instance."
         )
-        return None
+
+    if status == ExtensionLnAddressStatus.UNAVAILABLE:
+        return LnurlErrorResponse(reason="Lightning address not found.")
+
+    base_local_part, _ = split_tagged_local_part(username)
+    if lower_username != base_local_part and await _extension_owns_or_blocks_base(
+        base_local_part, request
+    ):
+        return ext_resp or LnurlErrorResponse(reason="Lightning address not found.")
+
+    return await wallet_lightning_address_response(username, request)
+
+
+async def _extension_owns_or_blocks_base(
+    base_local_part: str, request: Request
+) -> bool:
+    base_status, base_resp = await _probe_request_extension_lnurlp(
+        base_local_part, request
+    )
+    return bool(
+        (base_resp and base_resp.ok)
+        or base_status == ExtensionLnAddressStatus.UNAVAILABLE
+    )
+
+
+async def _probe_request_extension_lnurlp(
+    local_part: str, request: Request
+) -> tuple[ExtensionLnAddressStatus, LnurlPayResponse | LnurlErrorResponse | None]:
+    if not is_safe_lnurlp_username(local_part):
+        return ExtensionLnAddressStatus.AVAILABLE, None
+
+    req_headers = request["headers"] if "headers" in request else []
+    well_known_path = f"/.well-known/lnurlp/{local_part}"
+    redirect = settings.find_extension_redirect(well_known_path, req_headers)
+    if not redirect:
+        return ExtensionLnAddressStatus.AVAILABLE, None
+
+    return await fetch_extension_lnurlp_response(
+        redirect,
+        well_known_path,
+        app=request.app,
+        base_url=str(request.base_url),
+    )
