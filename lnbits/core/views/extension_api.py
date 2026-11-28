@@ -1,4 +1,5 @@
 import json
+import shutil
 import sys
 import traceback
 from http import HTTPStatus
@@ -131,6 +132,7 @@ async def api_install_extension(data: CreateExtension):
         icon=release.icon,
     )
 
+    installed_ext = await get_installed_extension(data.ext_id)
     try:
         extension = await install_extension(
             ext_info,
@@ -149,6 +151,9 @@ async def api_install_extension(data: CreateExtension):
         traceback.print_exception(etype, exc, tb)
         if isinstance(exc, ExtensionArchiveValidationError):
             ext_info.zip_path.unlink(missing_ok=True)
+        elif installed_ext:
+            ext_info.zip_path.unlink(missing_ok=True)
+            shutil.rmtree(ext_info.ext_upgrade_dir, True)
         else:
             try:
                 archive_config = ext_info.load_archive_config()
